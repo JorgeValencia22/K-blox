@@ -1,0 +1,18 @@
+# Configuración para desplegar Kest Worlds en Render (plan gratuito).
+# En Render: New > Blueprint > elige este repositorio.
+services:
+  - type: web
+    name: kest-worlds
+    runtime: node
+    plan: free
+    # --include=dev: Vite y Three.js se necesitan para compilar el cliente
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/catalog
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: ADMIN_USERNAMES
+        sync: false

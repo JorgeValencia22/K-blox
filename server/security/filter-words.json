@@ -1,0 +1,9 @@
+{
+  "_comment": "Lista configurable de palabras filtradas. Se comparan tras normalizar (minúsculas, sin acentos, sin leetspeak ni separadores).",
+  "words": [
+    "idiota", "imbecil", "estupido", "estupida", "gilipollas", "subnormal", "retrasado", "mierda", "puta", "puto",
+    "joder", "cabron", "cabrona", "pendejo", "pendeja", "coño", "polla", "zorra", "maricon", "mamon", "capullo",
+    "hijoputa", "malparido", "verga", "culero", "pinche",
+    "fuck", "fucker", "shit", "bitch", "bastard", "asshole", "dick", "cunt", "whore", "slut", "retard", "stupid", "idiot"
+  ]
+}
