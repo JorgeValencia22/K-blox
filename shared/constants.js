@@ -52,6 +52,8 @@ export const CATEGORIES = [
   { id: 'horror', name: 'Terror' },
   { id: 'roleplay', name: 'Roleplay' },
   { id: 'building', name: 'Construcción' },
+  { id: 'battle', name: 'Batalla' },
+  { id: 'sports', name: 'Deportes' },
 ];
 
 export const MATERIALS = ['plastic', 'wood', 'metal', 'stone', 'grass', 'sand', 'glass', 'neon', 'ice', 'brick'];

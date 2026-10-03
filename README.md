@@ -125,6 +125,15 @@ arrastrar en la mitad derecha mueve la cámara. Sensibilidad e inversión del ej
 5. **Kest Hangout** – plaza social con pista de baile animada, escenario, hoguera con asientos,
    trampolines, plataforma del cielo, tobogán y laberinto. Recompensas sociales moderadas.
 
+6. **Kest Only Up** – escalada vertical de más de 200 m generada por código (barrio, obra, nubes y espacio). Sin puntos de control; récord de altura guardado y clasificación de la sala.
+7. **Kest Teclas** – obby ASMR sobre teclados mecánicos gigantes: cada tecla se hunde y suena al pisarla (cada letra da una nota de una escala pentatónica), también cuando la pisan otros jugadores. Lluvia de fondo.
+8. **Kest Terror** – laberinto de setos de noche con linterna (F), aguante al correr y La Sombra: un monstruo simulado en el servidor que patrulla los pasillos, oye a quien corre y persigue. Encontrad 6 almas para abrir la verja y escapar.
+9. **Kest Royale** – batalla tipo «último en pie»: cofres de botín (rifle, escopeta, escudo, botiquín), tormenta que se cierra en 4 fases, construcción de muros y rampas (B/R), disparos resueltos en el servidor con línea de visión y bots que completan la partida.
+10. **Kest Rocket** – fútbol con coches 2 contra 2 (con bots): turbo, salto, cámara al balón, balón simulado en el servidor, saques, goles y partidos de 3 minutos con gol de oro.
+11. **Kest Castores** – atraco cooperativo inspirado en *Beavers Be Dammed*: roe tablones, roba troncos del aserradero (los grandes, mejor entre dos), esquiva sierras y lanzallamas y llévalos a la presa antes de que acabe el tiempo. Suena la canción `client/public/audio/ia-beat.mp3`.
+
+El Obby oficial ahora tiene 10 etapas (pilares, plataformas rápidas, islas con trampolín, espiral y vigas con vallas de lava).
+
 ### Editor de mundos (CREAR)
 Biblioteca (bloques, esferas, cilindros, rampas, escaleras, árboles, puertas, ventanas, luces,
 decoraciones, plataformas móviles, puntos de aparición/control, meta, lava, monedas,
@@ -221,7 +230,7 @@ kest-worlds/
 
 ## Pruebas
 
-`npm test` ejecuta 25 pruebas: registro/inicio/cierre de sesión, bloqueo por intentos, tienda
+`npm test` ejecuta 31 pruebas: registro/inicio/cierre de sesión, bloqueo por intentos, tienda
 y validación de avatar, amigos y bloqueos, guardado/validación/publicación de mundos,
 multijugador real con dos clientes Socket.IO (visibilidad, movimiento, corrección
 antitrampas, chat filtrado, reportes), validación del obby, salas privadas e invitaciones,

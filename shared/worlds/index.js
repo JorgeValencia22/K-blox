@@ -4,8 +4,17 @@ import { buildObby } from './obby.js';
 import { buildRacing } from './racing.js';
 import { buildSurvival } from './survival.js';
 import { buildHangout } from './hangout.js';
+import { buildOnlyUp } from './onlyup.js';
+import { buildKeys } from './keys.js';
+import { buildHorror } from './horror.js';
+import { buildRoyale } from './royale.js';
+import { buildRocket } from './rocket.js';
+import { buildCastores } from './castores.js';
 
-const builders = { city: buildCity, obby: buildObby, racing: buildRacing, survival: buildSurvival, hangout: buildHangout };
+const builders = {
+  city: buildCity, obby: buildObby, racing: buildRacing, survival: buildSurvival, hangout: buildHangout,
+  onlyup: buildOnlyUp, keys: buildKeys, horror: buildHorror, royale: buildRoyale, rocket: buildRocket, castores: buildCastores,
+};
 const cache = new Map();
 
 export function getBuiltinWorld(id) {

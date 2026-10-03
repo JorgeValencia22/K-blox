@@ -87,6 +87,8 @@ export class Game {
     this.hud = new Hud(this);
     this.pause = new PauseMenu(this);
     this.mode = createClientMode(this.meta.mode, this, this.offline ? {} : join.mode || {});
+    this.mode.decorate?.(this.player.model);
+    for (const r of this.remotes.values()) this.mode.decorateRemote?.(r);
     this.hud.setPlayerCount(this.playerCount());
     this.updateHint();
     if (!this.offline) this.bindNet();
@@ -106,8 +108,11 @@ export class Game {
     });
 
     engine.setView(this);
-    audio.setAmbient('day');
-    audio.startMusic();
+    if (this.mode.startAudio) this.mode.startAudio();
+    else {
+      audio.setAmbient('day');
+      audio.startMusic();
+    }
     this.hud.showCenter(this.title, this.offline ? 'Modo de prueba' : 'Pulsa en la pantalla para controlar la cámara', 2600);
     return this;
   }
@@ -130,6 +135,7 @@ export class Game {
           if (v && v !== this.player.vehicle) v.pushRemote(s.t, e.v);
         }
       }
+      if (s.m) this.mode.onSnap?.(s.m, s.t);
     });
     on('player:join', (p) => {
       this.addRemote(p);
@@ -203,7 +209,7 @@ export class Game {
 
   playerCount() {
     let n = 1;
-    for (const r of this.remotes.values()) if (!r.npc) n++;
+    for (const r of this.remotes.values()) if (!r.npc && !r.bot) n++;
     return n;
   }
 
@@ -239,6 +245,7 @@ export class Game {
     if (this.remotes.has(p.id)) return;
     const r = new RemotePlayer(this.scene, p);
     this.remotes.set(p.id, r);
+    this.mode?.decorateRemote?.(r);
     return r;
   }
 
@@ -363,6 +370,7 @@ export class Game {
     if (veh && !this.paused) this.driveVehicle(veh, dt, move);
     else if (veh) veh.applyPose();
     const ctl = { move, run: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.pressed('Space'), jumpHeld: input.down('Space') };
+    this.mode.filterCtl?.(ctl, dt);
     p.frozen = this.paused || this.mode.frozen;
     p.update(dt, ctl, this.physics, this.cam.forward());
 
@@ -398,12 +406,13 @@ export class Game {
     // Cielo y luces
     const skyT = this.mode.skyTime?.(now) ?? (this.world.sky?.dayNight && settings.get('dayNight') ? cycleToSkyTime(tSec / 600 + 0.1) : this.world.sky?.time ?? 0.35);
     this.sky.update(dt, new THREE.Vector3(target.x, target.y, target.z), skyT);
+    this.mode.afterSky?.(dt);
     this.lightAcc += dt;
     if (this.lightAcc > 0.3) {
       this.lightAcc = 0;
       this.updateLights(target);
       const amb = this.sky.isNight ? 'night' : 'day';
-      if (amb !== this.ambient) { this.ambient = amb; audio.setAmbient(amb); }
+      if (amb !== this.ambient && !this.mode.customAudio) { this.ambient = amb; audio.setAmbient(amb); }
     }
 
     // Caída fuera del mapa
@@ -435,7 +444,9 @@ export class Game {
         throttleDelta: frozen ? 0 : (input.down('Space') ? 1 : 0) - ((input.down('ShiftLeft') && !input.isTouch) || input.down('KeyC') ? 1 : 0),
       }, dt, this.physics);
     } else {
-      res = driveGround(v, { throttle: frozen ? 0 : move.y, steer: move.x, brake: input.down('Space') || frozen }, dt, this.physics);
+      // Los modos pueden cambiar los controles del coche (turbo y salto en Kest Rocket)
+      const extra = this.mode.vehicleCtl?.(v, dt) || {};
+      res = driveGround(v, { throttle: frozen ? 0 : move.y, steer: move.x, brake: input.down('Space') || frozen, ...extra }, dt, this.physics);
       if (res.hit > 10) audio.play('hit');
     }
     if (res.crash) this.crashVehicle(v);
@@ -557,6 +568,14 @@ export class Game {
           label = v.type === 'plane' ? 'Pilotar avioneta' : v.type === 'kart' ? 'Conducir kart' : 'Conducir coche';
         }
       }
+      // Interacciones propias del modo (roer tablones, coger troncos...)
+      for (const c of this.mode.interactions?.(b) || []) {
+        if (c.d < bestD) {
+          best = { kind: 'mode', c };
+          bestD = c.d;
+          label = c.label;
+        }
+      }
     }
     this.hud.setPrompt('E', label);
     if (input.isTouch && this.hud.touchAction) this.hud.touchAction.style.opacity = best ? 1 : 0.35;
@@ -566,6 +585,7 @@ export class Game {
   async interact(t) {
     const p = this.player;
     if (t.kind === 'npc') return this.talkTo(t.r, 'hola');
+    if (t.kind === 'mode') return t.c.act();
     if (t.kind === 'exit') {
       const v = p.vehicle;
       if (!this.offline) {
@@ -779,6 +799,9 @@ export class Game {
     this.hud?.destroy();
     this.pause?.destroy();
     audio.stopEngines();
+    audio.stopTrack();
+    audio.stopLoops();
+    if (this.mode?.customAudio) audio.startMusic();
     input.enabled = true;
     input.leftDragLook = false;
     input.unlockPointer();

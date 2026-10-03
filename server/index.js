@@ -5,7 +5,7 @@ import { getBuiltinWorld } from '../shared/worlds/index.js';
 import { closeDb } from './db/database.js';
 
 // Pre-genera los mundos oficiales para que la primera entrada sea rápida.
-for (const id of ['city', 'obby', 'racing', 'survival', 'hangout']) getBuiltinWorld(id);
+for (const id of ['city', 'obby', 'racing', 'survival', 'hangout', 'onlyup', 'keys', 'horror', 'royale', 'rocket', 'castores']) getBuiltinWorld(id);
 
 const { server, io } = createApp();
 

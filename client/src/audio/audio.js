@@ -164,6 +164,32 @@ class AudioEngine {
       case 'countdown': this.tone({ freq: opts.go ? 1046 : 523, dur: opts.go ? 0.5 : 0.18, vol: 0.18, type: 'square', filter: 2500 }); break;
       case 'chat': this.tone({ freq: 1400, dur: 0.05, vol: 0.05, type: 'sine' }); break;
       case 'hurt': this.tone({ freq: 200, slide: -100, dur: 0.15, vol: 0.2, type: 'sawtooth', filter: 900 }); break;
+      case 'key': {
+        // Tecla mecánica: "clic" agudo + "thock" grave + una nota suave (caminar hace música)
+        const v = vol * (opts.vol ?? 1);
+        this.noiseBurst({ dur: 0.025, vol: 0.32 * v, freq: 4200 * r(), q: 2.5, type: 'highpass', pan });
+        this.tone({ freq: (opts.thock || 170) * r(), slide: -60, dur: 0.09, vol: 0.28 * v, type: 'sine', pan });
+        this.noiseBurst({ dur: 0.05, vol: 0.12 * v, freq: 900, q: 1, pan, when: 0.012 });
+        if (opts.note) this.tone({ freq: opts.note, dur: 0.6, vol: 0.05 * v, attack: 0.01, type: 'triangle', pan, when: 0.01 });
+        break;
+      }
+      case 'keyUp': this.noiseBurst({ dur: 0.02, vol: 0.12 * vol, freq: 3000 * r(), q: 2, type: 'highpass', pan }); break;
+      case 'heartbeat': this.tone({ freq: 55, dur: 0.12, vol: 0.35 * (opts.vol ?? 1), type: 'sine' }); this.tone({ freq: 50, dur: 0.14, vol: 0.28 * (opts.vol ?? 1), type: 'sine', when: 0.18 }); break;
+      case 'scream':
+        this.tone({ freq: 900, slide: -500, dur: 0.9, vol: 0.25, type: 'sawtooth', filter: 2500 });
+        this.tone({ freq: 1250, slide: -700, dur: 0.8, vol: 0.18, type: 'square', filter: 2000 });
+        this.noiseBurst({ dur: 0.8, vol: 0.3, freq: 1800, q: 0.7 });
+        break;
+      case 'whisper': this.noiseBurst({ dur: 1.4, vol: 0.06 * vol, freq: 2400 * r(), q: 6, pan }); break;
+      case 'shoot': this.noiseBurst({ dur: 0.12, vol: 0.35 * vol, freq: 1400, q: 0.8, pan }); this.tone({ freq: 220 * r(), slide: -150, dur: 0.1, vol: 0.18 * vol, type: 'square', filter: 1800, pan }); break;
+      case 'hitmarker': this.tone({ freq: 1800, dur: 0.05, vol: 0.12, type: 'square', filter: 4000 }); break;
+      case 'boost': this.noiseBurst({ dur: 0.25, vol: 0.12 * vol, freq: 700, q: 0.6, type: 'lowpass', pan }); break;
+      case 'ball': this.tone({ freq: 140 * r(), slide: -40, dur: 0.18, vol: 0.4 * vol, type: 'sine', pan }); this.noiseBurst({ dur: 0.08, vol: 0.3 * vol, freq: 600, q: 1, pan }); break;
+      case 'goal': [0, 4, 7, 12, 16, 19].forEach((n, i) => this.tone({ freq: 392 * 2 ** (n / 12), dur: 0.5, vol: 0.13, type: 'sawtooth', filter: 2200, when: i * 0.08 })); this.noiseBurst({ dur: 1.2, vol: 0.18, freq: 1200, q: 0.4 }); break;
+      case 'gnaw': for (let i = 0; i < 3; i++) this.noiseBurst({ dur: 0.05, vol: 0.25 * vol, freq: 1600 * r(), q: 3, pan, when: i * 0.07 }); break;
+      case 'log': this.tone({ freq: 110 * r(), dur: 0.25, vol: 0.3 * vol, type: 'triangle', pan }); this.noiseBurst({ dur: 0.15, vol: 0.2 * vol, freq: 400, q: 1.2, pan }); break;
+      case 'flame': this.noiseBurst({ dur: 0.5, vol: 0.18 * vol, freq: 500, q: 0.5, type: 'lowpass', pan }); break;
+      case 'saw': this.tone({ freq: 380 * r(), dur: 0.25, vol: 0.06 * vol, type: 'sawtooth', filter: 1500, pan }); break;
       default: break;
     }
   }
@@ -208,6 +234,88 @@ class AudioEngine {
 
   stopEngines() {
     for (const id of [...this.engines.keys()]) this.engine(id, null, null, 0, false);
+  }
+
+  // --- Canciones (archivos MP3 propios) -----------------------------------------
+  /** Reproduce una pista de audio en bucle por el bus de música. */
+  playTrack(url, { volume = 1 } = {}) {
+    this.stopMusic();
+    if (this.track?.src.endsWith(url)) return;
+    this.stopTrack();
+    const el = new Audio(url);
+    el.loop = true;
+    el.crossOrigin = 'anonymous';
+    this.track = el;
+    const connect = () => {
+      if (!this.ctx || el.connected) return;
+      try {
+        const src = this.ctx.createMediaElementSource(el);
+        const g = this.ctx.createGain();
+        g.gain.value = volume;
+        src.connect(g).connect(this.buses.music);
+        el.connected = true;
+      } catch {
+        el.volume = settings.get('music');
+      }
+    };
+    connect();
+    if (!this.ctx) el.volume = settings.get('music');
+    el.play().catch(() => {
+      // El navegador exige un gesto del usuario: se reintenta en el siguiente clic o tecla
+      const retry = () => { connect(); el.play().catch(() => {}); removeEventListener('pointerdown', retry); removeEventListener('keydown', retry); };
+      addEventListener('pointerdown', retry);
+      addEventListener('keydown', retry);
+    });
+  }
+
+  stopTrack() {
+    if (!this.track) return;
+    this.track.pause();
+    this.track.src = '';
+    this.track = null;
+  }
+
+  // --- Bucles de ambiente (zumbido de terror, motor del turbo...) -----------------
+  loop(name, { freq = 55, type = 'sawtooth', vol = 0.05, filter = 300, bus = 'ambient', noise = false } = {}) {
+    if (!this.ready) return null;
+    this.loops = this.loops || new Map();
+    if (this.loops.has(name)) return this.loops.get(name);
+    const c = this.ctx;
+    let src;
+    if (noise) {
+      src = c.createBufferSource();
+      src.buffer = this.noise;
+      src.loop = true;
+    } else {
+      src = c.createOscillator();
+      src.type = type;
+      src.frequency.value = freq;
+    }
+    const f = c.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = filter;
+    const g = c.createGain();
+    g.gain.value = 0;
+    g.gain.setTargetAtTime(vol, c.currentTime, 1.5);
+    src.connect(f).connect(g).connect(this.buses[bus]);
+    src.start();
+    const l = { src, g, f };
+    this.loops.set(name, l);
+    return l;
+  }
+
+  setLoopVolume(name, vol) {
+    const l = this.loops?.get(name);
+    if (l) l.g.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.2);
+  }
+
+  stopLoops() {
+    if (!this.loops) return;
+    for (const l of this.loops.values()) {
+      l.g.gain.setTargetAtTime(0, this.ctx.currentTime, 0.3);
+      setTimeout(() => { try { l.src.stop(); } catch { /* ya parado */ } }, 1200);
+    }
+    this.loops.clear();
   }
 
   // --- Música generativa ------------------------------------------------------

@@ -8,6 +8,7 @@ import { h, toast, formatTime } from '../ui/dom.js';
 import { material } from '../engine/materials.js';
 import { boxGeo } from '../world/objectParts.js';
 import { store } from '../core/store.js';
+import { OnlyUpClient, HorrorClient, RoyaleClient, RocketClient, CastoresClient } from './modes2.js';
 
 class BaseClient {
   constructor(game, state) {
@@ -496,8 +497,81 @@ class HangoutClient extends BaseClient {
   }
 }
 
+// --- Kest Teclas (ASMR) ---------------------------------------------------------------
+// Escala pentatónica: cada tecla tiene su nota, así caminar suena a música.
+const PENTA = [261.6, 293.7, 329.6, 392.0, 440.0, 523.3, 587.3, 659.3, 784.0, 880.0];
+function keySound(o) {
+  const label = o.label || '';
+  if (!label) return { note: 130.8, thock: 110 }; // barra espaciadora: grave
+  let h = 0;
+  for (const ch of label) h += ch.charCodeAt(0);
+  return { note: PENTA[h % PENTA.length], thock: 150 + (h % 5) * 12 };
+}
+
+class KeysClient extends ObbyClient {
+  constructor(game, state) {
+    super(game, state);
+    this.customAudio = true;
+    this.hint = ['Camina sobre las teclas: cada una suena distinto 🎹', '[R] reiniciar recorrido'];
+    this.under = new Map(); // id del jugador -> id de la tecla que pisa
+    this.pressed = new Map(); // id de tecla -> nivel de pulsación (0..1)
+  }
+
+  startAudio() {
+    audio.setAmbient(null);
+    audio.startMusic();
+    audio.loop('rain', { noise: true, filter: 2600, vol: 0.022 });
+  }
+
+  /** Tecla bajo una posición (o null). */
+  keyAt(x, y, z) {
+    const g = this.game.physics.groundAt(x, z, 0.3, y + 0.35);
+    const o = g.c?.data;
+    return o && o.t === 'keycap' && Math.abs(g.y - y) < 0.4 ? o : null;
+  }
+
+  step(id, o, pos, local) {
+    const prev = this.under.get(id);
+    if ((prev || null) === (o ? o.id : null)) return;
+    this.under.set(id, o ? o.id : null);
+    if (prev) audio.play('keyUp', local ? null : pos);
+    if (o) audio.play('key', local ? null : pos, { ...keySound(o), vol: local ? 1 : 0.8, maxDist: 45 });
+  }
+
+  update(dt) {
+    super.update(dt);
+    const g = this.game;
+    const b = g.player.body;
+    const down = new Set();
+    const mine = b.onGround && b.ground?.data?.t === 'keycap' ? b.ground.data : null;
+    this.step('me', mine, null, true);
+    if (mine) down.add(mine.id);
+    for (const r of g.remotes.values()) {
+      const o = this.keyAt(r.pos.x, r.pos.y, r.pos.z);
+      this.step(r.id, o, { x: r.pos.x, y: r.pos.y, z: r.pos.z }, false);
+      if (o) down.add(o.id);
+    }
+    // Animación: las teclas pisadas se hunden y vuelven a subir al soltarlas
+    for (const e of g.built.keycaps) {
+      if (!e.mesh) continue;
+      const target = down.has(e.o.id) ? 1 : 0;
+      const cur = this.pressed.get(e.o.id) || 0;
+      const next = cur + (target - cur) * Math.min(1, dt * (target ? 30 : 12));
+      this.pressed.set(e.o.id, next);
+      if (!e.o.axis) e.mesh.position.y = e.o.p[1] - next * 0.32;
+      else e.mesh.position.y -= next * 0.32;
+    }
+  }
+}
+
 export function createClientMode(name, game, state) {
   switch (name) {
+    case 'keys': return new KeysClient(game, state);
+    case 'onlyup': return new OnlyUpClient(game, state);
+    case 'horror': return new HorrorClient(game, state);
+    case 'royale': return new RoyaleClient(game, state);
+    case 'rocket': return new RocketClient(game, state);
+    case 'castores': return new CastoresClient(game, state);
     case 'city': return new CityClient(game, state);
     case 'obby': return new ObbyClient(game, state);
     case 'racing': return new RacingClient(game, state);

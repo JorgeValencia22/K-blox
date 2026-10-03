@@ -8,7 +8,7 @@ const SERVER_PORT = process.env.KEST_SERVER_PORT || 3000;
 
 export default defineConfig({
   root: path.join(here, 'client'),
-  publicDir: false,
+  publicDir: path.join(here, 'client', 'public'),
   server: {
     port: 5173,
     proxy: {

@@ -170,7 +170,7 @@ export class Hud {
   renderPlayerList() {
     const g = this.game;
     const me = store.user;
-    const rows = [{ id: me.id, name: me.username, level: me.level, self: true }, ...[...g.remotes.values()].filter((r) => !r.npc).map((r) => ({ id: r.id, name: r.name, level: r.level }))];
+    const rows = [{ id: me.id, name: me.username, level: me.level, self: true }, ...[...g.remotes.values()].filter((r) => !r.npc && !r.bot).map((r) => ({ id: r.id, name: r.name, level: r.level }))];
     clear(this.playerList).append(
       h('div.row', h('b.grow', `Jugadores (${rows.length}/${g.room?.maxPlayers ?? '∞'})`), g.room?.inviteCode ? h('span.tag', `Código: ${g.room.inviteCode}`) : null),
       h('div.list', { style: { marginTop: '8px' } }, rows.map((r) => h('div.list-item',

@@ -31,11 +31,11 @@ function addBox(parent, w, h, d, mat, x, y, z) {
   return m;
 }
 
-export function buildVehicleMesh(type, id) {
+export function buildVehicleMesh(type, id, colorOverride = null) {
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
-  const color = hashColor(id);
+  const color = colorOverride || hashColor(id);
   const paint = std(color, { metalness: 0.3, roughness: 0.35 });
   const wheels = [];
   let seat, prop = null;
@@ -104,7 +104,7 @@ export class Vehicle {
     this.id = data.id;
     this.type = data.type;
     this.cfg = VEHICLES[data.type];
-    const m = buildVehicleMesh(data.type, data.id);
+    const m = buildVehicleMesh(data.type, data.id, data.color);
     Object.assign(this, { root: m.root, body: m.body, wheels: m.wheels, seat: m.seat, prop: m.prop });
     scene.add(this.root);
     this.driver = data.driver || null;
@@ -181,16 +181,24 @@ export class Vehicle {
 const tmpBody = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, r: 1, h: 1.4, step: 0.8, onGround: true, ground: null, maxSlope: 2.2 };
 
 /**
- * Conducción arcade de coche/kart. ctl: { throttle(-1..1), steer(-1..1), brake(bool) }
- * Devuelve { hit } si choca a cierta velocidad.
+ * Conducción arcade de coche/kart.
+ * ctl: { throttle(-1..1), steer(-1..1), brake(bool), boost(bool), jump(bool) }
+ * El turbo y el salto se usan en Kest Rocket. Devuelve { hit } si choca a cierta velocidad.
  */
 export function driveGround(v, ctl, dt, physics) {
   const s = v.state, c = v.cfg;
+  const maxSpeed = ctl.boost ? c.maxSpeed * 1.25 : c.maxSpeed;
+  if (ctl.boost) s.speed += c.accel * 1.8 * dt;
+  if (ctl.jump && s.onGround) {
+    s.vy = 11;
+    s.onGround = false;
+    s.ground = null;
+  }
   if (ctl.throttle > 0) s.speed += (s.speed < 0 ? c.brake : c.accel) * ctl.throttle * dt;
   else if (ctl.throttle < 0) s.speed += (s.speed > 0 ? -c.brake : -c.accel * 0.6) * -ctl.throttle * dt;
   else s.speed *= 1 - Math.min(1, 1.1 * dt);
   if (ctl.brake) s.speed *= 1 - Math.min(1, 3 * dt);
-  s.speed = Math.max(-c.reverse, Math.min(c.maxSpeed, s.speed));
+  s.speed = Math.max(-c.reverse, Math.min(maxSpeed, s.speed));
   if (Math.abs(s.speed) < 0.05 && !ctl.throttle) s.speed = 0;
   const steerK = Math.min(1, Math.abs(s.speed) / 6) * Math.sign(s.speed);
   s.yaw -= ctl.steer * c.steer * steerK * dt * (ctl.brake ? 1.5 : 1);

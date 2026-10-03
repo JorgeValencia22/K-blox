@@ -154,6 +154,28 @@ export function objectParts(o) {
     case 'sign':
       add(boxGeo(sx, sy, sz), o.m);
       break;
+    case 'keycap': {
+      // Tecla mecánica: base más oscura y cuerpo superior un poco más estrecho
+      const base = new THREE.Color(c).multiplyScalar(0.72).getStyle();
+      add(at(boxGeo(sx, sy * 0.45, sz), 0, -sy * 0.275, 0), o.m, base);
+      add(at(boxGeo(sx * 0.9, sy * 0.55, sz * 0.9), 0, sy * 0.225, 0), o.m, c);
+      break;
+    }
+    case 'saw': {
+      // Sierra circular giratoria (disco vertical con dientes)
+      add(new THREE.CylinderGeometry(sy / 2, sy / 2, 0.18, 28).rotateZ(Math.PI / 2), 'metal', '#cfd8dc', 'spin');
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        add(at(boxGeo(0.2, 0.35, 0.35).rotateX(a), 0, Math.cos(a) * sy * 0.5, Math.sin(a) * sy * 0.5), 'metal', '#eceff1', 'spin');
+      }
+      add(new THREE.CylinderGeometry(sy * 0.12, sy * 0.12, 0.3, 12).rotateZ(Math.PI / 2), 'plastic', '#e53935', 'spin');
+      break;
+    }
+    case 'flame':
+      add(at(boxGeo(sx * 0.5, sx * 0.5, sx * 0.5), 0, -sy / 2 + sx * 0.25, 0), 'metal', '#455a64');
+      add(at(new THREE.ConeGeometry(sx * 0.5, sy * 0.9, 10).rotateX(Math.PI), 0, sy * 0.05, 0), 'neon', '#ff6d00', 'flamejet');
+      add(at(new THREE.ConeGeometry(sx * 0.25, sy * 0.7, 8).rotateX(Math.PI), 0, sy * 0.05, 0), 'neon', '#ffea00', 'flamejet');
+      break;
     default:
       break;
   }
@@ -241,6 +263,10 @@ export function objectColliders(o) {
   const [sx, sy, sz] = o.s;
   const box = (p, s) => ({ kind: 'box', p, h: [s[0] / 2, s[1] / 2, s[2] / 2] });
   switch (o.t) {
+    case 'keycap':
+      return [box([0, 0, 0], [sx, sy, sz])];
+    case 'flame':
+      return [box([0, -sy / 2 + sx * 0.25, 0], [sx * 0.5, sx * 0.5, sx * 0.5])];
     case 'block': case 'window': case 'sign': case 'spawn': case 'checkpoint': case 'finish': case 'platform':
     case 'jumppad': case 'chest': case 'door': case 'cylinder': case 'switch':
       return [box([0, 0, 0], [sx, sy, sz])];
@@ -268,4 +294,4 @@ export function objectColliders(o) {
 }
 
 export const INTERACTIVE = new Set(['door', 'chest', 'switch', 'seat', 'gem', 'coin', 'resource']);
-export const DYNAMIC_VISUAL = new Set(['door', 'chest', 'switch', 'gem', 'coin', 'platform', 'kill', 'light', 'water', 'sign', 'resource', 'jumppad', 'checkpoint']);
+export const DYNAMIC_VISUAL = new Set(['door', 'chest', 'switch', 'gem', 'coin', 'platform', 'kill', 'light', 'water', 'sign', 'resource', 'jumppad', 'checkpoint', 'keycap', 'saw', 'flame']);

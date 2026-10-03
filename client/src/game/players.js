@@ -187,6 +187,7 @@ export class RemotePlayer {
     this.name = data.name;
     this.level = data.level;
     this.npc = !!data.npc;
+    this.bot = !!data.bot;
     this.title = data.title || null;
     this.model = new AvatarModel(data.avatar, { name: data.name, level: data.level, title: this.title });
     scene.add(this.model.root);

@@ -4,9 +4,14 @@ import { BaseMode } from './BaseMode.js';
 import * as users from '../../services/users.js';
 
 export class ObbyMode extends BaseMode {
-  constructor(room, { official = true } = {}) {
+  /**
+   * opts.stats: claves de estadísticas/recompensas para recorridos oficiales distintos
+   * (Kest Obby y Kest Teclas comparten esta lógica).
+   */
+  constructor(room, { official = true, stats = null } = {}) {
     super(room);
     this.official = official;
+    this.stats = stats || { best: 'obbyBest', clears: 'obbyClears', daily: 'obby', label: 'Obby completado', achievements: ['obby_clear'], fast: ['obby_fast', 180_000] };
     this.checkpoints = this.objectsOfType('checkpoint').sort((a, b) => a.n - b.n);
     this.finish = this.objectsOfType('finish')[0] || null;
     this.minTime = (this.world.meta?.minTime ?? Math.max(3, this.checkpoints.length * 2)) * 1000;
@@ -24,7 +29,7 @@ export class ObbyMode extends BaseMode {
 
   onJoin(p) {
     const s = users.getUser(p.id).stats;
-    p.data = { best: this.official ? s.obbyBest ?? null : null };
+    p.data = { best: this.official ? s[this.stats.best] ?? null : null };
     this.reset(p);
     return { obby: this.status(p) };
   }
@@ -58,16 +63,17 @@ export class ObbyMode extends BaseMode {
       users.award(p.id, { xp: 30, coins, reason: 'Mundo completado' });
       return;
     }
+    const k = this.stats;
     const s = users.updateStats(p.id, (st) => {
-      st.obbyClears = (st.obbyClears || 0) + 1;
-      if (isBest) st.obbyBest = time;
+      st[k.clears] = (st[k.clears] || 0) + 1;
+      if (isBest) st[k.best] = time;
     });
-    const first = s.obbyClears === 1;
-    const coins = users.dailyCapped(p.id, 'obby', first ? 80 : 25, 120);
-    users.award(p.id, { xp: first ? 150 : 60, coins, reason: 'Obby completado' });
+    const first = s[k.clears] === 1;
+    const coins = users.dailyCapped(p.id, k.daily, first ? 80 : 25, 120);
+    users.award(p.id, { xp: first ? 150 : 60, coins, reason: k.label });
     users.setHistoryResult(p.historyId, `Completado en ${(time / 1000).toFixed(1)} s`);
-    users.unlockAchievement(p.id, 'obby_clear');
-    if (time < 90_000) users.unlockAchievement(p.id, 'obby_fast');
+    for (const a of k.achievements) users.unlockAchievement(p.id, a);
+    if (k.fast && time < k.fast[1]) users.unlockAchievement(p.id, k.fast[0]);
   }
 
   onEvent(p, name) {

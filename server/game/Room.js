@@ -47,14 +47,14 @@ export class Room {
     return `room:${this.id}`;
   }
 
-  addVehicle(id, type, p, ry = 0) {
-    const v = { id, type, p: [...p], r: [0, (ry * Math.PI) / 180, 0], s: 0, driver: null, spawn: { p: [...p], ry }, idleSince: Date.now() };
+  addVehicle(id, type, p, ry = 0, color = null) {
+    const v = { id, type, color, p: [...p], r: [0, (ry * Math.PI) / 180, 0], s: 0, driver: null, spawn: { p: [...p], ry }, idleSince: Date.now() };
     this.vehicles.set(id, v);
     return v;
   }
 
   vehiclePublic(v) {
-    return { id: v.id, type: v.type, p: v.p, r: v.r, driver: v.driver };
+    return { id: v.id, type: v.type, p: v.p, r: v.r, driver: v.driver, color: v.color || undefined };
   }
 
   canJoin(user, { code } = {}) {
@@ -111,7 +111,7 @@ export class Room {
     return {
       room: this.info(user.id),
       you: { id: user.id, spawn: p.pos },
-      players: [...this.players.values()].filter((o) => o.id !== user.id).map((o) => this.playerPublic(o)).concat(this.npcs ? this.npcs.publicList() : []),
+      players: [...this.players.values()].filter((o) => o.id !== user.id).map((o) => this.playerPublic(o)).concat(this.npcs ? this.npcs.publicList() : [], this.mode.publicPlayers?.() || []),
       vehicles: [...this.vehicles.values()].map((v) => this.vehiclePublic(v)),
       state: this.state,
       mode: modeState,
@@ -257,6 +257,7 @@ export class Room {
     this.npcs?.tick(dt);
     const players = [];
     for (const p of this.players.values()) {
+      if (this.mode.hidden?.(p)) continue; // p. ej. eliminados en Kest Royale
       const e = { id: p.id, p: p.pos, ry: p.ry, a: p.anim };
       if (p.vehicleId) {
         const v = this.vehicles.get(p.vehicleId);
@@ -265,7 +266,13 @@ export class Room {
       players.push(e);
     }
     if (this.npcs) players.push(...this.npcs.snapEntries());
-    this.io?.to(this.channel).volatile.emit('snap', { t: Date.now(), players });
+    // Los modos pueden añadir bots y datos propios (pelota, monstruo, tormenta...)
+    const extra = this.mode.snapPlayers?.();
+    if (extra) players.push(...extra);
+    const snap = { t: Date.now(), players };
+    const m = this.mode.snapExtra?.();
+    if (m) snap.m = m;
+    this.io?.to(this.channel).volatile.emit('snap', snap);
 
     // Devuelve a su sitio los vehículos abandonados o caídos.
     const now = Date.now();

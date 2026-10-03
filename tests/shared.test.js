@@ -64,11 +64,11 @@ test('avatar: colores inválidos se corrigen', () => {
 });
 
 test('mundos oficiales: tienen apariciones y objetivos', () => {
-  for (const id of ['city', 'obby', 'racing', 'survival', 'hangout']) {
+  for (const id of ['city', 'obby', 'racing', 'survival', 'hangout', 'onlyup', 'keys', 'horror', 'royale', 'rocket', 'castores']) {
     const w = getBuiltinWorld(id);
     assert.ok(w.spawns.length > 0, id);
     assert.ok(w.objects.length > 20, id);
   }
   assert.equal(getBuiltinWorld('city').objects.filter((o) => o.t === 'gem').length, 12);
-  assert.equal(getBuiltinWorld('obby').objects.filter((o) => o.t === 'checkpoint').length, 4);
+  assert.equal(getBuiltinWorld('obby').objects.filter((o) => o.t === 'checkpoint').length, 9);
 });

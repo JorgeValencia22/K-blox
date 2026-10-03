@@ -70,13 +70,82 @@ export function buildObby() {
   }
   z -= 12;
   g.block([0, y4 - 0.5, z], [14, 1, 14], '#fff59d', 'stone');
-  g.add('finish', [0, y4 + 0.2, z], [6, 0.4, 6], '#fdd835', 'neon');
-  g.add('sign', [0, y4 + 3, z - 6.5], [6, 2, 0.2], '#ffffff', 'wood', { text: '¡META!' });
+  g.add('checkpoint', [0, y4 + 0.2, z], [4, 0.4, 4], '#66bb6a', 'neon', { n: 5 });
+  g.add('sign', [0, y4 + 3, z - 6.5], [6, 2, 0.2], '#ffffff', 'wood', { text: '¡MITAD! Sigue →' });
+
+  // A partir de aquí: etapas 6-10 (más largas y difíciles).
+  // 'edge' es el borde delantero (z más negativa) del último elemento colocado.
+  let edge = z - 7;
+  let y = y4;
+  const place = (depth, gap) => {
+    const c = edge - gap - depth / 2;
+    edge = c - depth / 2;
+    return c;
+  };
+  const checkpointPad = (n, label) => {
+    const c = place(8, 2.5);
+    g.block([0, y - 0.5, c], [10, 1, 8], '#eceff1', 'stone');
+    g.add('checkpoint', [0, y + 0.2, c], [4, 0.4, 4], '#66bb6a', 'neon', { n });
+    if (label) g.add('sign', [4.4, y + 1.6, c + 3.6], [3.6, 1.4, 0.2], '#ffffff', 'wood', { text: label });
+  };
+
+  // Etapa 6: pilares que suben
+  const px = [-2.5, 2, -1.5, 2.5, -2, 1.5, -2.5, 2];
+  for (let i = 0; i < 8; i++) {
+    y += 1.1;
+    const c = place(2, 2.5);
+    g.block([px[i], y - 6, c], [2, 12, 2], C[i % 6], 'plastic');
+  }
+  checkpointPad(6, 'ETAPA 7');
+
+  // Etapa 7: plataformas móviles rápidas
+  const axes = ['x', 'z', 'x', 'y', 'x'];
+  for (let i = 0; i < 5; i++) {
+    const c = place(3.5, 3.2);
+    g.add('platform', [0, y - 0.3, c], [3.5, 0.6, 3.5], '#ffca28', 'metal', { axis: axes[i], dist: axes[i] === 'y' ? 3 : axes[i] === 'z' ? 2.5 : 9, speed: 0.3 + i * 0.04 });
+  }
+  checkpointPad(7, 'ETAPA 8');
+  // Trampolín de salida: las barras de lava solo se superan con el arco del trampolín
+  g.add('jumppad', [0, y + 0.2, edge + 1.6], [1.8, 0.4, 1.8], '#ab47bc', 'neon', { power: 15 });
+
+  // Etapa 8: islas con trampolines y barras de lava (hay que usar el trampolín)
+  for (let i = 0; i < 4; i++) {
+    const gapStart = edge;
+    const c = place(3.4, 6);
+    g.block([0, y - 0.5, c], [3.4, 1, 3.4], '#eceff1', 'stone');
+    g.add('jumppad', [0, y + 0.2, c], [1.8, 0.4, 1.8], '#ab47bc', 'neon', { power: 15 });
+    g.add('kill', [0, y + 2.2, gapStart - 3], [6, 0.5, 0.5], '#ff3d00', 'neon');
+  }
+  checkpointPad(8, 'ETAPA 9');
+
+  // Etapa 9: espiral alrededor de una columna
+  const cz = edge - 2.5 - 7.3;
+  const steps = 12;
+  for (let i = 0; i < steps; i++) {
+    const a = ((90 + i * 40) * Math.PI) / 180;
+    y += 1.2;
+    g.block([Math.cos(a) * 6, y - 0.3, cz + Math.sin(a) * 6], [2.6, 0.6, 2.6], C[i % 6], 'plastic');
+  }
+  y += 1.2;
+  g.add('cylinder', [0, y - 15, cz], [6, 30, 6], '#90a4ae', 'stone');
+  g.add('checkpoint', [0, y + 0.2, cz], [3, 0.4, 3], '#66bb6a', 'neon', { n: 9 });
+  edge = cz - 3;
+
+  // Etapa 10: vigas con vallas de lava que hay que saltar
+  for (let i = 0; i < 3; i++) {
+    const c = place(7, 2);
+    g.block([0, y - 0.3, c], [1.1, 0.6, 7], '#8d6e63', 'wood');
+    g.add('kill', [0, y + 0.25, c], [1.6, 0.5, 0.4], '#ff3d00', 'neon');
+  }
+  const fz = place(14, 2.5);
+  g.block([0, y - 0.5, fz], [14, 1, 14], '#fff59d', 'stone');
+  g.add('finish', [0, y + 0.2, fz], [6, 0.4, 6], '#fdd835', 'neon');
+  g.add('sign', [0, y + 3, fz - 6.5], [6, 2, 0.2], '#ffffff', 'wood', { text: '¡META!' });
 
   // Nubes decorativas
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 34; i++) {
     const x = (i % 2 ? 1 : -1) * (25 + (i * 7) % 30);
-    g.add('sphere', [x, 8 + (i * 13) % 30, -i * 12], [10, 4, 7], '#ffffff', 'plastic', { nc: true });
+    g.add('sphere', [x, 8 + (i * 13) % 50, -i * 13], [10, 4, 7], '#ffffff', 'plastic', { nc: true });
   }
 
   return {
@@ -84,10 +153,10 @@ export function buildObby() {
     terrain: null,
     water: null,
     sky: { time: 0.32, dayNight: false, fog: true },
-    bounds: { min: [-200, -10, -400], max: [200, 200, 100] },
+    bounds: { min: [-200, -10, -700], max: [200, 260, 100] },
     spawns: [[0, Y + 0.2, 2]],
     objects: g.objects,
     vehicles: [],
-    meta: { mode: 'obby', checkpoints: 4, minTime: 25 },
+    meta: { mode: 'obby', checkpoints: 9, minTime: 60 },
   };
 }

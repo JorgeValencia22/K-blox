@@ -86,6 +86,7 @@ export function buildWorld(world, opts = {}) {
     group, physics, hm,
     objects: new Map(), // id -> entrada
     interactables: [],
+    keycaps: [], // teclas de Kest Teclas (se hunden al pisarlas)
     triggers: [],
     platforms: [],
     animated: [],
@@ -113,7 +114,7 @@ export function buildWorld(world, opts = {}) {
       const wz = o.p[2] - c.p[0] * sin + c.p[2] * cos;
       entry.colliders.push(physics.add({
         kind: c.kind, x: wx, y: o.p[1] + c.p[1], z: wz, hx: c.h[0], hy: c.h[1], hz: c.h[2], ry,
-        surface: o.m, dynamic: o.t === 'platform', data: o,
+        surface: o.m, dynamic: o.t === 'platform' || (o.t === 'keycap' && !!o.axis), data: o,
       }));
     }
 
@@ -122,7 +123,7 @@ export function buildWorld(world, opts = {}) {
       continue;
     }
     const parts = objectParts(o);
-    const separate = editor || DYNAMIC_VISUAL.has(o.t) || (o.t === 'deco' && o.group) || o.dance || o.t === 'seat';
+    const separate = editor || DYNAMIC_VISUAL.has(o.t) || (o.t === 'deco' && o.group) || o.dance || o.t === 'seat' || o.sep;
     q.setFromAxisAngle(up, ry);
     m4.compose(new THREE.Vector3(...o.p), q, one);
 
@@ -150,6 +151,13 @@ export function buildWorld(world, opts = {}) {
           g.add(plane);
         }
       }
+      if (o.t === 'keycap' && o.label) {
+        // Letra impresa en la parte superior de la tecla
+        const plane = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(o.s[0], o.s[2]) * 0.8, Math.min(o.s[0], o.s[2]) * 0.8), keyLabelMaterial(o.label, o.c));
+        plane.rotation.x = -Math.PI / 2;
+        plane.position.y = o.s[1] / 2 + 0.012;
+        g.add(plane);
+      }
       g.userData.objId = o.id;
       if (o.t === 'seat' && o.hidden && editor) {
         g.add(new THREE.Mesh(new THREE.BoxGeometry(...o.s), new THREE.MeshBasicMaterial({ color: o.c, wireframe: true })));
@@ -172,7 +180,12 @@ export function buildWorld(world, opts = {}) {
     // Comportamientos
     switch (o.t) {
       case 'platform':
+      case 'saw':
         result.platforms.push(entry);
+        break;
+      case 'keycap':
+        result.keycaps.push(entry);
+        if (o.axis) result.platforms.push(entry);
         break;
       case 'kill': case 'checkpoint': case 'finish': case 'jumppad': case 'coin': case 'gem':
         result.triggers.push(entry);
@@ -255,4 +268,25 @@ export function disposeWorld(result) {
     // Solo las texturas propias (carteles); las de materiales son compartidas.
     if (c.material?.map?.userData?.own) c.material.map.dispose();
   });
+}
+
+const keyLabelCache = new Map();
+/** Material con la letra de una tecla (texto oscuro o claro según el color de la tecla). */
+function keyLabelMaterial(label, bg) {
+  const key = label + '|' + bg;
+  if (keyLabelCache.has(key)) return keyLabelCache.get(key);
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const col = new THREE.Color(bg);
+  g.fillStyle = col.r + col.g + col.b > 1.6 ? '#37474f' : '#f5f5f5';
+  g.font = `900 ${label.length > 2 ? 30 : 64}px Nunito, system-ui, sans-serif`;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(label, 64, 66);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false });
+  keyLabelCache.set(key, m);
+  return m;
 }
