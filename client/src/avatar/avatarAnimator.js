@@ -2,7 +2,7 @@
 // objetivo de las extremidades; las transiciones se suavizan interpolando,
 // por lo que nunca se mezclan dos animaciones contradictorias.
 
-export const LOOP_STATES = new Set(['idle', 'walk', 'run', 'fall', 'dance', 'robot', 'sit', 'swim', 'drive', 'fly', 'dead']);
+export const LOOP_STATES = new Set(['idle', 'walk', 'run', 'fall', 'dance', 'robot', 'sit', 'swim', 'drive', 'fly', 'dead', 'crouch']);
 export const ONESHOT = { jump: 0.35, land: 0.18, wave: 1.6, cheer: 1.6, spin: 1.0, flip: 0.9, attack: 0.3 };
 export const EMOTES = { emote_wave: 'wave', emote_dance: 'dance', emote_cheer: 'cheer', emote_spin: 'spin', emote_robot: 'robot', emote_flip: 'flip' };
 
@@ -48,6 +48,12 @@ export class AvatarAnimator {
         P.la[0] = Math.sin(f) * a; P.ra[0] = -Math.sin(f) * a;
         P.ll[0] = -Math.sin(f) * a; P.rl[0] = Math.sin(f) * a;
         P.body[0] = 0.18; P.y = Math.abs(Math.cos(f)) * 0.09;
+        break;
+      }
+      case 'crouch': {
+        const f = t * Math.max(4, speed * 1.2), a = speed > 0.3 ? 0.4 : 0;
+        P.ll[0] = -0.9 - Math.sin(f) * a; P.rl[0] = -0.9 + Math.sin(f) * a;
+        P.la[0] = -0.5; P.ra[0] = -0.5; P.body[0] = 0.45; P.y = -0.32;
         break;
       }
       case 'jump':

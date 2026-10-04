@@ -14,7 +14,9 @@ export class RoomManager {
     this.io = io;
     this.rooms = new Map();
     this.userRoom = new Map(); // userId -> roomId
+    this.spectating = new Map(); // userId (admin) -> roomId
     this.last = Date.now();
+    this.maintenance = false; // si está activo solo entran administradores
     this.timer = setInterval(() => this.tick(), Room.SNAPSHOT_MS);
     this.timer.unref?.();
   }
@@ -81,6 +83,8 @@ export class RoomManager {
   }
 
   join(socket, user, req) {
+    if (this.maintenance && user.role !== 'admin') return { error: '🛠️ Los servidores están en mantenimiento. Vuelve en un rato.' };
+    this.unspectate(user.id);
     const pick = this.pickRoom(user, req || {});
     if (pick.error) return pick;
     const prev = this.userRoom.get(user.id);
@@ -93,10 +97,69 @@ export class RoomManager {
   }
 
   leave(userId) {
+    this.unspectate(userId);
     const id = this.userRoom.get(userId);
     if (!id) return;
     this.userRoom.delete(userId);
     this.rooms.get(id)?.leave(userId);
+  }
+
+  // --- Herramientas de administración -----------------------------------------
+  /** Entra en la sala de forma invisible para espectear (solo administradores). */
+  spectate(socket, user, roomId) {
+    const room = this.rooms.get(String(roomId));
+    if (!room) return { error: 'La partida ya no existe' };
+    const prev = this.userRoom.get(user.id);
+    if (prev) this.leave(user.id);
+    this.unspectate(user.id);
+    const payload = room.addSpectator(socket, user);
+    this.spectating.set(user.id, room.id);
+    payload.world = room.worldIsBuiltin ? { builtin: room.key } : { data: room.world };
+    return { ok: true, ...payload };
+  }
+
+  unspectate(userId) {
+    const id = this.spectating.get(userId);
+    if (!id) return;
+    this.spectating.delete(userId);
+    this.rooms.get(id)?.removeSpectator(userId);
+  }
+
+  spectatorRoom(userId) {
+    const id = this.spectating.get(userId);
+    return id ? this.rooms.get(id) : null;
+  }
+
+  /** Cierra una sala al instante: todos sus jugadores vuelven al menú. */
+  closeRoom(roomId, reason = 'El servidor se ha cerrado') {
+    const room = this.rooms.get(String(roomId));
+    if (!room) return { error: 'La partida ya no existe' };
+    const ids = [...room.players.keys()];
+    for (const id of ids) {
+      const p = room.players.get(id);
+      p.socket.emit('kicked', { reason, closed: true });
+      this.leave(id);
+    }
+    for (const [uid, sp] of room.spectators) {
+      sp.socket.emit('kicked', { reason, closed: true });
+      this.unspectate(uid);
+    }
+    this.rooms.delete(room.id);
+    return { ok: true, players: ids.length };
+  }
+
+  closeAll(reason) {
+    let players = 0;
+    for (const id of [...this.rooms.keys()]) players += this.closeRoom(id, reason).players || 0;
+    return { ok: true, players };
+  }
+
+  overview() {
+    return [...this.rooms.values()].map((r) => ({
+      id: r.id, key: r.key, name: r.name, visibility: r.visibility, maxPlayers: r.maxPlayers, createdAt: r.createdAt,
+      players: [...r.players.values()].map((p) => ({ id: p.id, name: p.name, level: p.level, frozen: !!p.adminFrozen, controlled: !!p.controlledBy })),
+      spectators: r.spectators.size,
+    }));
   }
 
   roomOf(userId) {
@@ -134,7 +197,7 @@ export class RoomManager {
       } catch (e) {
         console.error(`[sala ${room.id}] error en tick:`, e);
       }
-      if (room.players.size === 0 && room.emptySince && now - room.emptySince > EMPTY_ROOM_TTL) this.rooms.delete(room.id);
+      if (room.players.size === 0 && room.spectators.size === 0 && room.emptySince && now - room.emptySince > EMPTY_ROOM_TTL) this.rooms.delete(room.id);
     }
   }
 }

@@ -54,6 +54,7 @@ export const CATEGORIES = [
   { id: 'building', name: 'Construcción' },
   { id: 'battle', name: 'Batalla' },
   { id: 'sports', name: 'Deportes' },
+  { id: 'party', name: 'Fiesta' },
 ];
 
 export const MATERIALS = ['plastic', 'wood', 'metal', 'stone', 'grass', 'sand', 'glass', 'neon', 'ice', 'brick'];

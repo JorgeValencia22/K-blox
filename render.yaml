@@ -16,3 +16,8 @@ services:
         value: "1"
       - key: ADMIN_USERNAMES
         sync: false
+      # Cuenta del dueño con modo desarrollador: escribe los valores en el panel de Render
+      - key: OWNER_USERNAME
+        sync: false
+      - key: OWNER_PASSWORD
+        sync: false

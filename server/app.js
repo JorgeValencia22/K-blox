@@ -12,9 +12,13 @@ import { apiRouter } from './routes/api.js';
 import { RoomManager } from './game/RoomManager.js';
 import { ChatService } from './chat/ChatService.js';
 import { setupSockets } from './realtime/sockets.js';
+import { ensureOwner } from './services/users.js';
 
 export function createApp({ dbFile = config.dbFile } = {}) {
   openDb(dbFile);
+  const ownerReady = ensureOwner().then((u) => {
+    if (u) console.log(`  Modo desarrollador activo para la cuenta "${u.username}"`);
+  }).catch((e) => console.error('[dueño]', e));
   const app = express();
   app.disable('x-powered-by');
   // Detrás de un proxy, req.ip debe ser la IP real del jugador (límites e intentos de acceso por IP).
@@ -38,8 +42,13 @@ export function createApp({ dbFile = config.dbFile } = {}) {
   // En producción se sirve el cliente compilado (npm run build).
   const dist = path.join(ROOT, 'dist');
   if (fs.existsSync(path.join(dist, 'index.html'))) {
-    app.use(express.static(dist, { maxAge: '1h' }));
-    app.get('*', (req, res) => res.sendFile(path.join(dist, 'index.html')));
+    // Los archivos de assets/ llevan hash en el nombre (caché larga); index.html nunca se cachea
+    // para que los jugadores reciban las actualizaciones al momento.
+    app.use(express.static(dist, {
+      maxAge: '7d',
+      setHeaders: (res, file) => { if (file.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache'); },
+    }));
+    app.get('*', (req, res) => res.set('Cache-Control', 'no-cache').sendFile(path.join(dist, 'index.html')));
   }
 
   app.use((err, req, res, next) => {
@@ -50,5 +59,5 @@ export function createApp({ dbFile = config.dbFile } = {}) {
   });
 
   setupSockets(io, rooms, chat);
-  return { app, server, io, rooms, chat };
+  return { app, server, io, rooms, chat, ownerReady };
 }

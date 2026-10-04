@@ -25,6 +25,7 @@ export class Room {
     this.maxPlayers = opts.maxPlayers;
     this.ownerId = opts.ownerId || null;
     this.players = new Map();
+    this.spectators = new Map(); // administradores invisibles: userId -> { socket, name }
     this.invited = new Set();
     this.recent = new Map(); // userId -> expiración (permite reconectar a salas privadas)
     this.createdAt = Date.now();
@@ -119,6 +120,34 @@ export class Room {
     };
   }
 
+  addSpectator(socket, user) {
+    this.spectators.set(user.id, { socket, name: user.username });
+    socket.join(this.channel);
+    return {
+      room: this.info(user.id),
+      you: { id: user.id, spawn: this.spawns[0], spectator: true },
+      players: [...this.players.values()].map((o) => this.playerPublic(o)).concat(this.npcs ? this.npcs.publicList() : [], this.mode.publicPlayers?.() || []),
+      vehicles: [...this.vehicles.values()].map((v) => this.vehiclePublic(v)),
+      state: this.state,
+      mode: this.mode.spectatorState?.() || {},
+      serverTime: Date.now(),
+    };
+  }
+
+  removeSpectator(userId) {
+    const s = this.spectators.get(userId);
+    if (!s) return;
+    this.spectators.delete(userId);
+    s.socket.leave(this.channel);
+    for (const p of this.players.values()) if (p.controlledBy === userId) this.releaseControl(p);
+  }
+
+  releaseControl(p) {
+    if (!p.controlledBy) return;
+    p.controlledBy = null;
+    p.socket.emit('admin:control', { on: false });
+  }
+
   leave(userId, { silent = false } = {}) {
     const p = this.players.get(userId);
     if (!p) return;
@@ -135,6 +164,7 @@ export class Room {
       this.systemMessage(`${p.name} ha salido`);
     }
     if (this.players.size === 0) this.emptySince = Date.now();
+    for (const [uid, sp] of this.spectators) if (sp.target === userId) sp.socket.emit('admin:target-left', { id: userId });
   }
 
   systemMessage(text) {

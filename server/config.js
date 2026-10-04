@@ -21,7 +21,10 @@ export const config = {
   newAccountMinutes: int(process.env.NEW_ACCOUNT_MINUTES, 30),
   adminUsernames: (process.env.ADMIN_USERNAMES || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
   filterWordsFile: path.resolve(ROOT, process.env.FILTER_WORDS_FILE || 'server/security/filter-words.json'),
-  startingCoins: int(process.env.STARTING_COINS, 150),
+  startingCoins: int(process.env.STARTING_COINS, 100),
+  // Cuenta del dueño (modo desarrollador). Se define en .env o en el panel del hosting, nunca en el código.
+  ownerUsername: (process.env.OWNER_USERNAME || '').trim(),
+  ownerPassword: process.env.OWNER_PASSWORD || '',
   // Nº de proxies delante del servidor (hosting/Cloudflare). 0 = conexión directa.
   trustProxy: int(process.env.TRUST_PROXY, 0),
   isTest: process.env.NODE_ENV === 'test',

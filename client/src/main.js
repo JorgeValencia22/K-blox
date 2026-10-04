@@ -9,18 +9,18 @@ import { net } from './core/net.js';
 import { h, toast, modal, button } from './ui/dom.js';
 import { MenuScene } from './ui/menuScene.js';
 import { authScreen } from './ui/screens/auth.js';
-import { menuScreen } from './ui/screens/menu.js';
+import { menuScreen, shell } from './ui/screens/menu.js';
 import { discoverScreen } from './ui/screens/discover.js';
 import { avatarScreen } from './ui/screens/avatar.js';
 import { friendsScreen } from './ui/screens/friends.js';
 import { createScreen } from './ui/screens/create.js';
 import { profileScreen } from './ui/screens/profile.js';
 import { adminScreen } from './ui/screens/admin.js';
+import { coinsScreen } from './ui/screens/coins.js';
 import { Game } from './game/game.js';
-import { Editor } from './editor/editor.js';
-import { hasGuest, loginAsGuest } from './core/guest.js';
+import { loginAsGuest } from './core/guest.js';
 
-const SCREENS = { menu: menuScreen, discover: discoverScreen, avatar: avatarScreen, friends: friendsScreen, create: createScreen, profile: profileScreen, admin: adminScreen };
+const SCREENS = { menu: menuScreen, discover: discoverScreen, avatar: avatarScreen, friends: friendsScreen, create: createScreen, profile: profileScreen, admin: adminScreen, coins: coinsScreen };
 
 class App {
   constructor() {
@@ -66,7 +66,10 @@ class App {
       }
     }
     // Invitado cuya sesión ya no existe (p. ej. el servidor gratuito se reinició): se recrea solo.
-    if (!user && !auth.token && hasGuest()) {
+    // Sin contraseña: la primera vez se entra directamente como invitado.
+    let loggedOut = false;
+    try { loggedOut = !!localStorage.getItem('kest.loggedOut'); } catch { /* sin almacenamiento */ }
+    if (!user && !auth.token && !loggedOut) {
       try {
         user = await loginAsGuest();
       } catch {
@@ -97,10 +100,20 @@ class App {
     if (this.current?.beforeLeave && !(await this.current.beforeLeave())) return;
     if (name === 'editor') return this.openEditor(params.id);
     if (engine.view !== this.menuScene && !this.game && !this.editor) engine.setView(this.menuScene);
-    this.showScreen(SCREENS[name](this, params));
+    const el = SCREENS[name](this, params);
+    // Las páginas secundarias se muestran dentro del marco con barra lateral
+    if (el.classList.contains('page')) {
+      el.classList.remove('screen');
+      const framed = shell(this, name, el);
+      const base = framed.cleanup;
+      framed.cleanup = () => { base(); el.cleanup?.(); };
+      framed.beforeLeave = el.beforeLeave;
+      this.showScreen(framed);
+    } else this.showScreen(el);
   }
 
   onLogin(user) {
+    try { localStorage.removeItem('kest.loggedOut'); } catch { /* sin almacenamiento */ }
     store.setUser(user);
     net.connect();
     this.bindNet();
@@ -142,6 +155,13 @@ class App {
       });
     });
     net.on('toast', (t) => toast(t.text, t.kind || 'info'));
+    net.on('announce', ({ text, from }) => {
+      audio.play('checkpoint');
+      const el = h('div.announce', h('small', `📢 Anuncio de ${from}`), text);
+      document.body.appendChild(el);
+      setTimeout(() => el.classList.add('out'), 7000);
+      setTimeout(() => el.remove(), 7600);
+    });
     net.on('kicked', ({ reason }) => {
       if (!this.game) toast(reason || 'Desconectado', 'err', 5000);
     });
@@ -193,10 +213,30 @@ class App {
     }
   }
 
+  /** Administrador: entra en una partida en modo espectador (respuesta de 'admin' spectate). */
+  async startSpectating(res) {
+    if (this.game) {
+      this.game.dispose();
+      this.game = null;
+    }
+    this.showScreen(null);
+    this.game = new Game({
+      join: res,
+      onExit: (reason) => {
+        this.game = null;
+        engine.setView(this.menuScene);
+        if (reason !== 'switch') this.go('admin');
+      },
+    });
+    this.game.start();
+  }
+
   async openEditor(id) {
     this.loading('Abriendo editor…');
     try {
       const r = await get(`/worlds/${id}`);
+      // El editor se descarga solo cuando se usa (el juego carga más rápido)
+      const { Editor } = await import('./editor/editor.js');
       this.showScreen(null);
       this.editor = new Editor(this, r.world, r.data);
       this.editor.start();
@@ -236,6 +276,7 @@ class App {
     this.editor?.dispose();
     this.editor = null;
     auth.token = null;
+    try { localStorage.setItem('kest.loggedOut', '1'); } catch { /* sin almacenamiento */ }
     net.disconnect();
     store.setUser(null);
     audio.stopMusic();

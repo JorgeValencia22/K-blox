@@ -56,7 +56,7 @@ const LINES = {
   sigue: ['¡Vale, te acompaño un rato!', '¡Vamos! Tú guías.', '¡Te sigo!'],
   ocupado: ['Ahora mismo estoy acompañando a otra persona.'],
   hangoutTips: [
-    'Si bailas en la pista de colores (tecla 2) ganas K-Coins.',
+    'Si bailas en la pista de colores (tecla 2) ganas Kesty Coins.',
     'El trampolín más lejano te lleva a la plataforma del cielo.',
     'Siéntate junto a la hoguera, es muy relajante.',
     'Prueba el tobogán: sube por las escaleras amarillas.',

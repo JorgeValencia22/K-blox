@@ -156,6 +156,7 @@ export class LocalPlayer {
       state = this.oneShot;
       if (this.anim.state === state && this.anim.finished) { this.oneShot = null; state = 'idle'; }
     } else if (this.emote && !moving) state = this.emote;
+    else if (ctl.crouch && b.onGround) state = 'crouch';
     else if (hs > 10) state = 'run';
     else if (hs > 0.6) state = 'walk';
     else state = 'idle';

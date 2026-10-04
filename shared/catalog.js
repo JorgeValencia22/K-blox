@@ -3,6 +3,26 @@
 
 export const EXPERIENCES = [
   {
+    id: 'pesadilla', name: 'Kest Pesadilla', category: 'horror', maxPlayers: 6, creator: 'Kest Studio', isNew: true, featured: true,
+    description: 'Terror en primera persona. El Oyente es ciego pero lo oye TODO: pasos, carreras… y tu voz si activas el micrófono. Devuelve la luz, encuentra la llave y escapa.',
+    cover: { a: '#000000', b: '#7f0000', icon: '👂' },
+  },
+  {
+    id: 'desastres', name: 'Kest Desastres', category: 'survival', maxPlayers: 16, creator: 'Kest Studio', isNew: true, featured: true,
+    description: 'Inundaciones, lava, meteoritos, tornados, terremotos y lluvia ácida. Cada ronda llega un desastre distinto: ¡sobrevive hasta el final!',
+    cover: { a: '#ff7043', b: '#1e88e5', icon: '🌪️' },
+  },
+  {
+    id: 'huerto', name: 'Kest Huerto', category: 'simulator', maxPlayers: 8, creator: 'Kest Studio', isNew: true, featured: true,
+    description: 'Compra semillas, planta, cosecha y vende. Tus plantas siguen creciendo aunque no estés. ¡Busca frutas doradas y arcoíris!',
+    cover: { a: '#7cb342', b: '#ffca28', icon: '🌱' },
+  },
+  {
+    id: 'bloques', name: 'Kest Bloques Locos', category: 'party', maxPlayers: 12, creator: 'Kest Studio', isNew: true, featured: true,
+    description: 'Ponte sobre el color que se anuncia antes de que desaparezcan las demás baldosas. Cada ronda va más rápido. ¡El último en pie gana! (con bots)',
+    cover: { a: '#e91e63', b: '#00bcd4', icon: '🟥' },
+  },
+  {
     id: 'city', name: 'Kest City', category: 'adventure', maxPlayers: 24, creator: 'Kest Studio',
     description: 'Una isla enorme con ciudad, montañas, río y lago. Conduce, vuela, abre cofres y busca las 12 gemas ocultas.',
     cover: { a: '#4fc3f7', b: '#81c784', icon: '🏙️' },
@@ -62,45 +82,63 @@ export const EXPERIENCES = [
 export const BUILTIN_IDS = EXPERIENCES.map((e) => e.id);
 
 // type: hair | shirt | pants | face | accessory | emote | effect | decoration
+// Precios en Kesty Coins (KC). Las monedas son escasas: lo bueno cuesta conseguirlo.
+const I = (type, list) => list.map(([id, name, price, extra]) => ({ id, type, name, price, ...(extra || {}) }));
 export const SHOP_ITEMS = [
-  { id: 'hair_short', type: 'hair', name: 'Pelo corto', price: 0 },
-  { id: 'hair_long', type: 'hair', name: 'Pelo largo', price: 0 },
-  { id: 'hair_spiky', type: 'hair', name: 'Pelo de punta', price: 60 },
-  { id: 'hair_bun', type: 'hair', name: 'Moño', price: 60 },
-  { id: 'hair_mohawk', type: 'hair', name: 'Cresta', price: 120 },
-  { id: 'shirt_tee', type: 'shirt', name: 'Camiseta', price: 0 },
-  { id: 'shirt_stripes', type: 'shirt', name: 'Camiseta a rayas', price: 50 },
-  { id: 'shirt_hoodie', type: 'shirt', name: 'Sudadera', price: 90 },
-  { id: 'shirt_suit', type: 'shirt', name: 'Traje', price: 200 },
-  { id: 'shirt_star', type: 'shirt', name: 'Camiseta estrella', price: 140 },
-  { id: 'pants_jeans', type: 'pants', name: 'Pantalón', price: 0 },
-  { id: 'pants_shorts', type: 'pants', name: 'Pantalón corto', price: 40 },
-  { id: 'pants_cargo', type: 'pants', name: 'Pantalón cargo', price: 80 },
-  { id: 'face_smile', type: 'face', name: 'Sonrisa', price: 0 },
-  { id: 'face_happy', type: 'face', name: 'Feliz', price: 0 },
-  { id: 'face_cool', type: 'face', name: 'Guay', price: 70 },
-  { id: 'face_wink', type: 'face', name: 'Guiño', price: 70 },
-  { id: 'face_surprised', type: 'face', name: 'Sorpresa', price: 50 },
-  { id: 'acc_cap', type: 'accessory', name: 'Gorra', price: 0 },
-  { id: 'acc_glasses', type: 'accessory', name: 'Gafas', price: 0 },
-  { id: 'acc_tophat', type: 'accessory', name: 'Sombrero de copa', price: 150 },
-  { id: 'acc_crown', type: 'accessory', name: 'Corona', price: 400 },
-  { id: 'acc_sunglasses', type: 'accessory', name: 'Gafas de sol', price: 90 },
-  { id: 'acc_headphones', type: 'accessory', name: 'Auriculares', price: 120 },
-  { id: 'acc_backpack', type: 'accessory', name: 'Mochila', price: 100 },
-  { id: 'acc_cape', type: 'accessory', name: 'Capa', price: 250 },
-  { id: 'acc_halo', type: 'accessory', name: 'Halo', price: 350 },
-  { id: 'emote_wave', type: 'emote', name: 'Saludar', price: 0 },
-  { id: 'emote_dance', type: 'emote', name: 'Bailar', price: 0 },
-  { id: 'emote_cheer', type: 'emote', name: 'Celebrar', price: 0 },
-  { id: 'emote_spin', type: 'emote', name: 'Giro', price: 80 },
-  { id: 'emote_robot', type: 'emote', name: 'Baile robot', price: 150 },
-  { id: 'emote_flip', type: 'emote', name: 'Voltereta', price: 220 },
-  { id: 'fx_sparkles', type: 'effect', name: 'Destellos', price: 180 },
-  { id: 'fx_fire', type: 'effect', name: 'Aura de fuego', price: 300 },
-  { id: 'fx_rainbow', type: 'effect', name: 'Estela arcoíris', price: 450 },
-  { id: 'deco_statue', type: 'decoration', name: 'Estatua (editor)', price: 120 },
-  { id: 'deco_fountain', type: 'decoration', name: 'Fuente (editor)', price: 160 },
+  ...I('hair', [
+    ['hair_short', 'Pelo corto', 0], ['hair_long', 'Pelo largo', 0], ['hair_buzz', 'Rapado', 60],
+    ['hair_bowl', 'Tazón', 120], ['hair_spiky', 'Pelo de punta', 150], ['hair_bun', 'Moño', 150],
+    ['hair_sidepart', 'Raya al lado', 180], ['hair_curly', 'Rizado', 200], ['hair_ponytail', 'Coleta', 200],
+    ['hair_mohawk', 'Cresta', 250], ['hair_pigtails', 'Dos coletas', 250], ['hair_emo', 'Flequillo largo', 280],
+    ['hair_afro', 'Afro', 300], ['hair_wavy', 'Melena ondulada', 300], ['hair_spacebuns', 'Moños espaciales', 350],
+    ['hair_braids', 'Trenzas', 350], ['hair_swoop', 'Tupé', 400], ['hair_anime', 'Puntas de anime', 450, { rare: true }],
+  ]),
+  ...I('shirt', [
+    ['shirt_tee', 'Camiseta', 0], ['shirt_tank', 'Camiseta de tirantes', 90], ['shirt_stripes', 'Camiseta a rayas', 100],
+    ['shirt_heart', 'Camiseta corazón', 150], ['shirt_hoodie', 'Sudadera', 180], ['shirt_flannel', 'Camisa de cuadros', 200],
+    ['shirt_sweater', 'Jersey de invierno', 210], ['shirt_jersey', 'Camiseta de fútbol', 220], ['shirt_camo', 'Camuflaje', 240],
+    ['shirt_overalls', 'Peto vaquero', 260], ['shirt_lightning', 'Rayo', 260], ['shirt_star', 'Camiseta estrella', 280],
+    ['shirt_panda', 'Sudadera panda', 300], ['shirt_jacket', 'Chaqueta de cuero', 320], ['shirt_rainbow', 'Arcoíris', 380],
+    ['shirt_suit', 'Traje', 400], ['shirt_flames', 'Llamas', 450], ['shirt_galaxy', 'Galaxia', 500, { rare: true }],
+    ['shirt_ninja', 'Traje ninja', 520, { rare: true }], ['shirt_astronaut', 'Traje de astronauta', 600, { rare: true }],
+  ]),
+  ...I('pants', [
+    ['pants_jeans', 'Pantalón', 0], ['pants_shorts', 'Pantalón corto', 80], ['pants_sweat', 'Chándal', 120],
+    ['pants_skirt', 'Falda', 140], ['pants_cargo', 'Pantalón cargo', 160], ['pants_ripped', 'Vaqueros rotos', 180],
+    ['pants_camo', 'Pantalón camuflaje', 200], ['pants_plaid', 'Falda escocesa', 220], ['pants_galaxy', 'Pantalón galaxia', 400, { rare: true }],
+    ['pants_armor', 'Grebas de caballero', 500, { rare: true }],
+  ]),
+  ...I('face', [
+    ['face_smile', 'Sonrisa', 0], ['face_happy', 'Feliz', 0], ['face_surprised', 'Sorpresa', 100],
+    ['face_cool', 'Guay', 120], ['face_wink', 'Guiño', 120], ['face_freckles', 'Pecas', 120],
+    ['face_angry', 'Enfadado', 150], ['face_sleepy', 'Dormilón', 150], ['face_shy', 'Tímido', 160],
+    ['face_tongue', 'Lengua fuera', 180], ['face_nerd', 'Empollón', 200], ['face_determined', 'Decidido', 200],
+    ['face_cat', 'Gatito', 250], ['face_lol', 'Llorar de risa', 250], ['face_evil', 'Sonrisa malvada', 280],
+    ['face_stars', 'Ojos de estrella', 300], ['face_hearts', 'Enamorado', 300], ['face_robot', 'Robot', 350, { rare: true }],
+  ]),
+  ...I('accessory', [
+    ['acc_cap', 'Gorra', 0], ['acc_glasses', 'Gafas', 0], ['acc_bow', 'Lazo', 120], ['acc_scarf', 'Bufanda', 140],
+    ['acc_beanie', 'Gorro de lana', 150], ['acc_partyhat', 'Gorro de fiesta', 160], ['acc_sunglasses', 'Gafas de sol', 180],
+    ['acc_backpack', 'Mochila', 200], ['acc_antenna', 'Antenas', 200], ['acc_cateears', 'Orejas de gato', 220],
+    ['acc_bunnyears', 'Orejas de conejo', 220], ['acc_chef', 'Gorro de chef', 220], ['acc_headphones', 'Auriculares', 240],
+    ['acc_cowboy', 'Sombrero vaquero', 260], ['acc_flowercrown', 'Corona de flores', 260], ['acc_tophat', 'Sombrero de copa', 300],
+    ['acc_ninjamask', 'Máscara ninja', 300], ['acc_witch', 'Sombrero de bruja', 340], ['acc_horns', 'Cuernos', 380],
+    ['acc_viking', 'Casco vikingo', 420], ['acc_cape', 'Capa', 500], ['acc_guitar', 'Guitarra a la espalda', 550],
+    ['acc_sword', 'Espada a la espalda', 600], ['acc_halo', 'Halo', 700, { rare: true }], ['acc_pet', 'Mascota flotante', 800, { rare: true }],
+    ['acc_crown', 'Corona', 900, { rare: true }], ['acc_batwings', 'Alas de murciélago', 1000, { rare: true }],
+    ['acc_wings', 'Alas de ángel', 1200, { rare: true }], ['acc_jetpack', 'Mochila cohete', 1500, { rare: true }],
+  ]),
+  ...I('emote', [
+    ['emote_wave', 'Saludar', 0], ['emote_dance', 'Bailar', 0], ['emote_cheer', 'Celebrar', 0],
+    ['emote_spin', 'Giro', 160], ['emote_robot', 'Baile robot', 300], ['emote_flip', 'Voltereta', 450],
+  ]),
+  ...I('effect', [
+    ['fx_sparkles', 'Destellos', 360], ['fx_hearts', 'Corazones', 450], ['fx_snow', 'Copos de nieve', 500],
+    ['fx_fire', 'Aura de fuego', 600], ['fx_lightning', 'Chispas eléctricas', 750, { rare: true }], ['fx_rainbow', 'Estela arcoíris', 900, { rare: true }],
+  ]),
+  ...I('decoration', [
+    ['deco_statue', 'Estatua (editor)', 240], ['deco_fountain', 'Fuente (editor)', 320],
+  ]),
 ];
 
 export const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map((i) => [i.id, i]));
@@ -129,6 +167,11 @@ export const ACHIEVEMENTS = [
   { id: 'escape', name: 'Escapista', desc: 'Escapa del laberinto de Kest Terror', reward: 120 },
   { id: 'royale_win', name: 'Última persona en pie', desc: 'Gana una partida de Kest Royale', reward: 150 },
   { id: 'goal', name: '¡Golazo!', desc: 'Marca un gol en Kest Rocket', reward: 40 },
+  { id: 'nightmare', name: 'Silencio absoluto', desc: 'Escapa de la casa de Kest Pesadilla', reward: 150 },
+  { id: 'disaster', name: 'Superviviente nato', desc: 'Sobrevive a un desastre en Kest Desastres', reward: 40 },
+  { id: 'farmer', name: 'Granjero', desc: 'Vende tu primera cosecha en Kest Huerto', reward: 30 },
+  { id: 'golden', name: 'Toque de oro', desc: 'Cosecha una fruta dorada o arcoíris', reward: 80 },
+  { id: 'blocks_win', name: 'Pies rápidos', desc: 'Gana una partida de Kest Bloques Locos', reward: 80 },
   { id: 'heist', name: 'Golpe maestro', desc: 'Completa un atraco en Kest Castores', reward: 100 },
 ];
 export const ACH_BY_ID = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));
@@ -144,4 +187,4 @@ export function levelFromXp(xp) {
   return lvl;
 }
 
-export const LEVEL_REWARD_COINS = (level) => 25 + level * 10;
+export const LEVEL_REWARD_COINS = (level) => 10 + level * 5;

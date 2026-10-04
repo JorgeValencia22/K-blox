@@ -135,13 +135,130 @@ export function setupSockets(io, rooms, chat) {
       return { ok: true };
     });
 
+    // --- Modo desarrollador (solo administradores; el rol se comprueba en la BD cada vez) ---
+    on('admin', (req) => {
+      const admin = users.getUser(userId);
+      if (!admin || admin.role !== 'admin') return { error: 'Solo administradores' };
+      return adminAction(io, rooms, socket, admin, String(req.action || ''), req);
+    });
+
+    on('admin:ctl', (c) => {
+      const room = rooms.roomOf(String(c.target || '')) || null;
+      const t = room?.players.get(String(c.target || ''));
+      if (!t || t.controlledBy !== userId) return null;
+      const n = (v) => (Number.isFinite(v) ? Math.max(-1, Math.min(1, v)) : 0);
+      t.socket.volatile.emit('admin:ctl', { x: n(c.x), y: n(c.y), yaw: Number.isFinite(c.yaw) ? c.yaw : 0, run: !!c.run, jump: !!c.jump });
+      return null;
+    }, stateLimiter);
+
     socket.on('disconnect', () => {
       presence.remove(userId, socket);
       // Solo abandona la sala si este socket era el que estaba jugando.
       const room = rooms.roomOf(userId);
       const p = room?.players.get(userId);
       if (p && p.socket === socket) rooms.leave(userId);
+      const sp = rooms.spectatorRoom(userId);
+      if (sp && sp.spectators.get(userId)?.socket === socket) rooms.unspectate(userId);
       users.touch(userId);
     });
   });
+}
+
+const isVec = (v) => Array.isArray(v) && v.length === 3 && v.every(Number.isFinite);
+
+/** Acciones del panel de administración. */
+function adminAction(io, rooms, socket, admin, action, req) {
+  const targetId = String(req.userId || '');
+  const room = targetId ? rooms.roomOf(targetId) : null;
+  const t = room?.players.get(targetId) || null;
+  const needT = () => (t ? null : { error: 'Ese jugador no está en ninguna partida' });
+  const log = (msg) => console.log(`[admin] ${admin.username}: ${msg}`);
+  switch (action) {
+    case 'overview':
+      return { ok: true, rooms: rooms.overview(), online: presence.count(), maintenance: rooms.maintenance };
+    case 'closeRoom': {
+      log(`cierra la sala ${req.roomId}`);
+      return rooms.closeRoom(req.roomId, '⛔ Un administrador ha cerrado este servidor');
+    }
+    case 'closeAll': {
+      log('cierra TODOS los servidores');
+      if (req.maintenance) rooms.maintenance = true;
+      return rooms.closeAll('⛔ Los servidores se han cerrado' + (req.maintenance ? ' por mantenimiento' : ''));
+    }
+    case 'maintenance':
+      rooms.maintenance = !!req.on;
+      log(`mantenimiento ${rooms.maintenance ? 'ON' : 'OFF'}`);
+      return { ok: true, maintenance: rooms.maintenance };
+    case 'announce': {
+      const text = String(req.text || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 140);
+      if (!text) return { error: 'Escribe un mensaje' };
+      io.emit('announce', { text, from: admin.username });
+      return { ok: true };
+    }
+    case 'spectate': {
+      const roomId = req.roomId || room?.id;
+      if (!roomId) return { error: 'Ese jugador no está en ninguna partida' };
+      const r = rooms.spectate(socket, admin, roomId);
+      if (r.ok && targetId) {
+        const sp = rooms.rooms.get(roomId)?.spectators.get(admin.id);
+        if (sp) sp.target = targetId;
+        r.target = targetId;
+      }
+      return r;
+    }
+    case 'kill':
+      if (needT()) return needT();
+      t.socket.emit('admin:kill', { by: admin.username });
+      return { ok: true };
+    case 'lose': {
+      if (needT()) return needT();
+      const handled = room.mode.adminLose?.(t);
+      t.socket.emit('admin:lose', { by: admin.username, handled: !!handled });
+      room.systemMessage(`💀 ${t.name} ha perdido`);
+      return { ok: true };
+    }
+    case 'freeze':
+      if (needT()) return needT();
+      t.adminFrozen = !!req.on;
+      t.socket.emit('admin:freeze', { on: t.adminFrozen });
+      return { ok: true, frozen: t.adminFrozen };
+    case 'launch':
+      if (needT()) return needT();
+      t.socket.emit('admin:launch', { power: Math.max(10, Math.min(80, Number(req.power) || 45)) });
+      return { ok: true };
+    case 'bring': {
+      if (needT()) return needT();
+      const mine = rooms.roomOf(admin.id)?.players.get(admin.id);
+      const pos = isVec(req.pos) ? req.pos : mine?.pos;
+      if (!pos) return { error: 'No se sabe dónde estás' };
+      room.teleport(t, pos);
+      t.socket.emit('admin:tp', { p: pos });
+      return { ok: true };
+    }
+    case 'control': {
+      if (needT()) return needT();
+      if (req.on) {
+        if (!room.spectators.has(admin.id)) return { error: 'Primero espectea a este jugador' };
+        t.controlledBy = admin.id;
+        t.socket.emit('admin:control', { on: true, by: admin.username });
+      } else room.releaseControl(t);
+      return { ok: true, controlling: !!t.controlledBy };
+    }
+    case 'kick':
+      if (needT()) return needT();
+      t.socket.emit('kicked', { reason: 'Un administrador te ha expulsado de la partida' });
+      rooms.leave(targetId);
+      return { ok: true };
+    case 'coins': {
+      const u = users.getUser(targetId) || users.getUserByName(String(req.username || ''));
+      if (!u) return { error: 'Usuario no encontrado' };
+      return users.giveCoins(u.id, req.amount, `Regalo de ${admin.username}`);
+    }
+    case 'createCode':
+      return users.createGiftCode(admin.id, { code: req.code, coins: req.coins, uses: req.uses });
+    case 'codes':
+      return { ok: true, codes: users.listGiftCodes() };
+    default:
+      return { error: 'Acción desconocida' };
+  }
 }

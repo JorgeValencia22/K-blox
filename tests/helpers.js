@@ -3,6 +3,9 @@ import { io as ioc } from 'socket.io-client';
 
 process.env.NODE_ENV = 'test';
 process.env.NEW_ACCOUNT_MINUTES = '0';
+process.env.OWNER_USERNAME ??= '';
+process.env.OWNER_PASSWORD ??= '';
+process.env.STARTING_COINS = '100';
 
 export async function startServer() {
   const { createApp } = await import('../server/app.js');

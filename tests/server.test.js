@@ -21,7 +21,7 @@ test('registro: valida datos y rechaza duplicados', async () => {
   assert.equal(r.status, 200);
   assert.ok(r.body.token);
   assert.equal(r.body.user.username, 'Alice');
-  assert.equal(r.body.user.coins, 150);
+  assert.equal(r.body.user.coins, 100);
   assert.equal(r.body.user.pass_hash, undefined, 'nunca se expone el hash');
   tokens.alice = r.body.token;
   r = await srv.api('POST', '/api/auth/register', { username: 'alice', password: 'otraclave' });
@@ -55,20 +55,20 @@ test('bloqueo tras varios intentos fallidos', async () => {
 });
 
 test('tienda y avatar: no se puede equipar lo que no se tiene', async () => {
-  let r = await srv.api('PUT', '/api/avatar', { avatar: { accessories: ['acc_crown', 'acc_cap'], skin: '#123456', hair: 'hair_mohawk' } }, tokens.alice);
+  let r = await srv.api('PUT', '/api/avatar', { avatar: { accessories: ['acc_crown', 'acc_cap'], skin: '#123456', hair: 'hair_buzz' } }, tokens.alice);
   assert.deepEqual(r.body.avatar.accessories, ['acc_cap']);
   assert.equal(r.body.avatar.hair, 'hair_short');
   assert.equal(r.body.avatar.skin, '#123456');
   r = await srv.api('POST', '/api/shop/buy', { itemId: 'acc_crown' }, tokens.alice);
   assert.equal(r.status, 400, 'monedas insuficientes');
-  r = await srv.api('POST', '/api/shop/buy', { itemId: 'hair_mohawk' }, tokens.alice);
+  r = await srv.api('POST', '/api/shop/buy', { itemId: 'hair_buzz' }, tokens.alice);
   assert.equal(r.status, 200);
-  r = await srv.api('POST', '/api/shop/buy', { itemId: 'hair_mohawk' }, tokens.alice);
+  r = await srv.api('POST', '/api/shop/buy', { itemId: 'hair_buzz' }, tokens.alice);
   assert.equal(r.status, 400, 'no se compra dos veces');
-  r = await srv.api('PUT', '/api/avatar', { avatar: { hair: 'hair_mohawk' } }, tokens.alice);
-  assert.equal(r.body.avatar.hair, 'hair_mohawk');
+  r = await srv.api('PUT', '/api/avatar', { avatar: { hair: 'hair_buzz' } }, tokens.alice);
+  assert.equal(r.body.avatar.hair, 'hair_buzz');
   r = await srv.api('GET', '/api/profile', null, tokens.alice);
-  // 150 iniciales - 120 + 20 (logro "De compras")
+  // 100 iniciales - 60 + 10 (logro "De compras": 20 × COIN_RATE)
   assert.equal(r.body.user.coins, 50);
   assert.ok(r.body.user.achievements.some((a) => a.id === 'shopper'));
 });

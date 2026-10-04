@@ -51,6 +51,10 @@ export class RocketMode extends BaseMode {
   }
 
   // --- Jugadores y bots --------------------------------------------------------------
+  spectatorState() {
+    return { rocket: this.publicState(), arena: this.arena };
+  }
+
   onJoin(p) {
     // Si hay bots, un jugador ocupa la plaza de uno de ellos
     const humans = [...this.teams.keys()].filter((id) => !this.bots.has(id)).length;

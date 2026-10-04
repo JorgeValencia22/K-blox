@@ -15,6 +15,16 @@ export class BaseMode {
 
   onLeave() {}
 
+  /** Estado del modo para un administrador que espectea (sin alterar la partida). */
+  spectatorState() {
+    return {};
+  }
+
+  /** Un administrador hace perder a un jugador. Devuelve true si el modo lo gestiona. */
+  adminLose() {
+    return false;
+  }
+
   /** Tras aceptar una posición: comprobar zonas, puntos de control, etc. */
   onState() {}
 

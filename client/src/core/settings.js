@@ -22,6 +22,7 @@ const DEFAULTS = {
   fog: true,
   showChat: true,
   showFps: false,
+  autoRes: true,
 };
 
 function load() {

@@ -830,12 +830,12 @@ export class CastoresClient extends Base {
     const tooth = new THREE.MeshStandardMaterial({ color: '#fffde7' });
     for (const x of [-0.06, 0.06]) {
       const t = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, 0.04), tooth);
-      t.position.set(x, 0.12, 0.32);
+      t.position.set(x, 0.2, 0.35);
       model.neck.add(t);
     }
     for (const x of [-0.27, 0.27]) {
       const ear = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.08), brown);
-      ear.position.set(x, 0.66, -0.05);
+      ear.position.set(x, 0.68, -0.05);
       model.neck.add(ear);
     }
   }

@@ -2,7 +2,7 @@
 import { PHYSICS, VEHICLES } from '../../shared/constants.js';
 export { insideObject } from '../../shared/geometry.js';
 
-export const ANIMS = new Set(['idle', 'walk', 'run', 'jump', 'fall', 'land', 'dance', 'robot', 'wave', 'cheer', 'spin', 'flip', 'sit', 'dead', 'swim', 'drive', 'fly', 'attack']);
+export const ANIMS = new Set(['idle', 'walk', 'run', 'jump', 'fall', 'land', 'dance', 'robot', 'wave', 'cheer', 'spin', 'flip', 'sit', 'dead', 'swim', 'drive', 'fly', 'attack', 'crouch']);
 
 export const isVec3 = (v) => Array.isArray(v) && v.length === 3 && v.every((n) => typeof n === 'number' && Number.isFinite(n));
 

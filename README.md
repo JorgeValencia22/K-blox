@@ -2,7 +2,7 @@
 
 Plataforma de mundos 3D multijugador de estilo "bloques", con identidad visual original:
 cuentas, avatares personalizables, cinco experiencias jugables, editor de mundos con
-publicación, vehículos, chat moderado, amigos, economía ficticia (K-Coins), niveles y logros.
+publicación, vehículos, chat moderado, amigos, economía ficticia (Kesty Coins), niveles y logros.
 
 - **Cliente:** Three.js + JavaScript (módulos ES) + HTML/CSS, empaquetado con Vite.
 - **Servidor:** Node.js + Express + Socket.IO.
@@ -62,6 +62,11 @@ Copia `.env.example` como `.env`. Variables principales:
 | `ADMIN_USERNAMES` | (vacío) | Usuarios con rol de moderador (se aplica al registrarse) |
 | `FILTER_WORDS_FILE` | `server/security/filter-words.json` | Lista configurable de palabras filtradas |
 | `KEST_SERVER_PORT` | 3000 | (Solo `npm run dev`) puerto al que Vite redirige la API |
+| `STARTING_COINS` | 100 | Kesty Coins de cada cuenta nueva |
+| `OWNER_USERNAME` / `OWNER_PASSWORD` | (vacío) | Cuenta del dueño con **modo desarrollador**. Se crea o actualiza al arrancar el servidor |
+
+La contraseña del dueño vive **solo** en `.env` (que no se sube a GitHub) o en el panel de
+variables del hosting. En la base de datos se guarda únicamente su hash.
 
 No hay contraseñas, claves ni credenciales en el código.
 
@@ -70,9 +75,25 @@ No hay contraseñas, claves ni credenciales en el código.
 ## Qué incluye
 
 ### Menú principal
-Fondo 3D animado (plaza con personajes paseando y bailando), botones JUGAR (entra en Kest City),
-DESCUBRIR, CREAR, AVATAR, AMIGOS y CONFIGURACIÓN, perfil (nivel), K-Coins (abre la tienda),
-notificaciones y, para moderadores, el panel de moderación.
+Barra lateral (Inicio, Descubrir, Avatar, Kesty Coins, Crear, Amigos, Perfil, Ajustes y, para
+administradores, Desarrollador) que en el móvil pasa a ser una barra inferior. Portada con las
+experiencias destacadas en carrusel, recompensa diaria con racha de 7 días y filas de
+Novedades, Seguir jugando, Populares ahora y De la comunidad, sobre el fondo 3D animado.
+**No hace falta contraseña**: la primera vez se entra directamente como invitado; «Iniciar
+sesión» permite usar una cuenta propia.
+
+### Modo desarrollador (cuenta del dueño)
+Con la cuenta definida en `OWNER_USERNAME`/`OWNER_PASSWORD`:
+- **Servidores en directo**: lista de salas y jugadores, actualizada cada 4 s.
+- **Cerrar un servidor o TODOS al instante** (los jugadores vuelven al menú) y **modo mantenimiento**.
+- **Espectear** de forma invisible (no cuenta como jugador; flechas para cambiar de jugador).
+- **Controlar** a un jugador con tu WASD/Shift/Espacio mientras lo espectas.
+- **Congelar, lanzar por los aires, traer hasta ti, matar, hacer perder** (cada modo lo aplica a
+  su manera: eliminado en Royale/Desastres/Bloques, atrapado en Pesadilla, reinicio en el Obby…)
+  y **expulsar**.
+- **Anuncios** a todos los conectados, **dar o quitar Kesty Coins** y **crear códigos regalo**.
+- Reportes de moderación. En partida, el panel se abre con **F2** o el botón 🛡️.
+Todas las acciones las comprueba el servidor (rol de administrador leído de la base de datos).
 
 ### Cuentas y progresión
 - Registro, inicio y cierre de sesión, recuperación de sesión (token en el navegador, guardado
@@ -83,7 +104,12 @@ notificaciones y, para moderadores, el panel de moderación.
   visitados, favoritos y fecha de creación. Todo persiste en SQLite.
 
 ### Avatares
-Personajes de bloques originales (cabeza, torso, brazos, piernas, cara, ojos, boca, pelo, ropa,
+Personajes **redondeados** estilo muñeco (cabeza esférica con cara pintada, cuerpo y extremidades
+en cápsula, manos y zapatos redondos). Tienda con **109 objetos**: 18 peinados, 20 prendas de
+arriba, 10 de abajo (faldas incluidas), 18 caras, 29 accesorios (alas, mochila cohete, mascota
+flotante, orejas, sombreros…), emotes y efectos. Los objetos raros llevan la etiqueta ★ RARO.
+Geometrías y materiales se comparten entre todos los avatares para ahorrar memoria.
+Personajes originales (cabeza, torso, brazos, piernas, cara, ojos, boca, pelo, ropa,
 accesorios y efectos). Editor con vista previa giratoria, colores personalizados y tienda.
 Animaciones procedurales con máquina de estados: reposo, caminar, correr, saltar, caer,
 aterrizar, bailar, baile robot, saludar, celebrar, giro, voltereta, sentarse, nadar, conducir,
@@ -132,6 +158,11 @@ arrastrar en la mitad derecha mueve la cámara. Sensibilidad e inversión del ej
 10. **Kest Rocket** – fútbol con coches 2 contra 2 (con bots): turbo, salto, cámara al balón, balón simulado en el servidor, saques, goles y partidos de 3 minutos con gol de oro.
 11. **Kest Castores** – atraco cooperativo inspirado en *Beavers Be Dammed*: roe tablones, roba troncos del aserradero (los grandes, mejor entre dos), esquiva sierras y lanzallamas y llévalos a la presa antes de que acabe el tiempo. Suena la canción `client/public/audio/ia-beat.mp3`.
 
+12. **Kest Pesadilla** – terror **en primera persona** en una casa a oscuras. *El Oyente* es ciego: caza por el sonido de los pasos, las carreras y, si se activa, **el micrófono** (el volumen se mide en el dispositivo; la voz nunca se envía ni se graba). Tareas: 3 fusibles, cuadro eléctrico, llave y puerta principal. Armarios para esconderse, agacharse (C) silencioso y linterna (F).
+13. **Kest Desastres** – inspirado en los juegos de supervivencia a desastres: inundación, lava, lluvia de meteoritos, tornado, terremoto y lluvia ácida, cada ronda uno distinto. Gana quien siga vivo al final.
+14. **Kest Huerto** – compra semillas, planta, cosecha y vende. Las plantas siguen creciendo aunque te desconectes (el huerto se guarda), la lluvia acelera el crecimiento y hay frutas doradas (×5) y arcoíris (×15).
+15. **Kest Bloques Locos** – suelo de baldosas de colores: se anuncia un color y desaparecen las demás. Cada ronda va más rápido; bots si hay pocos jugadores.
+
 El Obby oficial ahora tiene 10 etapas (pilares, plataformas rápidas, islas con trampolín, espiral y vigas con vallas de lava).
 
 ### Editor de mundos (CREAR)
@@ -171,7 +202,12 @@ números ni mensajes privados durante unos minutos. Moderación automática prev
 resolver reportes, silenciar, suspender y ocultar/restaurar mundos. Sin chat de voz.
 
 ### Economía y logros
-K-Coins ficticias (sin compras con dinero real). Se ganan con gemas, cofres, carreras, obby,
+Las monedas son **escasas**: las recompensas de juego se reducen a la mitad y el límite diario
+por experiencia se mantiene. La pantalla **Kesty Coins** reúne la recompensa diaria (racha de 7
+días, hasta 75 KC), una **ruleta diaria** (premio gordo de 300 KC), el canje de **códigos regalo**
+creados por el administrador y una guía para ganar más. No hay compras con dinero real: hacerlas
+exigiría un procesador de pagos, un adulto responsable y cumplir leyes de protección de menores.
+Kesty Coins ficticias (sin compras con dinero real). Se ganan con gemas, cofres, carreras, obby,
 noches superadas, criaturas, actividad social, logros y subidas de nivel. Tienda con ropa,
 peinados, caras, accesorios, emotes, efectos y decoraciones para el editor; cada compra se
 valida en una transacción del servidor.
@@ -182,6 +218,9 @@ terreno, luces dinámicas, efectos y niebla. Geometría estática fusionada por 
 (pocas llamadas de dibujo), materiales compartidos, texturas generadas de 64 px, materiales
 Lambert en calidad baja/media y un número fijo de luces puntuales. Probado en Intel UHD 620.
 Cielo dinámico con sol, luna, estrellas, nubes y ciclo día/noche.
+**Resolución automática**: si los FPS bajan de 40, la resolución interna baja poco a poco (y
+vuelve a subir sola). El editor se descarga solo cuando se usa, y `index.html` no se cachea para
+que los jugadores reciban las actualizaciones al momento.
 
 ### Audio
 Música generativa, pasos según la superficie, saltos, aterrizajes, interacción, motores según
@@ -230,7 +269,7 @@ kest-worlds/
 
 ## Pruebas
 
-`npm test` ejecuta 31 pruebas: registro/inicio/cierre de sesión, bloqueo por intentos, tienda
+`npm test` ejecuta 39 pruebas (incluye modo desarrollador, Kesty Coins y los 4 modos nuevos): registro/inicio/cierre de sesión, bloqueo por intentos, tienda
 y validación de avatar, amigos y bloqueos, guardado/validación/publicación de mundos,
 multijugador real con dos clientes Socket.IO (visibilidad, movimiento, corrección
 antitrampas, chat filtrado, reportes), validación del obby, salas privadas e invitaciones,
@@ -241,7 +280,8 @@ rampas, plataformas móviles, techos) y herramientas de moderación.
 
 1. Sube la carpeta a un repositorio de GitHub con **GitHub Desktop** (respeta el `.gitignore`: no sube `node_modules`, `dist`, `data` ni `.env`).
 2. En <https://render.com> crea una cuenta, pulsa **New → Blueprint** y elige el repositorio. Render lee `render.yaml` y configura todo solo.
-3. Al terminar te da una dirección `https://kest-worlds-xxxx.onrender.com` para compartir.
+3. En **Environment** añade `OWNER_USERNAME` y `OWNER_PASSWORD` para tener el modo desarrollador (no los escribas en ningún archivo del repositorio).
+4. Al terminar te da una dirección `https://kest-worlds-xxxx.onrender.com` para compartir.
 
 Limitaciones del plan gratuito: el servidor se duerme tras 15 minutos sin jugadores (tarda ~1 minuto en despertar) y **su disco se borra al dormirse**, así que las cuentas se pierden. Por eso existe el botón **Jugar como invitado**: si el servidor se reinició, se crea un invitado nuevo automáticamente. Para conservar cuentas usa un plan con disco persistente (`DB_FILE` en el disco) o un VPS.
 

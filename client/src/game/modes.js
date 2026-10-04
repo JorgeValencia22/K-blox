@@ -9,6 +9,7 @@ import { material } from '../engine/materials.js';
 import { boxGeo } from '../world/objectParts.js';
 import { store } from '../core/store.js';
 import { OnlyUpClient, HorrorClient, RoyaleClient, RocketClient, CastoresClient } from './modes2.js';
+import { PesadillaClient, DesastresClient, HuertoClient, BloquesClient } from './modes3.js';
 
 class BaseClient {
   constructor(game, state) {
@@ -566,6 +567,10 @@ class KeysClient extends ObbyClient {
 
 export function createClientMode(name, game, state) {
   switch (name) {
+    case 'pesadilla': return new PesadillaClient(game, state);
+    case 'desastres': return new DesastresClient(game, state);
+    case 'huerto': return new HuertoClient(game, state);
+    case 'bloques': return new BloquesClient(game, state);
     case 'keys': return new KeysClient(game, state);
     case 'onlyup': return new OnlyUpClient(game, state);
     case 'horror': return new HorrorClient(game, state);

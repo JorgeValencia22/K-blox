@@ -1,4 +1,4 @@
-// Editor de avatar con vista previa 3D giratoria, y tienda de K-Coins.
+// Editor de avatar con vista previa 3D giratoria, y tienda de Kesty Coins.
 import { h, button, toast, clear, confirmDialog } from '../dom.js';
 import { put, post } from '../../core/api.js';
 import { store } from '../../core/store.js';
@@ -47,7 +47,7 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
 
   function itemTile(item, selected, onSelect) {
     const owned = item.price === 0 || store.owns(item.id);
-    return h(`div.item${selected ? '.on' : ''}${owned ? '' : '.locked'}`, {
+    return h(`div.item${selected ? '.on' : ''}${owned ? '' : '.locked'}${item.rare ? '.rare' : ''}`, {
       on: {
         click: async () => {
           audio.ui('click');
@@ -63,11 +63,11 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
 
   async function buy(item) {
     if (store.user.coins < item.price) {
-      toast(`Te faltan ${item.price - store.user.coins} K-Coins`, 'warn');
+      toast(`Te faltan ${item.price - store.user.coins} Kesty Coins`, 'warn');
       audio.ui('error');
       return false;
     }
-    if (!(await confirmDialog('Comprar objeto', `¿Comprar "${item.name}" por ${item.price} K-Coins?`, 'Comprar'))) return false;
+    if (!(await confirmDialog('Comprar objeto', `¿Comprar "${item.name}" por ${item.price} Kesty Coins?`, 'Comprar'))) return false;
     try {
       await post('/shop/buy', { itemId: item.id });
       await store.refreshUser();
@@ -126,13 +126,13 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
           ...items('effect').map((i) => itemTile(i, draft.effect === i.id, () => { draft.effect = i.id; update(); render(); }))));
         break;
       case 'shop': {
-        content.append(h('p.muted.small', `Tienes 🪙 ${store.user.coins} K-Coins. Gana más completando experiencias, logros y subiendo de nivel. No existen compras con dinero real.`));
+        content.append(h('p.muted.small', `Tienes 🪙 ${store.user.coins} Kesty Coins. Consigue más con la recompensa diaria, la ruleta, los logros y ganando partidas.`));
         for (const type of Object.keys(TYPE_NAMES)) {
           const list = items(type).filter((i) => i.price > 0);
           if (!list.length) continue;
           content.append(sec(TYPE_NAMES[type]), h('div.items', list.map((i) => {
             const owned = store.owns(i.id);
-            return h(`div.item${owned ? '.on' : ''}`, { on: { click: async () => { if (!owned && (await buy(i))) render(); } } }, i.name, h('span.price', owned ? '✓ En tu inventario' : `🪙 ${i.price}`));
+            return h(`div.item${owned ? '.on' : ''}${i.rare ? '.rare' : ''}`, { on: { click: async () => { if (!owned && (await buy(i))) render(); } } }, i.name, h('span.price', owned ? '✓ En tu inventario' : `🪙 ${i.price}`));
           })));
         }
         break;

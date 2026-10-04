@@ -71,6 +71,18 @@ export class HorrorMode extends BaseMode {
     this.broadcast('horror', this.state());
   }
 
+  spectatorState() {
+    return { horror: this.state() };
+  }
+
+  adminLose(p) {
+    // La Sombra aparece junto al jugador y lo atrapa
+    this.mon.x = p.pos[0];
+    this.mon.z = p.pos[2];
+    p.data.caughtAt = 0;
+    return false;
+  }
+
   onJoin(p) {
     p.data = { caughtAt: 0, escaped: false };
     return { horror: this.state() };

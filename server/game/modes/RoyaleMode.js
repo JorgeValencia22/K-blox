@@ -81,6 +81,17 @@ export class RoyaleMode extends BaseMode {
     if (f) this.emit(p, 'royale:me', this.me(f));
   }
 
+  spectatorState() {
+    return { royale: this.publicState(), weapons: WEAPONS };
+  }
+
+  adminLose(p) {
+    const f = this.fighters.get(p.id);
+    if (!f || !f.alive) return false;
+    this.eliminate(f, null, 'un administrador eliminó a');
+    return true;
+  }
+
   onJoin(p) {
     p.data = {};
     return { royale: this.publicState(), weapons: WEAPONS };

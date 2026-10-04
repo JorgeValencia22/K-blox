@@ -9,6 +9,9 @@ class Engine {
     this.clock = new THREE.Clock();
     this.fps = 60;
     this.frameHooks = new Set();
+    // Resolución dinámica: si los FPS bajan, se reduce la resolución interna (y vuelve a subir sola)
+    this.dynScale = 1;
+    this.dynAcc = 0;
   }
 
   init(container) {
@@ -32,7 +35,8 @@ class Engine {
     const r = this.renderer;
     // En móviles la densidad de píxeles se limita: la diferencia apenas se nota y el rendimiento mejora mucho.
     const maxDpr = matchMedia('(pointer: coarse)').matches ? 1.5 : 2;
-    r.setPixelRatio(Math.min(devicePixelRatio, maxDpr) * settings.get('resolution'));
+    this.basePixelRatio = Math.min(devicePixelRatio, maxDpr) * settings.get('resolution');
+    r.setPixelRatio(this.basePixelRatio * this.dynScale);
     r.shadowMap.enabled = settings.get('shadows') !== 'off';
     this.resize();
     this.view?.onSettings?.();
@@ -48,6 +52,21 @@ class Engine {
     this.view?.onResize?.(w, h);
   }
 
+  adaptResolution(dt) {
+    this.dynAcc += dt;
+    if (this.dynAcc < 2 || document.hidden) return;
+    this.dynAcc = 0;
+    let s = this.dynScale;
+    if (settings.get('autoRes') === false) s = 1;
+    else if (this.fps < 40) s = Math.max(0.55, s - 0.1);
+    else if (this.fps > 57) s = Math.min(1, s + 0.05);
+    if (Math.abs(s - this.dynScale) > 0.001) {
+      this.dynScale = s;
+      this.renderer.setPixelRatio(this.basePixelRatio * s);
+      this.resize();
+    }
+  }
+
   setView(view) {
     if (this.view === view) return;
     this.view?.onHide?.();
@@ -59,6 +78,7 @@ class Engine {
     const dt = Math.min(this.clock.getDelta(), 0.1);
     this.fps = this.fps * 0.95 + (dt > 0 ? 1 / dt : 60) * 0.05;
     for (const fn of this.frameHooks) fn(dt);
+    this.adaptResolution(dt);
     const v = this.view;
     if (!v) return;
     try {

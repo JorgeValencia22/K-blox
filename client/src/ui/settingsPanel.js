@@ -39,6 +39,7 @@ export function openSettings() {
       slider('Distancia de dibujado', 'drawDistance', 100, 600, 20, (v) => `${v} m`),
       select('Detalle del terreno (al entrar)', 'terrainDetail', [[1, 'Alto'], [2, 'Medio'], [4, 'Bajo']]),
       select('Luces dinámicas (al entrar)', 'pointLights', [[0, 'Ninguna'], [2, 'Pocas'], [4, 'Muchas']]),
+      toggle('Resolución automática (más FPS)', 'autoRes'),
       toggle('Efectos visuales', 'effects'),
       toggle('Niebla', 'fog'),
       toggle('Ciclo de día y noche', 'dayNight'),

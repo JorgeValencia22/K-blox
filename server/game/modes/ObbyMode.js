@@ -27,6 +27,15 @@ export class ObbyMode extends BaseMode {
     return { cp: p.data.cp, total: this.checkpoints.length, start: p.data.start, best: p.data.best ?? null, finished: p.data.finished };
   }
 
+  adminLose(p) {
+    this.reset(p);
+    const pos = this.room.spawns[0];
+    this.room.teleport(p, pos);
+    this.emit(p, 'obby', this.status(p));
+    this.emit(p, 'respawn', { p: pos });
+    return true;
+  }
+
   onJoin(p) {
     const s = users.getUser(p.id).stats;
     p.data = { best: this.official ? s[this.stats.best] ?? null : null };

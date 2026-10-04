@@ -45,6 +45,10 @@ export class RacingMode extends BaseMode {
     return this.meta.grid[index % this.meta.grid.length];
   }
 
+  spectatorState() {
+    return { race: this.publicState() };
+  }
+
   onJoin(p) {
     const slot = this.gridSlot(this.room.players.size - 1);
     const vid = `kart-${p.id}`;

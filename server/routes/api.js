@@ -33,6 +33,11 @@ export function apiRouter(rooms) {
   // --- Tienda ---------------------------------------------------------------
   r.post('/shop/buy', (req, res) => send(res, users.buyItem(req.user.id, String(req.body?.itemId || ''))));
 
+  // --- Kesty Coins: recompensa diaria, ruleta y códigos regalo ---------------
+  r.post('/rewards/daily', (req, res) => send(res, users.claimDaily(req.user.id)));
+  r.post('/rewards/spin', (req, res) => send(res, users.spinWheel(req.user.id)));
+  r.post('/codes/redeem', httpLimit(10, 60_000), (req, res) => send(res, users.redeemGiftCode(req.user.id, req.body?.code)));
+
   // --- Amigos ---------------------------------------------------------------
   r.get('/friends', (req, res) => res.json(social.listFriends(req.user.id, (fid, viewer) => rooms.roomInfoFor(fid, viewer))));
   r.get('/users', (req, res) => res.json({ users: social.searchUsers(req.user.id, req.query.q) }));

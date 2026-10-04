@@ -97,6 +97,19 @@ CREATE TABLE IF NOT EXISTS reports (
   status TEXT NOT NULL DEFAULT 'open',
   created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS gift_codes (
+  code TEXT PRIMARY KEY,
+  coins INTEGER NOT NULL,
+  uses_left INTEGER NOT NULL,
+  created_by TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS gift_redemptions (
+  code TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  redeemed_at INTEGER NOT NULL,
+  PRIMARY KEY (code, user_id)
+);
 CREATE TABLE IF NOT EXISTS daily_rewards (
   user_id TEXT NOT NULL,
   key TEXT NOT NULL,

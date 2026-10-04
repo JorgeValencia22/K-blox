@@ -17,13 +17,16 @@ export class ThirdPersonCamera {
     this.current = new THREE.Vector3();
     this.first = true;
     this.height = 1.7;
+    this.firstPerson = false;
+    this.eye = 1.62;
+    this.shake = 0;
   }
 
   look(dx, dy, wheel) {
     const s = 0.0025 * settings.get('sensitivity');
     this.yaw -= dx * s;
     this.pitch += dy * s * (settings.get('invertY') ? -1 : 1);
-    this.pitch = Math.max(-0.9, Math.min(1.35, this.pitch));
+    this.pitch = this.firstPerson ? Math.max(-1.45, Math.min(1.45, this.pitch)) : Math.max(-0.9, Math.min(1.35, this.pitch));
     if (wheel) this.targetDistance = Math.max(this.minDist, Math.min(this.maxDist, this.targetDistance + wheel * 1.2));
   }
 
@@ -33,6 +36,16 @@ export class ThirdPersonCamera {
   }
 
   update(dt, target) {
+    if (this.firstPerson) {
+      // Ojos del personaje: la vista mira en sentido contrario al vector cámara→objetivo de la 3.ª persona
+      const d = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
+      this.current.set(target.x, target.y + this.eye, target.z);
+      this.camera.position.copy(this.current);
+      if (this.shake > 0) this.camera.position.add(new THREE.Vector3((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake));
+      this.camera.lookAt(this.camera.position.x - d.x, this.camera.position.y - d.y, this.camera.position.z - d.z);
+      this.first = true; // al volver a 3.ª persona la cámara se coloca sin transición
+      return;
+    }
     this.focus.set(target.x, target.y + this.height, target.z);
     const k = this.first ? 1 : 1 - Math.exp(-dt * 14);
     this.current.lerp(this.focus, k);
@@ -47,5 +60,6 @@ export class ThirdPersonCamera {
     }
     this.camera.position.copy(this.current).addScaledVector(dir, dist);
     this.camera.lookAt(this.current);
+    if (this.shake > 0) this.camera.position.add(new THREE.Vector3((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake));
   }
 }

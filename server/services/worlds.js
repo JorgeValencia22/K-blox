@@ -128,7 +128,7 @@ export function discover(userId, { category, q, playersFor }) {
   const favs = new Set(db.prepare('SELECT world_id FROM favorites WHERE user_id = ?').all(userId).map((r) => r.world_id));
   const official = EXPERIENCES.map((e) => ({
     id: e.id, name: e.name, description: e.description, category: e.category, creator: e.creator, maxPlayers: e.maxPlayers,
-    cover: null, coverStyle: e.cover, official: true, players: playersFor(e.id), favorite: favs.has(e.id),
+    cover: null, coverStyle: e.cover, official: true, players: playersFor(e.id), favorite: favs.has(e.id), isNew: !!e.isNew,
   }));
   const rows = db.prepare(`SELECT w.*, u.username AS owner_name FROM worlds w JOIN users u ON u.id = w.owner_id
      WHERE w.published_data IS NOT NULL AND w.hidden = 0 AND (w.visibility = 'public' OR w.owner_id = ?) ORDER BY w.visits DESC, w.published_at DESC LIMIT 100`).all(userId);

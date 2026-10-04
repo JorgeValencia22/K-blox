@@ -42,6 +42,10 @@ export class CastoresMode extends BaseMode {
     this.broadcast('castores', this.publicState());
   }
 
+  spectatorState() {
+    return { castores: this.publicState() };
+  }
+
   onJoin(p) {
     p.data = {};
     if (this.state === 'waiting') this.begin();

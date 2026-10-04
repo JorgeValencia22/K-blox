@@ -21,6 +21,7 @@ import { Hud } from '../ui/hud.js';
 import { PauseMenu } from '../ui/pause.js';
 import { toast } from '../ui/dom.js';
 import { EMOTES } from '../avatar/avatarAnimator.js';
+import { AdminPanel, isAdmin } from '../ui/adminPanel.js';
 
 const EMOTE_KEYS = { Digit1: 'emote_wave', Digit2: 'emote_dance', Digit3: 'emote_cheer', Digit4: 'sit', Digit5: 'emote_spin', Digit6: 'emote_robot', Digit7: 'emote_flip' };
 const FREE_EMOTES = ['emote_wave', 'emote_dance', 'emote_cheer', 'sit'];
@@ -51,6 +52,13 @@ export class Game {
     this.title = this.offline ? this.opts.offline.name : join.room.name;
     this.room = this.offline ? null : join.room;
     this.meta = this.world.meta || { mode: 'custom' };
+    // Administrador que mira la partida sin ser visto
+    this.spectator = !this.offline && !!join.you.spectator;
+    this.specTarget = this.spectator ? join.target || null : null;
+    this.controlling = null; // jugador al que controla el admin
+    this.controlledBy = null; // admin que controla a este jugador
+    this.remoteCtl = null;
+    this.adminFrozen = false;
 
     const scene = new THREE.Scene();
     this.scene = scene;
@@ -85,11 +93,17 @@ export class Game {
     for (const name of this.built.groupMeshes.keys()) setGroupState(this.built, name, this.groupState[name] !== false);
 
     this.hud = new Hud(this);
+    if (this.spectator) this.player.model.root.visible = false;
     this.pause = new PauseMenu(this);
     this.mode = createClientMode(this.meta.mode, this, this.offline ? {} : join.mode || {});
     this.mode.decorate?.(this.player.model);
     for (const r of this.remotes.values()) this.mode.decorateRemote?.(r);
     this.hud.setPlayerCount(this.playerCount());
+    if (!this.offline && isAdmin()) this.adminPanel = new AdminPanel(this);
+    if (this.spectator) {
+      if (!this.specTarget || !this.remotes.has(this.specTarget)) this.cycleSpectate(1);
+      this.adminPanel?.toggle(true);
+    }
     this.updateHint();
     if (!this.offline) this.bindNet();
 
@@ -113,7 +127,7 @@ export class Game {
       audio.setAmbient('day');
       audio.startMusic();
     }
-    this.hud.showCenter(this.title, this.offline ? 'Modo de prueba' : 'Pulsa en la pantalla para controlar la cámara', 2600);
+    this.hud.showCenter(this.title, this.spectator ? '👁️ Modo espectador (invisible)' : this.offline ? 'Modo de prueba' : 'Pulsa en la pantalla para controlar la cámara', 2600);
     return this;
   }
 
@@ -204,11 +218,57 @@ export class Game {
       toast(reason || 'Has sido expulsado de la partida', 'err', 5000);
       this.exit('kicked');
     });
+    on('player:leave', ({ id }) => {
+      if (this.spectator && id === this.specTarget) this.cycleSpectate(1);
+      if (this.controlling === id) this.controlling = null;
+    });
+    // --- Acciones de un administrador sobre este jugador ---
+    on('admin:kill', ({ by }) => { this.player.dead = false; this.die(`💀 ${by} (admin) te ha eliminado`); });
+    on('admin:lose', ({ by, handled }) => {
+      this.hud.showCenter('❌ HAS PERDIDO', `Decisión de ${by} (admin)`, 3000);
+      audio.play('death');
+      if (!handled) { this.player.dead = false; this.die('Has perdido'); }
+    });
+    on('admin:freeze', ({ on: v }) => {
+      this.adminFrozen = v;
+      this.hud.showCenter(v ? '🧊' : '🔥', v ? 'Un administrador te ha congelado' : 'Ya puedes moverte', 2000);
+    });
+    on('admin:launch', ({ power }) => {
+      const b = this.player.body;
+      if (this.player.vehicle) return;
+      b.vy = power;
+      b.onGround = false;
+      b.ground = null;
+      audio.play('bounce');
+    });
+    on('admin:tp', ({ p }) => this.player.teleport(p));
+    on('admin:control', ({ on: v, by }) => {
+      this.controlledBy = v ? by : null;
+      this.remoteCtl = null;
+      this.hud.showCenter('🎮', v ? `${by} (admin) te está controlando` : 'Vuelves a tener el control', 2500);
+    });
+    on('admin:ctl', (c) => { this.remoteCtl = { ...c, at: performance.now() }; });
+    on('admin:target-left', ({ id }) => { if (this.specTarget === id) this.cycleSpectate(1); });
     for (const [ev, fn] of Object.entries(this.mode.netEvents || {})) on(ev, fn);
   }
 
+  /** Espectador: cambia el jugador al que se mira. */
+  setSpecTarget(id) {
+    this.specTarget = id;
+    const r = this.remotes.get(id);
+    if (r) this.hud.showCenter('👁️', `Mirando a ${r.name}`, 1500);
+  }
+
+  cycleSpectate(dir) {
+    const ids = [...this.remotes.values()].filter((r) => !r.npc).map((r) => r.id);
+    if (!ids.length) { this.specTarget = null; return; }
+    const i = ids.indexOf(this.specTarget);
+    this.setSpecTarget(ids[(i + dir + ids.length) % ids.length]);
+    this.adminPanel?.open && this.adminPanel.render();
+  }
+
   playerCount() {
-    let n = 1;
+    let n = this.spectator ? 0 : 1;
     for (const r of this.remotes.values()) if (!r.npc && !r.bot) n++;
     return n;
   }
@@ -286,7 +346,16 @@ export class Game {
       else this.openPause();
       return;
     }
+    if (e.code === 'F2' && this.adminPanel) {
+      e.preventDefault();
+      this.adminPanel.toggle();
+      return;
+    }
     if (this.paused || this.hud.chatOpen) return;
+    if (this.spectator && !this.controlling && (e.code === 'ArrowRight' || e.code === 'ArrowLeft')) {
+      this.cycleSpectate(e.code === 'ArrowRight' ? 1 : -1);
+      return;
+    }
     if (e.code === 'Enter' || e.code === 'Slash') {
       e.preventDefault();
       this.hud.openChat(e.code === 'Slash' ? '/' : '');
@@ -369,12 +438,34 @@ export class Game {
     const veh = p.vehicle;
     if (veh && !this.paused) this.driveVehicle(veh, dt, move);
     else if (veh) veh.applyPose();
-    const ctl = { move, run: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.pressed('Space'), jumpHeld: input.down('Space') };
+    let ctl = { move, run: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.pressed('Space'), jumpHeld: input.down('Space'), crouch: false };
+    let camFwd = this.cam.forward();
+    // Un administrador controla a este jugador: sus mandos sustituyen a los nuestros
+    const rc = this.controlledBy && this.remoteCtl && performance.now() - this.remoteCtl.at < 600 ? this.remoteCtl : null;
+    if (this.controlledBy) {
+      ctl = { move: rc ? { x: rc.x, y: rc.y } : { x: 0, y: 0 }, run: !!rc?.run, jump: !!rc?.jump && !this.lastRcJump, jumpHeld: !!rc?.jump, crouch: false };
+      this.lastRcJump = !!rc?.jump;
+      if (rc) camFwd = new THREE.Vector3(-Math.sin(rc.yaw), 0, -Math.cos(rc.yaw));
+    }
+    if (this.controlling) ctl = { move: { x: 0, y: 0 }, run: false, jump: false, jumpHeld: false, crouch: false };
     this.mode.filterCtl?.(ctl, dt);
-    p.frozen = this.paused || this.mode.frozen;
-    p.update(dt, ctl, this.physics, this.cam.forward());
+    p.frozen = this.paused || this.mode.frozen || this.adminFrozen || this.spectator;
+    p.update(dt, ctl, this.physics, camFwd);
+    // Primera persona (Kest Pesadilla): el cuerpo mira hacia donde mira la cámara y no se dibuja
+    const fp = !!this.mode.firstPerson && !veh;
+    this.cam.firstPerson = fp;
+    if (fp) {
+      p.yaw = this.cam.yaw + Math.PI;
+      p.model.root.rotation.y = p.yaw;
+      this.cam.eye = this.mode.eyeHeight?.() ?? 1.62;
+    }
+    if (fp !== !!this.wasFp) {
+      p.model.root.visible = !fp;
+      this.wasFp = fp;
+    }
 
-    if (!this.paused && !p.dead) {
+    this.adminPanel?.update(dt);
+    if (!this.paused && !p.dead && !this.spectator) {
       this.checkTriggers();
       this.updateInteraction();
       if (this.dialogueNpc) {
@@ -385,7 +476,8 @@ export class Game {
     }
 
     // Cámara (detrás del vehículo si no se mueve el ratón)
-    const target = veh ? veh.state : p.body;
+    const spec = this.spectator ? this.remotes.get(this.specTarget) : null;
+    const target = spec ? spec.pos : veh ? veh.state : p.body;
     if (veh && now - this.lastLook > 1200) {
       const want = veh.state.yaw + Math.PI;
       this.cam.yaw += Math.atan2(Math.sin(want - this.cam.yaw), Math.cos(want - this.cam.yaw)) * Math.min(1, dt * 2.5);
@@ -417,11 +509,11 @@ export class Game {
 
     // Caída fuera del mapa
     const minY = this.world.bounds?.min[1] ?? -40;
-    if (!p.dead && target.y < minY) this.die('Has caído fuera del mapa');
+    if (!p.dead && !this.spectator && target.y < minY) this.die('Has caído fuera del mapa');
 
     // Red
     this.sendAcc += dt;
-    if (!this.offline && this.sendAcc >= 1 / NET.clientSendRate) {
+    if (!this.offline && !this.spectator && this.sendAcc >= 1 / NET.clientSendRate) {
       this.sendAcc = 0;
       const b = p.body;
       const msg = { p: [round(b.x), round(b.y), round(b.z)], ry: round(p.yaw), a: p.netAnim() };
@@ -796,6 +888,7 @@ export class Game {
     this.listeners.forEach((u) => u());
     this.offClick?.(); this.offLock?.(); this.offKey?.(); this.offKeyUp?.();
     this.mode?.dispose?.();
+    this.adminPanel?.destroy();
     this.hud?.destroy();
     this.pause?.destroy();
     audio.stopEngines();
