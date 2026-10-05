@@ -1,4 +1,4 @@
-// Kest Racing: circuito cerrado con 8 puntos de control y parrilla de salida.
+// Turbo Karts: circuito cerrado con 8 puntos de control y parrilla de salida.
 import { WorldGen } from './builder.js';
 
 export function trackPoint(t) {
@@ -53,7 +53,7 @@ export function buildRacing() {
   for (const side of [-1, 1]) g.block([sx + px * side * (W / 2 + 1), 4, sz + pz * side * (W / 2 + 1)], [1, 8, 1], '#fdd835', 'metal');
   const arch = g.block([sx, 8.4, sz], [W + 3, 1.2, 1], '#fdd835', 'metal');
   arch.ry = ryDeg;
-  g.add('sign', [sx, 8.4, sz], [8, 1, 1.1], '#212121', 'plastic', { text: 'KEST RACING' }).ry = ryDeg;
+  g.add('sign', [sx, 8.4, sz], [8, 1, 1.1], '#212121', 'plastic', { text: 'TURBO KARTS' }).ry = ryDeg;
 
   const grid = [];
   const fx = Math.sin(dir), fz = Math.cos(dir);
@@ -69,6 +69,52 @@ export function buildRacing() {
     const b = g.block([gx + px * -r * 1.6, 0.5 + r * 0.8, gz + pz * -r * 1.6], [3, 1 + r * 1.6, 30], ['#1e88e5', '#e53935', '#fdd835', '#43a047'][r], 'plastic');
     b.ry = ryDeg;
   }
+  // Turbos: al pasar por encima el kart acelera un momento (lo aplica el cliente)
+  const segRy = (i) => {
+    const [ax, az] = pts[i], [bx, bz] = pts[(i + 1) % N];
+    return (Math.atan2(bx - ax, bz - az) * 180) / Math.PI;
+  };
+  const boosts = [];
+  for (const i of [12, 36, 60, 84]) {
+    const [x, z] = pts[i];
+    g.block([x, 0.22, z], [6, 0.06, 4], '#00e5ff', 'neon', { nc: true }).ry = segRy(i);
+    const a = (segRy(i) * Math.PI) / 180;
+    for (const k of [-1, 0, 1]) g.block([x + Math.sin(a) * k * 1.2, 0.26, z + Math.cos(a) * k * 1.2], [3.5, 0.04, 0.35], '#ffffff', 'neon', { nc: true }).ry = segRy(i);
+    boosts.push([x, z]);
+  }
+  // Túnel sobre un tramo del circuito
+  for (let i = 44; i <= 52; i++) {
+    const [x, z] = pts[i];
+    const [bx, bz] = pts[(i + 1) % N];
+    const dx = bx - x, dz = bz - z, l = Math.hypot(dx, dz);
+    const nx = dz / l, nz = -dx / l, ry = segRy(i);
+    for (const side of [-1, 1]) g.block([x + nx * side * (W / 2 + 2.2), 3, z + nz * side * (W / 2 + 2.2)], [1, 6, l + 1.4], '#78909c', 'stone').ry = ry;
+    g.block([x, 6.3, z], [W + 5.4, 0.6, l + 1.4], '#607d8b', 'stone', { nc: true }).ry = ry;
+    if (i % 2 === 0) g.add('light', [x, 5.6, z], [0.4, 0.4, 0.4], '#fff59d', 'neon', { intensity: 1.2, range: 12 });
+  }
+  // Boxes con garajes junto a la recta de salida
+  {
+    const bx = sx + px * (W / 2 + 14), bz = sz + pz * (W / 2 + 14);
+    g.block([bx, 2.5, bz], [6, 5, 36], '#eceff1', 'brick').ry = ryDeg;
+    g.block([bx - px * 1, 5.3, bz - pz * 1], [9, 0.5, 38], '#e53935', 'plastic').ry = ryDeg;
+    g.add('sign', [bx - px * 3.1, 6.4, bz - pz * 3.1], [12, 1.4, 0.2], '#212121', 'metal', { text: 'BOXES' }).ry = ryDeg + 90;
+    for (let k = -2; k <= 2; k++) g.add('deco', [bx - px * 4 + fx * k * 6, 0.5, bz - pz * 4 + fz * k * 6], [1, 1, 1], '#ff7043', 'plastic', { kind: 'barrel' });
+  }
+  // Lago con fuente en el centro del circuito y carteles publicitarios
+  g.add('cylinder', [0, 0.1, 0], [40, 0.2, 26], '#29b6f6', 'glass', { nc: true });
+  g.add('cylinder', [0, 1, 0], [3, 2, 3], '#b0bec5', 'stone');
+  g.add('sphere', [0, 2.6, 0], [1.6, 1.6, 1.6], '#4fc3f7', 'glass', { nc: true });
+  ['¡TURBO!', 'KESTWORLDS', 'NO FRENES', 'CURVA PELIGROSA'].forEach((t, k) => {
+    const [x, z] = pts[k * 24 + 18];
+    const r = Math.hypot(x, z);
+    g.add('sign', [x * (1 + 16 / r), 3, z * (1 + 16 / r)], [8, 3, 0.3], ['#ffeb3b', '#7c4dff', '#ff5722', '#00bcd4'][k], 'metal', { text: t }).ry = (Math.atan2(x, z) * 180) / Math.PI;
+  });
+  // Público en las gradas (bloques de colores)
+  for (let r = 0; r < 4; r++) for (let k = -6; k <= 6; k += 2) {
+    const off = -r * 1.6;
+    g.block([gx + px * off + fx * k * 2, 1.4 + r * 1.6 + 0.3, gz + pz * off + fz * k * 2], [0.6, 0.8, 0.6], ['#f44336', '#ffeb3b', '#2196f3', '#ffffff', '#4caf50'][(r + k + 12) % 5], 'plastic', { nc: true });
+  }
+
   for (let i = 0; i < 70; i++) {
     const a = (i / 70) * Math.PI * 2;
     const rr = i % 2 ? 185 : 40 + (i % 7) * 4;
@@ -85,6 +131,6 @@ export function buildRacing() {
     spawns: grid.map((s) => [s.p[0], 0.4, s.p[2]]),
     objects: g.objects,
     vehicles: [],
-    meta: { mode: 'racing', grid, checkpoints: CP, laps: 3, minLapTime: 12 },
+    meta: { mode: 'racing', grid, checkpoints: CP, laps: 3, minLapTime: 12, boosts },
   };
 }

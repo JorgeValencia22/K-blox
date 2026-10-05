@@ -10,6 +10,7 @@ import { boxGeo } from '../world/objectParts.js';
 import { store } from '../core/store.js';
 import { OnlyUpClient, HorrorClient, RoyaleClient, RocketClient, CastoresClient } from './modes2.js';
 import { PesadillaClient, DesastresClient, HuertoClient, BloquesClient } from './modes3.js';
+import { AsaltoClient } from './asalto.js';
 
 class BaseClient {
   constructor(game, state) {
@@ -24,7 +25,7 @@ class BaseClient {
   dispose() {}
 }
 
-// --- Kest City ----------------------------------------------------------------
+// --- Isla Metrópolis ----------------------------------------------------------------
 class CityClient extends BaseClient {
   constructor(game, state) {
     super(game, state);
@@ -148,7 +149,7 @@ class CustomClient extends ObbyClient {
   }
 }
 
-// --- Kest Racing ----------------------------------------------------------------
+// --- Turbo Karts ----------------------------------------------------------------
 class RacingClient extends BaseClient {
   constructor(game, state) {
     super(game, state);
@@ -224,6 +225,18 @@ class RacingClient extends BaseClient {
     return true;
   }
 
+  /** Turbos de la pista: al pasar por encima, el kart acelera durante un momento. */
+  vehicleCtl(v) {
+    const now = performance.now();
+    for (const [x, z] of this.game.world.meta.boosts || []) {
+      if (Math.hypot(v.state.x - x, v.state.z - z) < 3.6 && now > (this.boostUntil || 0) - 900) {
+        if (now > (this.boostUntil || 0)) audio.play('boost');
+        this.boostUntil = now + 1300;
+      }
+    }
+    return now < (this.boostUntil || 0) ? { boost: true } : {};
+  }
+
   async update() {
     if (input.pressed('KeyG')) {
       const r = await net.request('mode', { name: 'start' });
@@ -245,7 +258,7 @@ class RacingClient extends BaseClient {
   }
 }
 
-// --- Kest Survival ----------------------------------------------------------------
+// --- Noche Salvaje ----------------------------------------------------------------
 class SurvivalClient extends BaseClient {
   constructor(game, state) {
     super(game, state);
@@ -489,7 +502,7 @@ class SurvivalClient extends BaseClient {
   }
 }
 
-// --- Kest Hangout -----------------------------------------------------------------
+// --- La Plaza -----------------------------------------------------------------
 class HangoutClient extends BaseClient {
   constructor(game, state) {
     super(game, state);
@@ -498,7 +511,7 @@ class HangoutClient extends BaseClient {
   }
 }
 
-// --- Kest Teclas (ASMR) ---------------------------------------------------------------
+// --- Teclas ASMR (ASMR) ---------------------------------------------------------------
 // Escala pentatónica: cada tecla tiene su nota, así caminar suena a música.
 const PENTA = [261.6, 293.7, 329.6, 392.0, 440.0, 523.3, 587.3, 659.3, 784.0, 880.0];
 function keySound(o) {
@@ -567,6 +580,7 @@ class KeysClient extends ObbyClient {
 
 export function createClientMode(name, game, state) {
   switch (name) {
+    case 'asalto': return new AsaltoClient(game, state);
     case 'pesadilla': return new PesadillaClient(game, state);
     case 'desastres': return new DesastresClient(game, state);
     case 'huerto': return new HuertoClient(game, state);

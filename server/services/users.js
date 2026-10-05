@@ -135,7 +135,8 @@ export function privateProfile(u) {
   const db = getDb();
   return {
     ...publicProfile(u),
-    role: u.role,
+    role: isAdmin(u) ? 'admin' : u.role,
+    adminTemp: u.role !== 'admin' && isAdmin(u),
     xp: u.xp,
     coins: u.coins,
     xpLevelStart: xpForLevel(u.level),
@@ -375,4 +376,79 @@ export function giveCoins(userId, amount, reason = 'Regalo del administrador') {
   const u = getUser(userId);
   presence.emit(userId, 'progress', { xp: u.xp, level: u.level, coins: u.coins, xpLevelStart: xpForLevel(u.level), xpNextLevel: xpForLevel(u.level + 1), gainedXp: 0, gainedCoins: 0, reason: '' });
   return { ok: true };
+}
+
+// --- Modo admin con contraseña y sanciones -------------------------------------
+// Cualquier cuenta puede activar el modo admin escribiendo la contraseña del dueño
+// (OWNER_PASSWORD). Se comprueba contra el hash guardado y dura 12 horas o hasta
+// que se reinicie el servidor. Nunca se guarda la contraseña en claro.
+const elevated = new Map(); // userId -> caducidad
+const ELEVATE_MS = 12 * 3600_000;
+export const PERMA_BAN = 253402300799000; // año 9999
+
+export function isAdmin(u) {
+  if (!u) return false;
+  if (u.role === 'admin') return true;
+  const e = elevated.get(u.id);
+  if (e && e > Date.now()) return true;
+  if (e) elevated.delete(u.id);
+  return false;
+}
+
+export async function unlockAdmin(userId, password) {
+  const owner = config.ownerUsername ? getUserByName(config.ownerUsername) : null;
+  if (!owner) return { error: 'El modo admin no está configurado en este servidor' };
+  const ok = await verifyPassword(String(password ?? ''), owner.pass_hash);
+  if (!ok) return { error: 'Contraseña incorrecta' };
+  elevated.set(userId, Date.now() + ELEVATE_MS);
+  return { ok: true };
+}
+
+export function lockAdmin(userId) {
+  elevated.delete(userId);
+  return { ok: true };
+}
+
+export function banMessage(u) {
+  if (u.banned_until >= PERMA_BAN) return 'Esta cuenta ha sido bloqueada para siempre';
+  const mins = Math.ceil((u.banned_until - Date.now()) / 60000);
+  return mins > 120 ? `Cuenta suspendida (${Math.ceil(mins / 60)} h más)` : `Cuenta suspendida (${mins} min más)`;
+}
+
+/** Banea una cuenta: temporal (horas) o permanente. Cierra sus sesiones. */
+export function banUser(userId, { hours = 24, perma = false } = {}) {
+  const u = getUser(userId);
+  if (!u) return { error: 'Usuario no encontrado' };
+  if (u.role === 'admin' || isOwnerName(u.username)) return { error: 'No puedes banear a un administrador' };
+  const until = perma ? PERMA_BAN : Date.now() + Math.max(0.1, Math.min(24 * 3650, Number(hours) || 24)) * 3600_000;
+  const db = getDb();
+  db.prepare('UPDATE users SET banned_until = ? WHERE id = ?').run(until, userId);
+  db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+  presence.disconnectUser(userId, perma ? '⛔ Has sido baneado para siempre' : '⛔ Has sido baneado temporalmente');
+  return { ok: true, until, perma };
+}
+
+export function unbanUser(userId) {
+  const r = getDb().prepare('UPDATE users SET banned_until = 0 WHERE id = ?').run(userId);
+  return r.changes ? { ok: true } : { error: 'Usuario no encontrado' };
+}
+
+/** Regala un objeto de la tienda (o todos con 'all'). */
+export function grantItem(userId, itemId) {
+  const ids = itemId === 'all' ? Object.keys(SHOP_BY_ID) : [itemId];
+  if (!ids.every((id) => SHOP_BY_ID[id])) return { error: 'Objeto desconocido' };
+  if (!getUser(userId)) return { error: 'Usuario no encontrado' };
+  const ins = getDb().prepare('INSERT OR IGNORE INTO inventory (user_id, item_id, acquired_at) VALUES (?,?,?)');
+  let added = 0;
+  tx(() => { for (const id of ids) added += ins.run(userId, id, Date.now()).changes; });
+  const name = itemId === 'all' ? 'todos los objetos de la tienda' : SHOP_BY_ID[itemId].name;
+  presence.emit(userId, 'toast', { text: `🎁 ¡Un administrador te ha regalado ${name}!`, kind: 'reward' });
+  presence.emit(userId, 'inventory', {});
+  return { ok: true, added };
+}
+
+export function searchUsersAdmin(q) {
+  const s = `%${String(q || '').replace(/[%_]/g, '').slice(0, 20)}%`;
+  return getDb().prepare('SELECT id, username, level, coins, role, banned_until, last_seen FROM users WHERE username LIKE ? ORDER BY last_seen DESC LIMIT 30').all(s)
+    .map((u) => ({ ...u, online: presence.isOnline(u.id), banned: u.banned_until > Date.now(), perma: u.banned_until >= PERMA_BAN }));
 }

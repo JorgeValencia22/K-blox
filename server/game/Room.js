@@ -287,7 +287,7 @@ export class Room {
     this.npcs?.tick(dt);
     const players = [];
     for (const p of this.players.values()) {
-      if (this.mode.hidden?.(p)) continue; // p. ej. eliminados en Kest Royale
+      if (this.mode.hidden?.(p)) continue; // p. ej. eliminados en Isla Royale
       const e = { id: p.id, p: p.pos, ry: p.ry, a: p.anim };
       if (p.vehicleId) {
         const v = this.vehicles.get(p.vehicleId);

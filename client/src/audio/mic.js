@@ -1,4 +1,4 @@
-// Medidor de volumen del micrófono para Kest Pesadilla. El sonido NUNCA sale del
+// Medidor de volumen del micrófono para Silencio Mortal. El sonido NUNCA sale del
 // dispositivo: solo se calcula un número de 0 a 1 (lo fuerte que hablas) y eso es
 // lo único que se envía al servidor. No hay grabación ni chat de voz.
 export class MicMeter {

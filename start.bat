@@ -1,12 +1,12 @@
 @echo off
 chcp 65001 >nul
 setlocal EnableDelayedExpansion
-title Kest Worlds
+title KestWorlds
 cd /d "%~dp0"
 
 echo.
 echo   =============================================
-echo     KEST WORLDS - plataforma de mundos 3D
+echo     KESTWORLDS - plataforma de mundos 3D
 echo   =============================================
 echo.
 

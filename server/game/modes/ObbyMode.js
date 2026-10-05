@@ -6,7 +6,7 @@ import * as users from '../../services/users.js';
 export class ObbyMode extends BaseMode {
   /**
    * opts.stats: claves de estadísticas/recompensas para recorridos oficiales distintos
-   * (Kest Obby y Kest Teclas comparten esta lógica).
+   * (Obby del Cielo y Teclas ASMR comparten esta lógica).
    */
   constructor(room, { official = true, stats = null } = {}) {
     super(room);

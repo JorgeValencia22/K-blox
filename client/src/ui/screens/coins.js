@@ -12,7 +12,7 @@ const WAYS = [
   ['⭐', 'Subir de nivel', 'Cada nivel nuevo da monedas extra.'],
   ['🏆', 'Logros', 'Cada logro desbloqueado tiene su premio.'],
   ['🎮', 'Ganar partidas', 'Escapar, sobrevivir, ganar carreras, vender cosechas…'],
-  ['🎟️', 'Códigos regalo', 'Los organizadores de Kest regalan códigos en eventos.'],
+  ['🎟️', 'Códigos regalo', 'Los organizadores de KestWorlds regalan códigos en eventos.'],
 ];
 
 export function coinsScreen(app) {
@@ -108,7 +108,7 @@ export function coinsScreen(app) {
       ),
       h('div.panel.box', h('h3', '💡 Cómo conseguir más Kesty Coins'),
         h('div.ways', WAYS.map(([ic, t, d]) => h('div.way', h('span.way-ic', ic), h('div', h('b', t), h('div.small.muted', d))))),
-        h('p.small.muted', { style: { marginTop: '12px' } }, '🔒 En Kest Worlds no se puede pagar con dinero real: todas las monedas se ganan jugando. Así es más justo para todos.'),
+        h('p.small.muted', { style: { marginTop: '12px' } }, '🔒 En KestWorlds no se puede pagar con dinero real: todas las monedas se ganan jugando. Así es más justo para todos.'),
       ),
     ),
   );

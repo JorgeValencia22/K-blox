@@ -70,5 +70,5 @@ test('mundos oficiales: tienen apariciones y objetivos', () => {
     assert.ok(w.objects.length > 20, id);
   }
   assert.equal(getBuiltinWorld('city').objects.filter((o) => o.t === 'gem').length, 12);
-  assert.equal(getBuiltinWorld('obby').objects.filter((o) => o.t === 'checkpoint').length, 9);
+  assert.equal(getBuiltinWorld('obby').objects.filter((o) => o.t === 'checkpoint').length, 13);
 });

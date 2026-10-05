@@ -1,4 +1,4 @@
-// Kest Royale: batalla de "último en pie" con tormenta, botín, construcción y bots.
+// Isla Royale: batalla de "último en pie" con tormenta, botín, construcción y bots.
 // Todos los disparos se resuelven en el servidor (rayo contra cilindros de los
 // jugadores, con línea de visión contra terreno, objetos del mundo y construcciones).
 import { BaseMode } from './BaseMode.js';

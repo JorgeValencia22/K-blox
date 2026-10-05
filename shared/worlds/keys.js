@@ -1,4 +1,4 @@
-// Kest Teclas: obby relajante (ASMR) sobre teclados mecánicos gigantes. Cada tecla
+// Teclas ASMR: obby relajante (ASMR) sobre teclados mecánicos gigantes. Cada tecla
 // se hunde y suena al pisarla. Los puntos de control son barras espaciadoras.
 import { WorldGen } from './builder.js';
 import { mulberry32 } from '../terrain.js';
@@ -26,7 +26,7 @@ export function buildKeys() {
   // Escritorio de salida
   g.block([0, -0.6, 22], [40, 1.2, 20], '#6d4c41', 'wood');
   g.add('spawn', [0, 0.2, 24], [4, 0.4, 4], '#26c6da', 'neon');
-  g.add('sign', [0, 3, 30], [12, 2.4, 0.3], '#212121', 'metal', { text: 'KEST TECLAS · ASMR' });
+  g.add('sign', [0, 3, 30], [12, 2.4, 0.3], '#212121', 'metal', { text: 'TECLAS ASMR' });
 
   /**
    * Coloca un teclado completo. (cx, y, zFront): centro X, altura de la base y
@@ -64,7 +64,7 @@ export function buildKeys() {
   let z = kb.zBack;
   let y = 1.1;
 
-  // 2) Escalera de teclas sueltas que escriben "KEST WORLDS"
+  // 2) Escalera de teclas sueltas que escriben "KESTWORLDS"
   const word = 'KESTWORLDS';
   for (let i = 0; i < word.length; i++) {
     z -= 4.6;
@@ -109,14 +109,51 @@ export function buildKeys() {
     });
   }
 
+  // Barra espaciadora = punto de control 4
+  z -= 7;
+  g.add('keycap', [0, y - 0.55, z], [16, 1.1, 3.4], '#ffcc80', 'plastic', { label: '' });
+  g.add('checkpoint', [0, y + 0.2, z], [3, 0.3, 2], '#66bb6a', 'neon', { n: 4 });
+
+  // 7) Piano gigante: teclas blancas largas y negras más altas (cada una es una nota)
+  const notes = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI', 'DO'];
+  z -= 4;
+  for (let i = 0; i < notes.length; i++) {
+    z -= 3.3;
+    g.add('keycap', [0, y - 0.55 + i * 0.35, z], [10, 1.1, 3], '#fafafa', 'plastic', { label: notes[i] });
+    if (i % 7 !== 2 && i < notes.length - 1) g.add('keycap', [(i % 2 ? 3 : -3), y + 0.35 + i * 0.35, z - 1.65], [2.2, 1.1, 1.4], '#212121', 'plastic', { label: '♯' });
+  }
+  y += notes.length * 0.35;
+
+  // 8) Ratón gigante y alfombrilla: hay que subir por el ratón para llegar al ENTER
+  z -= 9;
+  g.block([0, y - 1.15, z - 4], [22, 0.2, 18], '#3949ab', 'plastic');
+  g.add('sphere', [0, y + 0.2, z - 4], [6, 3.2, 9], '#eceff1', 'plastic');
+  g.block([0, y + 1.9, z - 6.5], [0.3, 0.3, 3], '#90a4ae', 'plastic', { nc: true });
+  g.add('cylinder', [0, y + 1.8, z - 7.8], [0.8, 0.4, 0.8], '#ff7043', 'neon', { nc: true });
+  g.add('keycap', [3, y - 0.55, z - 11], [3, 1.1, 3], '#ffd54f', 'plastic', { label: 'L' });
+  g.add('keycap', [-1, y + 0.05, z - 14.5], [3, 1.1, 3], '#ffd54f', 'plastic', { label: 'R' });
+  z -= 13;
+  y += 1.2;
+
   // 6) Tecla ENTER gigante = meta
   z -= 9;
   g.add('keycap', [0, y - 0.55, z], [12, 1.1, 10], '#42a5f5', 'plastic', { label: 'ENTER' });
   g.add('finish', [0, y + 0.2, z], [5, 0.3, 5], '#fdd835', 'neon');
 
+  // Objetos de escritorio gigantes alrededor del recorrido (decoración)
+  g.add('cylinder', [-30, 8, -20], [12, 16, 12], '#ef9a9a', 'plastic', { nc: true }); // taza
+  g.add('cylinder', [-30, 15.8, -20], [11, 0.4, 11], '#5d4037', 'plastic', { nc: true }); // café
+  g.block([-37, 9, -20], [2, 7, 1.5], '#ef9a9a', 'plastic', { nc: true }); // asa
+  g.block([34, 6, -60], [3, 3, 40], '#fdd835', 'wood', { nc: true }); // lápiz
+  g.block([34, 6, -82], [2, 2, 4], '#ffccbc', 'wood', { nc: true });
+  g.block([34, 6, -39], [3.2, 3.2, 2], '#f48fb1', 'plastic', { nc: true }); // goma
+  ['#fff59d', '#80deea', '#f8bbd0'].forEach((c, i) => g.block([-26 + i * 9, -3 + i, -110 - i * 6], [8, 0.2, 8], c, 'plastic', { nc: true }));
+  g.add('sphere', [36, 10, -140], [14, 14, 14], '#80cbc4', 'glass', { nc: true }); // auriculares (almohadilla)
+  g.add('sphere', [-36, 10, -140], [14, 14, 14], '#80cbc4', 'glass', { nc: true });
+
   // Monitor gigante de fondo
   g.block([0, 40, z - 60], [90, 50, 3], '#111111', 'metal', { nc: true });
-  g.add('sign', [0, 40, z - 58.3], [80, 42, 0.2], '#1a237e', 'neon', { text: 'Kest Teclas', nc: true });
+  g.add('sign', [0, 40, z - 58.3], [80, 42, 0.2], '#1a237e', 'neon', { text: 'Teclas ASMR', nc: true });
 
   return {
     version: 1,

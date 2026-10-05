@@ -1,4 +1,4 @@
-// Kest Pesadilla: terror en primera persona dentro de una casa abandonada.
+// Silencio Mortal: terror en primera persona dentro de una casa abandonada.
 // "El Oyente" es ciego: caza por el sonido (pasos, carreras y, si se activa, el
 // micrófono del jugador). Tareas: encontrar 3 fusibles, devolver la luz, encontrar
 // la llave y escapar por la puerta principal.
@@ -112,6 +112,27 @@ export function buildPesadilla() {
         const id = `closet${closets.length}`;
         g.block([px, 1.3, pz], [1.6, 2.6, 1.6], '#3e2723', 'wood', { id });
         closets.push({ id, p: [px, 0, pz], room: [i, j] });
+      }
+    }
+    // Alfombra, lámpara de techo y detalles de cada habitación (decoración sin colisión)
+    const rug = ['#4a148c', '#1a237e', '#3e2723', '#004d40', '#880e4f'][Math.floor(rnd() * 5)];
+    g.block([cx(i), 0.12, cz(j)], [r(3, 4.5), 0.02, r(3, 4.5)], rug, 'plastic', { nc: true });
+    g.add('sphere', [cx(i), H - 0.6, cz(j)], [0.9, 0.5, 0.9], '#5d4037', 'metal', { nc: true });
+    const extra = rnd();
+    if (extra < 0.25) {
+      // Muñeco inquietante sentado en un rincón
+      const [ex, ez] = [cx(i) + (rnd() < 0.5 ? -1 : 1) * 3.9, cz(j) + (rnd() < 0.5 ? -1 : 1) * 1];
+      g.add('sphere', [ex, 0.35, ez], [0.5, 0.6, 0.4], '#f5f5f5', 'plastic', { nc: true });
+      g.add('sphere', [ex, 0.85, ez], [0.4, 0.4, 0.4], '#ffe0b2', 'plastic', { nc: true });
+    } else if (extra < 0.45) {
+      // Vela encendida
+      g.add('cylinder', [cx(i) - 1, 0.25, cz(j) + 1], [0.15, 0.5, 0.15], '#fff8e1', 'plastic', { nc: true });
+      g.add('light', [cx(i) - 1, 0.65, cz(j) + 1], [0.12, 0.12, 0.12], '#ffb74d', 'neon', { intensity: 0.5, range: 5 });
+    } else if (extra < 0.6) {
+      // Retratos en la pared norte (a los lados del hueco de la puerta)
+      for (const s of [-1, 1]) {
+        g.block([cx(i) + s * 2.6, 2.4, cz(j) - CELL / 2 + 0.26], [1.1, 1.4, 0.06], '#4e342e', 'wood', { nc: true });
+        g.block([cx(i) + s * 2.6, 2.4, cz(j) - CELL / 2 + 0.3], [0.8, 1.1, 0.04], ['#37474f', '#5d4037'][s > 0 ? 0 : 1], 'plastic', { nc: true });
       }
     }
     // Cuadros torcidos y manchas

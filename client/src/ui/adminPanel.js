@@ -1,7 +1,9 @@
 // Panel de desarrollador dentro de la partida (solo administradores).
 // Permite espectear, controlar, congelar, lanzar, matar, hacer perder, traer o
 // expulsar jugadores, y cerrar el servidor. Todas las acciones las valida el servidor.
-import { h, button, clear, toast } from './dom.js';
+import { h, button, clear, toast, modal } from './dom.js';
+import { audio } from '../audio/audio.js';
+import { SHOP_ITEMS } from '../../../shared/catalog.js';
 import { net } from '../core/net.js';
 import { store } from '../core/store.js';
 import { input } from '../engine/input.js';
@@ -56,14 +58,19 @@ export class AdminPanel {
         button('🧊', () => this.act('freeze', p.id, { on: !this.frozen?.has(p.id) }).then((r) => { if (r.ok) { this.frozen ??= new Set(); r.frozen ? this.frozen.add(p.id) : this.frozen.delete(p.id); this.render(); } }), 'small'),
         button('🚀', () => this.act('launch', p.id), 'small'),
         g.spectator ? null : button('🧲', () => this.act('bring', p.id, { pos: [g.player.body.x, g.player.body.y, g.player.body.z] }), 'small'),
+        g.spectator ? null : button('🧭', () => this.goto(p.id), 'small'),
+        button('🏠', () => this.act('spawn', p.id), 'small'),
+        button('😱', () => this.act('jumpscare', p.id), 'small'),
+        button('🎁', () => giftModal({ userId: p.id, name: p.name }), 'small'),
         button('💀', () => this.act('kill', p.id), 'small danger'),
         button('❌ Perder', () => this.act('lose', p.id), 'small danger'),
         button('🚪', () => this.act('kick', p.id), 'small danger'),
+        button('⛔', () => banModal({ userId: p.id, name: p.name }), 'small danger'),
       ),
     ));
     clear(this.el).append(
       h('div.row', h('h3', { style: { margin: 0, flex: 1 } }, '🛡️ Modo desarrollador'), button('✕', () => this.toggle(false), 'small')),
-      h('div.small.muted', '👁️ espectear · 🎮 controlar · 🧊 congelar · 🚀 lanzar · 🧲 traer · 💀 matar · 🚪 expulsar'),
+      h('div.small.muted', '👁️ espectear · 🎮 controlar · 🧊 congelar · 🚀 lanzar · 🧲 traer · 🧭 ir hacia él · 🏠 al inicio · 😱 susto · 🎁 regalar · 💀 matar · 🚪 expulsar · ⛔ banear'),
       h('div.list', { style: { maxHeight: '46vh', overflow: 'auto', margin: '8px 0' } }, rows.length ? rows : h('p.muted', 'No hay más jugadores en este servidor.')),
       h('div.row.wrap',
         g.spectator ? button('⬅️ Anterior', () => g.cycleSpectate(-1), 'small') : null,
@@ -106,6 +113,15 @@ export class AdminPanel {
     }
   }
 
+  /** Teletransporta al admin junto al jugador (si está en otro servidor, entra en él). */
+  async goto(id) {
+    const r = await adminRequest('goto', { userId: id });
+    if (r.needJoin) {
+      await window.kest.app.play({ roomId: r.roomId });
+      setTimeout(() => adminRequest('goto', { userId: id }), 1500);
+    }
+  }
+
   announce() {
     const text = prompt('Mensaje para TODOS los jugadores conectados:');
     if (text) adminRequest('announce', { text }).then((r) => r.ok && toast('Anuncio enviado', 'ok'));
@@ -134,3 +150,54 @@ export class AdminPanel {
 }
 
 export const isAdmin = () => store.user?.role === 'admin';
+
+/** Ventana para regalar Kesty Coins u objetos de la tienda a un jugador. */
+export function giftModal(target) {
+  const amount = h('input.input', { type: 'number', value: 100, min: -100000, max: 100000 });
+  const sel = h('select.input', h('option', { value: 'all' }, '🎁 TODOS los objetos de la tienda'),
+    ...SHOP_ITEMS.filter((i) => i.price > 0).map((i) => h('option', { value: i.id }, `${i.name} (${i.price} KC)`)));
+  const who = target.userId ? { userId: target.userId } : { username: target.name };
+  modal(`🎁 Regalar a ${target.name}`, h('div',
+    h('div.field', h('label', 'Kesty Coins (negativo para quitar)'), h('div.row', amount, button('Dar monedas', async () => {
+      const r = await adminRequest('coins', { ...who, username: target.name, amount: Number(amount.value) });
+      if (r.ok) toast(`Monedas enviadas a ${target.name}`, 'ok');
+    }, 'primary'))),
+    h('div.field', h('label', 'Objeto de la tienda'), h('div.row', sel, button('Regalar', async () => {
+      const r = await adminRequest('giveItem', { ...who, itemId: sel.value });
+      if (r.ok) toast(r.added ? `Regalado (${r.added} objeto${r.added === 1 ? '' : 's'} nuevo${r.added === 1 ? '' : 's'})` : 'Ya lo tenía', 'ok');
+    }, 'primary'))),
+  ), { actions: [{ label: 'Cerrar' }] });
+}
+
+/** Ventana para banear (temporal o para siempre). */
+export function banModal(target, onDone) {
+  const who = target.userId ? { userId: target.userId } : { username: target.name };
+  const ban = async (data, label) => {
+    const r = await adminRequest('ban', { ...who, ...data });
+    if (r.ok) { toast(`${target.name} baneado ${label}`, 'ok'); onDone?.(); }
+  };
+  const close = modal(`⛔ Banear a ${target.name}`, h('div',
+    h('p.muted.small', 'Se le expulsa al momento y no podrá entrar hasta que termine el baneo.'),
+    h('div.row.wrap',
+      button('1 hora', () => { close(); ban({ hours: 1 }, '1 hora'); }),
+      button('1 día', () => { close(); ban({ hours: 24 }, '1 día'); }),
+      button('7 días', () => { close(); ban({ hours: 168 }, '7 días'); }),
+      button('30 días', () => { close(); ban({ hours: 720 }, '30 días'); }),
+      button('⛔ PARA SIEMPRE', () => { close(); ban({ perma: true }, 'para siempre'); }, 'danger'),
+    ),
+  ), { actions: [{ label: 'Cancelar' }] });
+}
+
+/** Susto a pantalla completa (lo manda un administrador). */
+export function showJumpscare() {
+  audio.play('scream');
+  const face = h('div.jumpscare', { html: `<svg viewBox="0 0 200 200"><defs><radialGradient id="js1"><stop offset="0" stop-color="#3a0000"/><stop offset="1" stop-color="#000"/></radialGradient></defs>
+    <rect width="200" height="200" fill="url(#js1)"/><ellipse cx="100" cy="105" rx="78" ry="88" fill="#d8d0c4"/>
+    <ellipse cx="68" cy="82" rx="20" ry="26" fill="#000"/><ellipse cx="132" cy="82" rx="20" ry="26" fill="#000"/>
+    <circle cx="70" cy="86" r="5" fill="#ff1744"/><circle cx="130" cy="86" r="5" fill="#ff1744"/>
+    <path d="M45 140 Q100 205 155 140 Q100 168 45 140Z" fill="#200"/>
+    <path d="M55 146 l8 14 l8 -12 l8 14 l8 -13 l8 14 l8 -13 l8 14 l8 -13 l8 12" stroke="#fff8e1" stroke-width="4" fill="none"/></svg>` });
+  document.body.appendChild(face);
+  setTimeout(() => face.classList.add('out'), 1300);
+  setTimeout(() => face.remove(), 1800);
+}

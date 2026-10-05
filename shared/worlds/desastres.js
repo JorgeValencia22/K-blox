@@ -1,4 +1,4 @@
-// Kest Desastres: una isla con casas, una torre y una colina. Cada ronda llega un
+// Desastres Naturales: una isla con casas, una torre y una colina. Cada ronda llega un
 // desastre natural (inundación, lava, meteoritos, tornado, terremoto o lluvia ácida)
 // y hay que sobrevivir hasta el final. Entre rondas se espera en la plataforma del cielo.
 import { WorldGen } from './builder.js';
@@ -67,6 +67,53 @@ export function buildDesastres() {
   // Colina
   g.add('wedge', [36, 2, 0], [12, 4, 14], '#689f38', 'grass').ry = 90;
   g.block([46, 2, 0], [8, 4, 14], '#689f38', 'grass');
+  // Gasolinera: marquesina (refugio contra la lluvia ácida y los meteoritos pequeños) y tienda
+  {
+    const x = 0, z = 38;
+    for (const [a, b] of [[-6, -4], [6, -4], [-6, 4], [6, 4]]) g.block([x + a, 2.5, z + b], [0.6, 5, 0.6], '#eceff1', 'metal');
+    g.block([x, 5.2, z], [15, 0.5, 11], '#e53935', 'metal');
+    for (const a of [-3, 3]) g.block([x + a, 0.8, z], [1, 1.6, 0.8], '#fdd835', 'metal');
+    g.block([x + 13, 1.75, z], [8, 3.5, 7], '#fff3e0', 'brick');
+    g.block([x + 13, 3.7, z], [8.6, 0.4, 7.6], '#c62828', 'plastic');
+    g.add('sign', [x, 6.4, z + 5.6], [6, 1.2, 0.2], '#ffffff', 'metal', { text: 'GASOLINERA' });
+    houses.push([x, z], [x + 13, z]);
+  }
+  // Edificio de 4 plantas con escalera exterior (lo más alto de la isla tras la torre)
+  {
+    const x = -42, z = 0;
+    for (let k = 0; k < 4; k++) {
+      const y = k * 4;
+      g.block([x, y + 0.2, z], [9, 0.4, 9], '#cfd8dc', 'stone');
+      g.block([x - 4.3, y + 2.2, z], [0.4, 4, 9], '#90a4ae', 'brick');
+      g.block([x, y + 2.2, z - 4.3], [9, 4, 0.4], '#90a4ae', 'brick');
+      g.block([x, y + 2.2, z + 4.3], [9, 4, 0.4], '#90a4ae', 'brick');
+      g.add('stairs', [x + 6, y + 2, z + (k % 2 ? 2 : -2)], [2.4, 4, 5], '#78909c', 'stone').ry = k % 2 ? 180 : 0;
+    }
+    g.block([x, 16.2, z], [9.6, 0.4, 9.6], '#546e7a', 'stone');
+    g.add('sign', [x + 4.7, 1.5, z], [0.2, 1, 3], '#ffffff', 'wood', { text: 'PISOS' });
+    houses.push([x, z]);
+  }
+  // Muelle con barcas (en la inundación flotan… o no)
+  {
+    g.block([0, 0.1, -58], [4, 0.4, 16], '#a1887f', 'wood');
+    for (const k of [-6, 0, 6]) for (const s of [-1, 1]) g.block([s * 1.8, -1, -58 + k], [0.4, 2.4, 0.4], '#6d4c41', 'wood');
+    for (const [x, z, c] of [[-5, -60, '#ef5350'], [5, -55, '#42a5f5']]) {
+      g.block([x, -0.3, z], [2.6, 0.8, 6], c, 'wood');
+      g.block([x, 0.15, z], [2, 0.1, 5], '#8d6e63', 'wood', { nc: true });
+    }
+  }
+  // Parque infantil
+  {
+    const x = 40, z = 42;
+    g.block([x, 0.03, z], [12, 0.06, 10], '#ffcc80', 'sand', { nc: true });
+    g.block([x - 3, 1.5, z], [3, 3, 3], '#ab47bc', 'plastic');
+    g.add('wedge', [x + 1, 1.5, z], [3, 3, 5], '#ffee58', 'plastic').ry = -90;
+    g.add('stairs', [x - 3, 1.5, z - 3], [2, 3, 3], '#42a5f5', 'plastic');
+    for (const a of [-1, 1]) g.block([x + a * 2, 1.6, z + 4], [0.2, 3.2, 0.2], '#e53935', 'metal');
+    g.block([x, 3.2, z + 4], [4.2, 0.2, 0.2], '#e53935', 'metal');
+    houses.push([x, z]);
+  }
+
   // Árboles y rocas
   for (let i = 0; i < 26; i++) {
     const x = (rnd() * 2 - 1) * S * 0.85, z = (rnd() * 2 - 1) * S * 0.85;
@@ -80,7 +127,7 @@ export function buildDesastres() {
   const L = DESASTRES.lobbyY;
   g.block([0, L - 0.5, 0], [26, 1, 26], '#eceff1', 'stone');
   for (const [x, z, sx, sz] of [[0, -13, 26, 0.5], [0, 13, 26, 0.5], [-13, 0, 0.5, 26], [13, 0, 0.5, 26]]) g.block([x, L + 0.6, z], [sx, 1.2, sz], '#b0bec5', 'glass');
-  g.add('sign', [0, L + 3, -12.5], [12, 2.4, 0.2], '#263238', 'metal', { text: 'KEST DESASTRES' });
+  g.add('sign', [0, L + 3, -12.5], [12, 2.4, 0.2], '#263238', 'metal', { text: 'DESASTRES NATURALES' });
   g.add('jumppad', [8, L + 0.2, 8], [2.4, 0.4, 2.4], '#ab47bc', 'neon', { power: 18 });
 
   return {

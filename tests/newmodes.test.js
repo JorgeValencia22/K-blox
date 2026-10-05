@@ -1,4 +1,4 @@
-// Pruebas de Kest Pesadilla, Kest Desastres, Kest Huerto y Kest Bloques Locos.
+// Pruebas de Silencio Mortal, Desastres Naturales, Mi Huerto y Bloques Locos.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { startServer, emit, once, sleep } from './helpers.js';
@@ -145,6 +145,52 @@ test('Bloques Locos: se rellena con bots, las baldosas caen y hay ganador', asyn
     mode.tick(0.05);
     assert.equal(mode.phase, 'results');
     assert.equal(mode.winner, 'Probador2');
+  } finally {
+    s.disconnect();
+  }
+});
+
+test('Asalto a la Casa: recoger, tapiar, la noche trae ladrones que rompen tablas y se les echa a golpes', async () => {
+  const s = await srv.connect(token);
+  try {
+    const j = await emit(s, 'room:join', { key: 'asalto' });
+    assert.equal(j.mode.asalto.phase, 'day');
+    const room = roomOf();
+    const mode = room.mode;
+    const p = room.players.get(userId);
+    // Recoger una tabla y tapiar la puerta principal
+    const it = [...mode.items.values()][0];
+    room.teleport(p, it.p);
+    let r = await emit(s, 'mode', { name: 'pick', data: { id: it.id } });
+    assert.ok(r.ok, JSON.stringify(r));
+    p.data.inv.plank = 3;
+    const door = mode.meta.openings[0];
+    room.teleport(p, door.int);
+    r = await emit(s, 'mode', { name: 'board', data: { id: door.id } });
+    assert.ok(r.ok, JSON.stringify(r));
+    assert.ok(mode.boards[door.id] > 0);
+    // Llega la noche
+    mode.until = Date.now() - 1;
+    mode.tick(0.05);
+    assert.equal(mode.phase, 'night');
+    mode.queue.forEach((q) => (q.at = 0));
+    mode.tick(0.05);
+    assert.ok(mode.bandits.size > 0, 'aparecen ladrones');
+    // Un ladrón va hacia la puerta tapiada y rompe las tablas
+    const b = [...mode.bandits.values()][0];
+    b.open = door;
+    b.step = 0;
+    b.state = 'route';
+    for (let i = 0; i < 400 && mode.boards[door.id] > 0; i++) { b.hitAt = 0; mode.tickBandit(b, 0.1, Date.now()); }
+    assert.equal(mode.boards[door.id], 0, 'las tablas acaban rotas');
+    // Golpear al ladrón hasta que huye
+    room.teleport(p, [b.pos[0], 0.3, b.pos[2] + 1]);
+    for (let i = 0; i < 10 && mode.bandits.has(b.id); i++) {
+      p.data.hitAt = 0;
+      r = await emit(s, 'mode', { name: 'hit' });
+      assert.ok(r.ok, JSON.stringify(r));
+    }
+    assert.equal(mode.bandits.has(b.id), false, 'el ladrón huye');
   } finally {
     s.disconnect();
   }

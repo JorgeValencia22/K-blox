@@ -1,4 +1,4 @@
-// Kest City: isla principal con ciudad, montañas, río, lago, puentes y aeródromo.
+// Isla Metrópolis: isla principal con ciudad, montañas, río, lago, puentes y aeródromo.
 import { WorldGen } from './builder.js';
 import { getHeightmap, ISLAND, mulberry32, distToPolyline } from '../terrain.js';
 
@@ -24,7 +24,7 @@ export function buildCity() {
   }
   g.add('switch', [16.5, H + 0.6, 0], [0.5, 1.2, 0.5], '#26c6da', 'neon', { group: 'fountain', label: 'Fuente' });
   g.add('switch', [-16.5, H + 0.6, 0], [0.5, 1.2, 0.5], '#ffca28', 'neon', { group: 'street', label: 'Farolas' });
-  g.add('sign', [0, H + 1.5, 17], [6, 2, 0.2], '#fff8e1', 'wood', { text: 'KEST CITY' });
+  g.add('sign', [0, H + 1.5, 17], [6, 2, 0.2], '#fff8e1', 'wood', { text: 'ISLA METRÓPOLIS' });
 
   // --- Avenidas y anillo --------------------------------------------------
   const road = (cx, cz, sx, sz) => {
@@ -177,6 +177,118 @@ export function buildCity() {
     g.add('gem', [x, y, z], [0.8, 0.8, 0.8], ['#e040fb', '#00e5ff', '#76ff03', '#ff4081'][i % 4], 'neon', { id: `gem${i}` });
   });
 
+  // --- Zonas nuevas fuera de la ciudad (sobre cimientos que se adaptan al terreno) ---
+  const sites = [];
+  /** Explanada de w×d centrada en (x,z): devuelve la altura de su superficie. */
+  const site = (x, z, w, d, color = '#bcaaa4', mat = 'stone') => {
+    let mn = Infinity, mx = -Infinity;
+    for (let dx = -w / 2; dx <= w / 2; dx += 4) for (let dz = -d / 2; dz <= d / 2; dz += 4) {
+      const hh = ground(x + dx, z + dz);
+      mn = Math.min(mn, hh);
+      mx = Math.max(mx, hh);
+    }
+    const top = Math.max(mx, 1) + 0.3;
+    const bottom = Math.min(mn, top) - 2;
+    g.block([x, (top + bottom) / 2, z], [w, top - bottom, d], color, mat);
+    sites.push({ x, z, r: Math.hypot(w, d) / 2 + 6 });
+    return top;
+  };
+
+  // Parque de atracciones
+  {
+    const px = 112, pz = 118;
+    const y = site(px, pz, 46, 36, '#cfd8dc');
+    g.add('sign', [px, y + 4.5, pz + 17.5], [12, 2.4, 0.3], '#7b1fa2', 'metal', { text: 'PARQUE DE ATRACCIONES' });
+    for (const s2 of [-1, 1]) g.block([px + s2 * 7, y + 2.5, pz + 17.5], [0.8, 5, 0.8], '#ffca28', 'metal');
+    // Noria (decorativa)
+    const nx = px - 12, nz = pz - 8, ny = y + 13;
+    for (const s2 of [-1, 1]) g.block([nx + s2 * 3, y + 6.5, nz], [0.8, 13, 1.2], '#eceff1', 'metal', { nc: true });
+    g.add('cylinder', [nx, ny, nz], [2, 2, 2], '#90a4ae', 'metal', { nc: true });
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      g.block([nx, ny + Math.sin(a) * 9, nz + Math.cos(a) * 9], [1.6, 1.4, 1.4], ['#ef5350', '#42a5f5', '#ffee58', '#66bb6a'][i % 4], 'plastic', { nc: true });
+      g.block([nx, ny + Math.sin(a) * 4.5, nz + Math.cos(a) * 4.5], [0.3, 0.3, 0.3], '#eceff1', 'metal', { nc: true });
+    }
+    // Carrusel
+    const cx = px + 10, cz = pz - 6;
+    g.add('cylinder', [cx, y + 0.3, cz], [11, 0.6, 11], '#f8bbd0', 'plastic');
+    g.add('cylinder', [cx, y + 6.2, cz], [12, 0.6, 12], '#ec407a', 'plastic');
+    g.add('sphere', [cx, y + 7, cz], [6, 2, 6], '#f06292', 'plastic', { nc: true });
+    g.add('cylinder', [cx, y + 3.2, cz], [1, 6, 1], '#ffd54f', 'metal');
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2, r = 4;
+      g.add('cylinder', [cx + Math.cos(a) * r, y + 3.2, cz + Math.sin(a) * r], [0.2, 6, 0.2], '#ffd54f', 'metal');
+      g.block([cx + Math.cos(a) * r, y + 1.6, cz + Math.sin(a) * r], [0.6, 0.9, 1.6], ['#ffffff', '#8d6e63', '#212121', '#ffcc80'][i % 4], 'plastic').ry = (-a * 180) / Math.PI;
+    }
+    // Tobogán gigante: escaleras arriba y rampa abajo
+    g.add('stairs', [px + 2, y + 5, pz + 8], [3, 10, 10], '#42a5f5', 'plastic').ry = 180;
+    g.block([px + 2, y + 9.8, pz + 1.5], [5, 0.4, 3], '#1e88e5', 'plastic');
+    g.add('wedge', [px + 2, y + 5, pz - 5], [3, 10, 10], '#ffee58', 'plastic');
+    // Camas elásticas
+    for (let i = 0; i < 3; i++) g.add('jumppad', [px - 16 + i * 4, y + 0.2, pz + 10], [2.6, 0.4, 2.6], '#ab47bc', 'neon', { power: 22 + i * 6 });
+    // Puestos de comida
+    ['HELADOS', 'PALOMITAS', 'ALGODÓN'].forEach((t, i) => {
+      const bx = px + 14, bz = pz + 6 + i * 4.5;
+      g.block([bx, y + 0.6, bz], [3, 1.2, 3], ['#ffcdd2', '#fff9c4', '#e1bee7'][i], 'wood');
+      g.block([bx, y + 2.8, bz], [3.4, 0.3, 3.4], ['#e53935', '#fbc02d', '#8e24aa'][i], 'plastic');
+      for (const s2 of [-1, 1]) g.block([bx + s2 * 1.4, y + 1.8, bz - 1.4], [0.2, 2, 0.2], '#ffffff', 'wood');
+      g.add('sign', [bx - 1.6, y + 1.8, bz], [0.1, 0.8, 2.6], '#ffffff', 'wood', { text: t });
+    });
+    for (let i = 0; i < 6; i++) g.add('deco', [px - 20 + i * 8, y + 2.5, pz - 16], [0.6, 5, 0.6], '#37474f', 'metal', { kind: 'lamp', group: 'street' });
+  }
+
+  // Faro y barco pirata en la playa
+  {
+    const fx = -52, fz = 196;
+    const y = site(fx, fz, 14, 14, '#9e9e9e');
+    for (let k = 0; k < 4; k++) {
+      g.add('cylinder', [fx, y + 2.5 + k * 5, fz], [6 - k * 0.6, 5, 6 - k * 0.6], k % 2 ? '#e53935' : '#fafafa', 'plastic');
+    }
+    g.block([fx, y + 20.2, fz], [8, 0.4, 8], '#455a64', 'metal');
+    g.add('cylinder', [fx, y + 21.8, fz], [3, 3, 3], '#fff59d', 'glass');
+    g.add('light', [fx, y + 22, fz], [0.8, 0.8, 0.8], '#fff3c4', 'neon', { intensity: 3, range: 30 });
+    // Escalera exterior en tramos
+    for (let k = 0; k < 4; k++) {
+      const yy = y + k * 5;
+      g.add('stairs', [fx + 4.6, yy + 2.5, fz + (k % 2 ? 1 : -1)], [2, 5, 6], '#795548', 'wood').ry = k % 2 ? 180 : 0;
+      g.block([fx + 4.6, yy + 5, fz + (k % 2 ? -3 : 3)], [2.4, 0.3, 2.4], '#795548', 'wood');
+    }
+    g.add('sign', [fx, y + 1.5, fz - 3.4], [3, 1, 0.2], '#ffffff', 'wood', { text: 'FARO' });
+    // Barco pirata varado
+    const bx = fx + 26, bz = fz + 4, by = Math.max(0.5, ground(bx, bz));
+    g.block([bx, by + 1.2, bz], [6, 2.4, 16], '#5d4037', 'wood');
+    g.block([bx, by + 2.6, bz - 6], [6, 0.6, 4], '#4e342e', 'wood');
+    g.block([bx, by + 3.2, bz + 6], [6, 1.6, 4], '#4e342e', 'wood');
+    g.add('cylinder', [bx, by + 7, bz], [0.5, 10, 0.5], '#3e2723', 'wood');
+    g.block([bx, by + 8, bz], [5, 4, 0.2], '#fafafa', 'plastic', { nc: true });
+    g.block([bx, by + 11, bz], [1.4, 1, 0.1], '#212121', 'plastic', { nc: true });
+    g.add('deco', [bx + 1.5, by + 2.9, bz + 1], [1, 1, 1], '#8d6e63', 'wood', { kind: 'barrel' });
+    g.add('deco', [bx - 1.5, by + 2.9, bz - 2], [1, 1, 1], '#a1887f', 'wood', { kind: 'crate' });
+  }
+
+  // Skatepark y campo de fútbol
+  {
+    const sx = -128, sz = 96;
+    const y = site(sx, sz, 40, 28, '#90a4ae');
+    for (const s2 of [-1, 1]) {
+      g.add('wedge', [sx + s2 * 15, y + 1.5, sz - 6], [6, 3, 6], '#78909c', 'stone').ry = s2 > 0 ? 90 : -90;
+    }
+    g.block([sx, y + 0.5, sz - 6], [8, 1, 3], '#b0bec5', 'stone');
+    g.block([sx, y + 1.1, sz - 6], [8, 0.1, 0.2], '#fdd835', 'metal');
+    g.add('wedge', [sx - 4, y + 0.5, sz - 11], [3, 1, 3], '#78909c', 'stone');
+    g.add('wedge', [sx + 4, y + 0.5, sz - 11], [3, 1, 3], '#78909c', 'stone').ry = 180;
+    g.add('sign', [sx, y + 2, sz - 13.6], [6, 1.4, 0.2], '#212121', 'wood', { text: 'SKATEPARK' });
+    // Campo de fútbol
+    g.block([sx, y + 0.02, sz + 6], [36, 0.04, 14], '#43a047', 'grass');
+    g.block([sx, y + 0.05, sz + 6], [0.2, 0.02, 14], '#ffffff', 'plastic');
+    for (const s2 of [-1, 1]) {
+      g.block([sx + s2 * 17.5, y + 1.2, sz + 4.2], [0.3, 2.4, 0.3], '#ffffff', 'metal');
+      g.block([sx + s2 * 17.5, y + 1.2, sz + 7.8], [0.3, 2.4, 0.3], '#ffffff', 'metal');
+      g.block([sx + s2 * 17.5, y + 2.4, sz + 6], [0.3, 0.3, 3.9], '#ffffff', 'metal');
+    }
+    g.add('sphere', [sx + 3, y + 0.6, sz + 6], [1.1, 1.1, 1.1], '#fafafa', 'plastic');
+  }
+
   // --- Vegetación procedural ----------------------------------------------
   const rnd = mulberry32(1234);
   let trees = 0;
@@ -189,6 +301,7 @@ export function buildCity() {
     if (x > A.x0 - 12 && x < A.x1 + 12 && z > A.z0 - 14 && z < A.z1 + 22) continue;
     if (Math.abs(x) < 14 && z < -80 && z > -185) continue;
     if (Math.hypot(x - cabX, z - cabZ) < 12) continue;
+    if (sites.some((st) => Math.hypot(x - st.x, z - st.z) < st.r)) continue;
     const sc = 0.8 + rnd() * 0.7;
     const pine = h > 14;
     g.add('tree', [x, h + 3 * sc - 0.2, z], [3 * sc, 6 * sc, 3 * sc], pine ? '#2e7d32' : '#43a047', 'grass', pine ? { kind: 'pine' } : {});
@@ -209,6 +322,7 @@ export function buildCity() {
     { id: 'kart1', type: 'kart', p: [56, H + 0.4, 48], ry: 90 },
     { id: 'kart2', type: 'kart', p: [62, H + 0.4, 48], ry: 90 },
     { id: 'plane1', type: 'plane', p: [100, H + 1.3, 40], ry: 90 },
+    { id: 'kart3', type: 'kart', p: [-62, H + 0.4, 30], ry: 0 },
   ];
 
   return {

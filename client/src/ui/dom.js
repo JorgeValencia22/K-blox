@@ -103,7 +103,7 @@ export function confirmDialog(title, text, okLabel = 'Aceptar', cls = 'primary')
 export const LOGO_SVG = `<svg viewBox="0 0 64 64"><defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00d1b2"/><stop offset="1" stop-color="#7c5cff"/></linearGradient></defs><path d="M32 4 58 18v28L32 60 6 46V18z" fill="url(#lg1)"/><path d="M32 4 58 18 32 32 6 18z" fill="#ffffff" opacity=".35"/><path d="M32 32v28L6 46V18z" fill="#000" opacity=".18"/><path d="M24 22v20M24 32l10-10M27 30l9 12" stroke="#fff" stroke-width="4.5" stroke-linecap="round" fill="none"/></svg>`;
 
 export function logo(big = false) {
-  return h(`div.logo${big ? '.big' : ''}`, { html: `${LOGO_SVG}<div class="word">Kest <b>Worlds</b></div>` });
+  return h(`div.logo${big ? '.big' : ''}`, { html: `${LOGO_SVG}<div class="word">Kest<b>Worlds</b></div>` });
 }
 
 export function formatTime(ms) {

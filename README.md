@@ -1,4 +1,4 @@
-# Kest Worlds
+# KestWorlds
 
 Plataforma de mundos 3D multijugador de estilo "bloques", con identidad visual original:
 cuentas, avatares personalizables, cinco experiencias jugables, editor de mundos con
@@ -136,32 +136,32 @@ En móviles aparecen joystick virtual, botón de salto, botón de acción contex
 arrastrar en la mitad derecha mueve la cámara. Sensibilidad e inversión del eje Y configurables.
 
 ### Experiencias oficiales
-1. **Kest City** – isla de 512×512 m con ciudad, montañas, río, lago, puentes, carreteras,
+1. **Isla Metrópolis** – isla de 512×512 m con ciudad, montañas, río, lago, puentes, carreteras,
    tiendas, casas con puertas, plaza, parque infantil, observatorio con ascensor (plataforma
    móvil), aeródromo, playa y cabaña. Coches, karts y avioneta. Objetivos: 12 gemas
    (persistentes), 5 cofres, la cumbre y despegar. Interruptores de fuente y farolas compartidos.
-2. **Kest Obby** – recorrido en el cielo con saltos, lava, vigas, plataformas móviles,
+2. **Obby del Cielo** – recorrido en el cielo con saltos, lava, vigas, plataformas móviles,
    trampolines, 4 puntos de control y cronómetro. El servidor valida el orden de los puntos de
    control y un tiempo mínimo; guarda el mejor tiempo.
-3. **Kest Racing** – circuito con 8 puntos de control, 3 vueltas, parrilla, cuenta atrás,
+3. **Turbo Karts** – circuito con 8 puntos de control, 3 vueltas, parrilla, cuenta atrás,
    clasificación en directo y resultados. Cada jugador tiene su kart.
-4. **Kest Survival** – recursos (madera, piedra, bayas), hambre, salud, construcción por
+4. **Noche Salvaje** – recursos (madera, piedra, bayas), hambre, salud, construcción por
    cuadrícula (bloquea a las criaturas), ciclo día/noche sincronizado y criaturas nocturnas
    simuladas en el servidor. Recompensa por sobrevivir a cada noche.
-5. **Kest Hangout** – plaza social con pista de baile animada, escenario, hoguera con asientos,
+5. **La Plaza** – plaza social con pista de baile animada, escenario, hoguera con asientos,
    trampolines, plataforma del cielo, tobogán y laberinto. Recompensas sociales moderadas.
 
-6. **Kest Only Up** – escalada vertical de más de 200 m generada por código (barrio, obra, nubes y espacio). Sin puntos de control; récord de altura guardado y clasificación de la sala.
-7. **Kest Teclas** – obby ASMR sobre teclados mecánicos gigantes: cada tecla se hunde y suena al pisarla (cada letra da una nota de una escala pentatónica), también cuando la pisan otros jugadores. Lluvia de fondo.
-8. **Kest Terror** – laberinto de setos de noche con linterna (F), aguante al correr y La Sombra: un monstruo simulado en el servidor que patrulla los pasillos, oye a quien corre y persigue. Encontrad 6 almas para abrir la verja y escapar.
-9. **Kest Royale** – batalla tipo «último en pie»: cofres de botín (rifle, escopeta, escudo, botiquín), tormenta que se cierra en 4 fases, construcción de muros y rampas (B/R), disparos resueltos en el servidor con línea de visión y bots que completan la partida.
-10. **Kest Rocket** – fútbol con coches 2 contra 2 (con bots): turbo, salto, cámara al balón, balón simulado en el servidor, saques, goles y partidos de 3 minutos con gol de oro.
-11. **Kest Castores** – atraco cooperativo inspirado en *Beavers Be Dammed*: roe tablones, roba troncos del aserradero (los grandes, mejor entre dos), esquiva sierras y lanzallamas y llévalos a la presa antes de que acabe el tiempo. Suena la canción `client/public/audio/ia-beat.mp3`.
+6. **Solo Arriba** – escalada vertical de más de 200 m generada por código (barrio, obra, nubes y espacio). Sin puntos de control; récord de altura guardado y clasificación de la sala.
+7. **Teclas ASMR** – obby ASMR sobre teclados mecánicos gigantes: cada tecla se hunde y suena al pisarla (cada letra da una nota de una escala pentatónica), también cuando la pisan otros jugadores. Lluvia de fondo.
+8. **Laberinto Sombrío** – laberinto de setos de noche con linterna (F), aguante al correr y La Sombra: un monstruo simulado en el servidor que patrulla los pasillos, oye a quien corre y persigue. Encontrad 6 almas para abrir la verja y escapar.
+9. **Isla Royale** – batalla tipo «último en pie»: cofres de botín (rifle, escopeta, escudo, botiquín), tormenta que se cierra en 4 fases, construcción de muros y rampas (B/R), disparos resueltos en el servidor con línea de visión y bots que completan la partida.
+10. **Turbo Gol** – fútbol con coches 2 contra 2 (con bots): turbo, salto, cámara al balón, balón simulado en el servidor, saques, goles y partidos de 3 minutos con gol de oro.
+11. **Castores al Ataque** – atraco cooperativo inspirado en *Beavers Be Dammed*: roe tablones, roba troncos del aserradero (los grandes, mejor entre dos), esquiva sierras y lanzallamas y llévalos a la presa antes de que acabe el tiempo. Suena la canción `client/public/audio/ia-beat.mp3`.
 
-12. **Kest Pesadilla** – terror **en primera persona** en una casa a oscuras. *El Oyente* es ciego: caza por el sonido de los pasos, las carreras y, si se activa, **el micrófono** (el volumen se mide en el dispositivo; la voz nunca se envía ni se graba). Tareas: 3 fusibles, cuadro eléctrico, llave y puerta principal. Armarios para esconderse, agacharse (C) silencioso y linterna (F).
-13. **Kest Desastres** – inspirado en los juegos de supervivencia a desastres: inundación, lava, lluvia de meteoritos, tornado, terremoto y lluvia ácida, cada ronda uno distinto. Gana quien siga vivo al final.
-14. **Kest Huerto** – compra semillas, planta, cosecha y vende. Las plantas siguen creciendo aunque te desconectes (el huerto se guarda), la lluvia acelera el crecimiento y hay frutas doradas (×5) y arcoíris (×15).
-15. **Kest Bloques Locos** – suelo de baldosas de colores: se anuncia un color y desaparecen las demás. Cada ronda va más rápido; bots si hay pocos jugadores.
+12. **Silencio Mortal** – terror **en primera persona** en una casa a oscuras. *El Oyente* es ciego: caza por el sonido de los pasos, las carreras y, si se activa, **el micrófono** (el volumen se mide en el dispositivo; la voz nunca se envía ni se graba). Tareas: 3 fusibles, cuadro eléctrico, llave y puerta principal. Armarios para esconderse, agacharse (C) silencioso y linterna (F).
+13. **Desastres Naturales** – inspirado en los juegos de supervivencia a desastres: inundación, lava, lluvia de meteoritos, tornado, terremoto y lluvia ácida, cada ronda uno distinto. Gana quien siga vivo al final.
+14. **Mi Huerto** – compra semillas, planta, cosecha y vende. Las plantas siguen creciendo aunque te desconectes (el huerto se guarda), la lluvia acelera el crecimiento y hay frutas doradas (×5) y arcoíris (×15).
+15. **Bloques Locos** – suelo de baldosas de colores: se anuncia un color y desaparecen las demás. Cada ronda va más rápido; bots si hay pocos jugadores.
 
 El Obby oficial ahora tiene 10 etapas (pilares, plataformas rápidas, islas con trampolín, espiral y vigas con vallas de lava).
 

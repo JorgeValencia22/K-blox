@@ -161,7 +161,7 @@ test('Only Up guarda la altura récord y Teclas usa sus propias estadísticas', 
     room.mode.tick(1.1);
     assert.equal(users.getUser(userId).stats.upBest, 57);
     const j = await emit(s, 'room:join', { key: 'keys' });
-    assert.equal(j.mode.obby.total, 3, 'tres puntos de control (barras espaciadoras)');
+    assert.equal(j.mode.obby.total, 4, 'cuatro puntos de control (barras espaciadoras)');
   } finally {
     s.disconnect();
   }

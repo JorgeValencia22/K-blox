@@ -3,7 +3,7 @@
 import { h, button, toast, clear, confirmDialog } from '../dom.js';
 import { get, post } from '../../core/api.js';
 import { pageHead } from './menu.js';
-import { adminRequest } from '../adminPanel.js';
+import { adminRequest, giftModal, banModal } from '../adminPanel.js';
 
 const KEYS = { ago: (t) => `${Math.max(1, Math.round((Date.now() - t) / 60000))} min` };
 
@@ -13,7 +13,7 @@ export function adminScreen(app) {
   const body = h('div');
   let timer = null;
 
-  const renderTabs = () => clear(tabs).append(...[['live', '🖥️ Servidores'], ['global', '⛔ Control global'], ['coins', '🪙 Monedas y códigos'], ['reports', '🚩 Reportes']].map(([id, label]) =>
+  const renderTabs = () => clear(tabs).append(...[['live', '🖥️ Servidores'], ['people', '👤 Jugadores'], ['global', '⛔ Control global'], ['coins', '🪙 Monedas y códigos'], ['reports', '🚩 Reportes']].map(([id, label]) =>
     h(`button.pill${tab === id ? '.on' : ''}`, { on: { click: () => { tab = id; renderTabs(); load(); } } }, label)));
 
   async function live() {
@@ -143,9 +143,36 @@ export function adminScreen(app) {
     }
   }
 
+  /** Buscar cualquier cuenta (conectada o no) para banear, desbanear, regalar o asustar. */
+  function people() {
+    const q = h('input.input', { placeholder: 'Buscar por nombre…', maxLength: 20, style: { maxWidth: '280px' } });
+    const list = h('div.list');
+    const search = async () => {
+      const r = await adminRequest('users', { q: q.value.trim() });
+      if (!r.ok) return;
+      clear(list).append(...(r.users.length ? r.users.map((u) => h('div.list-item',
+        h('span', u.online ? '🟢' : '⚪'),
+        h('span.grow', h('b', u.username), h('span.muted.small', ` · Nv ${u.level} · 🪙 ${u.coins}${u.role === 'admin' ? ' · 🛡️ admin' : ''}`),
+          u.banned ? h('div.small', { style: { color: '#ff8a80' } }, u.perma ? '⛔ Baneado para siempre' : `⛔ Baneado hasta ${new Date(u.banned_until).toLocaleString()}`) : null),
+        h('div.row.wrap', { style: { gap: '4px', justifyContent: 'flex-end' } },
+          u.online ? button('😱 Susto', () => adminRequest('jumpscare', { userId: u.id }).then((x) => x.ok && toast(`¡Bu! Susto enviado a ${u.username}`, 'ok')), 'small') : null,
+          button('🎁 Regalar', () => giftModal({ userId: u.id, name: u.username }), 'small'),
+          u.role === 'admin' ? null : u.banned
+            ? button('✅ Desbanear', async () => { const x = await adminRequest('unban', { userId: u.id }); if (x.ok) { toast(`${u.username} desbaneado`, 'ok'); search(); } }, 'small primary')
+            : button('⛔ Banear', () => banModal({ userId: u.id, name: u.username }, search), 'small danger'),
+        ),
+      )) : [h('p.muted', 'No se ha encontrado a nadie.')]));
+    };
+    let t;
+    q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(search, 250); });
+    clear(body).append(h('div.row', { style: { marginBottom: '10px' } }, q, button('🔎', search, 'small')), list);
+    search();
+  }
+
   function load() {
     clearInterval(timer);
     if (tab === 'live') { live(); timer = setInterval(live, 4000); }
+    else if (tab === 'people') people();
     else if (tab === 'global') global();
     else if (tab === 'coins') coins();
     else reports();

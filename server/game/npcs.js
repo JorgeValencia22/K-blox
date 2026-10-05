@@ -68,7 +68,7 @@ const LINES = {
     'Desde la cumbre de la montaña del noroeste se ve toda la isla.',
   ],
   roles: {
-    Guía: 'Conozco cada rincón de Kest City.',
+    Guía: 'Conozco cada rincón de Isla Metrópolis.',
     Mecánico: 'Si un coche se queda atascado, en 3 minutos vuelve a su sitio.',
     Pintora: 'Estoy buscando colores para mi próximo cuadro.',
     Turista: '¡Es mi primera vez en la isla!',

@@ -1,4 +1,4 @@
-// Kest Castores: atraco cooperativo a un aserradero. Roe los tablones, coge los
+// Castores al Ataque: atraco cooperativo a un aserradero. Roe los tablones, coge los
 // troncos (los grandes pesan: mejor entre dos) y llévalos a la presa antes de que
 // acabe el tiempo, esquivando sierras y lanzallamas.
 import { WorldGen } from './builder.js';
@@ -73,12 +73,36 @@ export function buildCastores() {
   g.block([22, 0.5, -46], [3, 1, 6], '#795548', 'wood');
   for (const [x, z] of [[-25, 18], [25, 16], [-35, 30], [35, 28]]) g.add('tree', [x, 3, z], [3, 6, 3], '#43a047', 'grass');
 
+  // Almacén exterior vallado (oeste) con sierra vigilando la entrada
+  for (const [x, z, sx, sz] of [[-48, -20, 0.4, 26], [-41, -33, 14, 0.4], [-41, -7, 14, 0.4]]) g.block([x, 1, z], [sx, 2, sz], '#bcaaa4', 'wood');
+  g.add('sign', [-34, 2.6, -6.6], [4, 1.2, 0.2], '#ffeb3b', 'wood', { text: '⚠ ALMACÉN' });
+  g.add('saw', [-38, 1.7, -14], [0.3, 3.2, 3.2], '#cfd8dc', 'metal', { id: 'saw4', axis: 'z', dist: 14, speed: 0.18 });
+  g.block([-38, 0.1, -14], [0.6, 0.2, 17], '#455a64', 'metal', { nc: true });
+  g.add('flame', [-45, 1.6, -20], [1.4, 3.2, 1.4], '#ff6d00', 'metal', { id: 'flame4', phase: 2 });
+  // Cintas transportadoras y montones de serrín dentro del aserradero
+  for (const [x, z, len] of [[-18, -12, 14], [22, -22, 10], [-10, -46, 16]]) {
+    g.block([x, 0.5, z], [len, 1, 2], '#37474f', 'metal');
+    for (let k = 0; k < len; k += 2) g.block([x - len / 2 + k + 1, 1.02, z], [0.2, 0.04, 2], '#90a4ae', 'metal', { nc: true });
+  }
+  for (const [x, z] of [[26, -8], [-26, -28], [6, -36]]) g.add('sphere', [x, 0.2, z], [3, 1.2, 3], '#d7b98e', 'sand', { nc: true });
+  // Torre del guarda (decorada) y carteles de peligro
+  g.block([27, 4, 8], [3, 8, 3], '#6d4c41', 'wood');
+  g.block([27, 8.3, 8], [4.4, 0.6, 4.4], '#4e342e', 'wood');
+  g.add('light', [27, 9.2, 8], [0.4, 0.4, 0.4], '#fff59d', 'neon', { intensity: 1.5, range: 18 });
+  for (const [x, z] of [[-6, -2], [10, -18], [-14, -36]]) g.add('sign', [x, 2.2, z], [2.4, 1, 0.15], '#ffeb3b', 'wood', { text: '⚠ PELIGRO' });
+  // Barca en el río y más árboles en la orilla
+  g.block([-20, 0.1, 46], [3, 0.8, 7], '#795548', 'wood', { nc: true });
+  g.block([-20, 0.7, 44], [2.6, 0.2, 1], '#5d4037', 'wood', { nc: true });
+  for (let i = 0; i < 12; i++) g.add('tree', [-60 + i * 11, 3, i % 2 ? 56 : 36], [3, 6, 3], '#43a047', 'grass');
+
   // Troncos (los gestiona el servidor): pequeños y grandes
   const logs = [
     { p: [-12, -6], big: false }, { p: [12, -6], big: false }, { p: [-20, 4], big: false },
     { p: [-20, -25], big: false }, { p: [-8, -40], big: false }, { p: [-24, -38], big: true }, { p: [-12, -30], big: true }, { p: [-24, -20], big: false },
     { p: [10, -22], big: false }, { p: [20, -28], big: false }, { p: [8, -44], big: true }, { p: [24, -44], big: false }, { p: [16, -36], big: true },
     { p: [6, 4], big: false },
+    // Almacén exterior
+    { p: [-42, -28], big: true }, { p: [-44, -12], big: false }, { p: [-40, -20], big: false }, { p: [-36, -30], big: false },
   ];
 
   return {

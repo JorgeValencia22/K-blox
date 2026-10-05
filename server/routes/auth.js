@@ -11,7 +11,7 @@ export function requireAuth(req, res, next) {
   const token = h.startsWith('Bearer ') ? h.slice(7) : null;
   const u = users.userFromToken(token);
   if (!u) return res.status(401).json({ error: 'Sesión no válida' });
-  if (users.isBanned(u)) return res.status(403).json({ error: 'Cuenta suspendida temporalmente' });
+  if (users.isBanned(u)) return res.status(403).json({ error: users.banMessage(u) });
   req.user = u;
   req.token = token;
   next();
@@ -42,7 +42,7 @@ export function authRouter() {
       keys.forEach((k) => guard.fail(k));
       return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
     }
-    if (users.isBanned(u)) return res.status(403).json({ error: 'Cuenta suspendida temporalmente' });
+    if (users.isBanned(u)) return res.status(403).json({ error: users.banMessage(u) });
     keys.forEach((k) => guard.success(k));
     const token = users.createSession(u.id);
     res.json({ token, user: users.privateProfile(u) });

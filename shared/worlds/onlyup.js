@@ -1,4 +1,4 @@
-// Kest Only Up: escalada vertical sin puntos de control. Si caes, vuelves a empezar
+// Solo Arriba: escalada vertical sin puntos de control. Si caes, vuelves a empezar
 // desde donde aterrices. Cada pieza se coloca a una distancia y altura alcanzables
 // (salto corriendo: ~8 m de distancia con hasta 1,6 m de subida).
 import { WorldGen } from './builder.js';
@@ -9,7 +9,8 @@ const ZONES = [
   { until: 60, name: 'Barrio', colors: ['#90a4ae', '#a1887f', '#ef9a9a', '#b0bec5', '#ffcc80'], mats: ['brick', 'stone', 'wood'] },
   { until: 130, name: 'Obra', colors: ['#fdd835', '#ffb300', '#8d6e63', '#607d8b'], mats: ['metal', 'wood'] },
   { until: 200, name: 'Nubes', colors: ['#ffffff', '#e3f2fd', '#f8bbd0', '#e1f5fe'], mats: ['plastic', 'ice'] },
-  { until: 9999, name: 'Espacio', colors: ['#7c4dff', '#00e5ff', '#e040fb', '#76ff03'], mats: ['neon', 'metal'] },
+  { until: 270, name: 'Espacio', colors: ['#7c4dff', '#00e5ff', '#e040fb', '#76ff03'], mats: ['neon', 'metal'] },
+  { until: 9999, name: 'Galaxia', colors: ['#ff4081', '#ffd740', '#18ffff', '#b388ff'], mats: ['neon', 'glass'] },
 ];
 const zoneFor = (y) => ZONES.find((z) => y < z.until);
 
@@ -62,7 +63,7 @@ export function buildOnlyUp() {
     return { d: base, fp: make(base) };
   };
 
-  const TOTAL = 150;
+  const TOTAL = 200;
   for (let i = 0; i < TOTAL; i++) {
     const zone = zoneFor(y);
     const color = zone.colors[Math.floor(rnd() * zone.colors.length)];
@@ -180,6 +181,20 @@ export function buildOnlyUp() {
     const a = rnd() * Math.PI * 2, d = r(60, 140), h = r(120, 230);
     g.add('sphere', [Math.cos(a) * d, h, Math.sin(a) * d], [r(12, 22), r(4, 7), r(10, 18)], '#ffffff', 'plastic', { nc: true });
   }
+  // Grúas de la zona de obra y planetas de la galaxia (decorado lejano, sin colisión)
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + 0.5, d = 70;
+    const cx = Math.cos(a) * d, cz = Math.sin(a) * d;
+    g.block([cx, 65, cz], [3, 130, 3], '#fbc02d', 'metal', { nc: true });
+    g.block([cx - Math.cos(a) * 14, 129, cz - Math.sin(a) * 14], [Math.abs(Math.cos(a)) * 30 + 2, 2, Math.abs(Math.sin(a)) * 30 + 2], '#f9a825', 'metal', { nc: true });
+  }
+  const planets = [['#ff7043', 18], ['#4fc3f7', 12], ['#ab47bc', 24], ['#ffd54f', 10], ['#66bb6a', 14]];
+  planets.forEach(([c, size], i) => {
+    const a = (i / planets.length) * Math.PI * 2, d = 120 + (i % 2) * 40;
+    const py = summit - 30 + i * 18;
+    g.add('sphere', [Math.cos(a) * d, py, Math.sin(a) * d], [size, size, size], c, 'plastic', { nc: true });
+    if (i % 2 === 0) g.add('cylinder', [Math.cos(a) * d, py, Math.sin(a) * d], [size * 1.9, 0.3, size * 1.9], '#fff59d', 'neon', { nc: true });
+  });
   for (let i = 0; i < 30; i++) {
     const a = rnd() * Math.PI * 2, d = r(80, 160);
     g.add('light', [Math.cos(a) * d, r(230, summit + 40), Math.sin(a) * d], [1.2, 1.2, 1.2], ['#ffffff', '#b388ff', '#80d8ff'][i % 3], 'neon', { intensity: 0, range: 2 });

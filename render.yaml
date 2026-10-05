@@ -1,4 +1,4 @@
-# Configuración para desplegar Kest Worlds en Render (plan gratuito).
+# Configuración para desplegar KestWorlds en Render (plan gratuito).
 # En Render: New > Blueprint > elige este repositorio.
 services:
   - type: web

@@ -111,3 +111,10 @@
   .hero-content { padding: 18px; }
   .chip.me .me-txt { display: none; }
 }
+
+/* Susto del administrador */
+.jumpscare { position: fixed; inset: 0; z-index: 500; background: #000; display: grid; place-items: center; animation: scareIn .12s ease-out, scareShake .08s linear infinite; pointer-events: none; }
+.jumpscare svg { width: min(120vw, 120vh); height: min(120vw, 120vh); }
+.jumpscare.out { opacity: 0; transition: opacity .45s; }
+@keyframes scareIn { from { transform: scale(.2); } to { transform: scale(1); } }
+@keyframes scareShake { 25% { translate: 6px -4px; } 50% { translate: -5px 5px; } 75% { translate: 4px 3px; } }

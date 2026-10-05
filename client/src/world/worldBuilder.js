@@ -86,7 +86,7 @@ export function buildWorld(world, opts = {}) {
     group, physics, hm,
     objects: new Map(), // id -> entrada
     interactables: [],
-    keycaps: [], // teclas de Kest Teclas (se hunden al pisarlas)
+    keycaps: [], // teclas de Teclas ASMR (se hunden al pisarlas)
     triggers: [],
     platforms: [],
     animated: [],

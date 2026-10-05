@@ -1,4 +1,4 @@
-// Kest Terror: almas compartidas por todo el equipo, verja de salida y "La Sombra",
+// Laberinto Sombrío: almas compartidas por todo el equipo, verja de salida y "La Sombra",
 // un monstruo simulado en el servidor que se mueve por los pasillos del laberinto.
 import { BaseMode } from './BaseMode.js';
 import * as users from '../../services/users.js';

@@ -133,3 +133,54 @@ test('Kesty Coins: recompensa diaria, ruleta, códigos regalo y regalos del admi
   assert.ok(after >= before + 10 + spun + 250 + 40, `${before} -> ${after}`);
   await sleep(10);
 });
+
+test('modo admin con contraseña, baneo temporal y permanente, regalos y susto', async () => {
+  // Un jugador normal activa el modo admin con la contraseña del dueño
+  let r = await srv.api('POST', '/api/auth/register', { username: 'Ayudante', password: 'secreto1' });
+  const helper = r.body.token;
+  r = await srv.api('POST', '/api/admin/unlock', { password: 'mal' }, helper);
+  assert.equal(r.status, 403);
+  r = await srv.api('POST', '/api/admin/unlock', { password: 'clave-de-prueba' }, helper);
+  assert.equal(r.status, 200);
+  assert.equal(r.body.user.role, 'admin');
+  assert.equal(r.body.user.adminTemp, true);
+
+  r = await srv.api('POST', '/api/auth/register', { username: 'Travieso', password: 'secreto1' });
+  const victimId = r.body.user.id;
+  const v = await srv.connect(r.body.token);
+  const a = await srv.connect(helper);
+  try {
+    // Susto
+    const scare = once(v, 'admin:jumpscare');
+    r = await emit(a, 'admin', { action: 'jumpscare', userId: victimId });
+    assert.ok(r.ok, JSON.stringify(r));
+    await scare;
+    // Regalar todos los objetos de la tienda
+    r = await emit(a, 'admin', { action: 'giveItem', username: 'Travieso', itemId: 'all' });
+    assert.ok(r.added > 50, JSON.stringify(r));
+    // Baneo permanente: le echa y no puede volver a entrar
+    const kicked = once(v, 'kicked');
+    r = await emit(a, 'admin', { action: 'ban', userId: victimId, perma: true });
+    assert.ok(r.ok && r.perma, JSON.stringify(r));
+    assert.match((await kicked).reason, /para siempre/);
+    r = await srv.api('POST', '/api/auth/login', { username: 'Travieso', password: 'secreto1' });
+    assert.equal(r.status, 403);
+    assert.match(r.body.error, /para siempre/);
+    // No se puede banear al dueño
+    r = await emit(a, 'admin', { action: 'ban', username: 'Jefe', hours: 1 });
+    assert.ok(r.error);
+    // Desbanear
+    r = await emit(a, 'admin', { action: 'unban', username: 'Travieso' });
+    assert.ok(r.ok);
+    r = await srv.api('POST', '/api/auth/login', { username: 'Travieso', password: 'secreto1' });
+    assert.equal(r.status, 200);
+    // Baneo temporal
+    r = await emit(a, 'admin', { action: 'ban', username: 'Travieso', hours: 1 });
+    assert.ok(r.ok && !r.perma);
+    r = await srv.api('POST', '/api/auth/login', { username: 'Travieso', password: 'secreto1' });
+    assert.match(r.body.error, /min más/);
+  } finally {
+    a.disconnect();
+    v.disconnect();
+  }
+});

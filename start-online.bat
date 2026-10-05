@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title Kest Worlds (en linea)
+title KestWorlds (en linea)
 cd /d "%~dp0"
 rem Arranca el juego y lo publica en internet con un tunel gratuito de Cloudflare (sin cuenta).
 rem Mientras esta ventana siga abierta y el PC encendido, tus amigos pueden entrar con el enlace.
@@ -24,7 +24,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-start "Kest Worlds - servidor" /min node server/index.js
+start "KestWorlds - servidor" /min node server/index.js
 timeout /t 3 /nobreak >nul
 echo.
 echo   ============================================================

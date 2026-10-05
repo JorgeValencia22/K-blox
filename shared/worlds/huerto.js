@@ -1,4 +1,4 @@
-// Kest Huerto: cada jugador recibe una parcela, compra semillas, planta, espera a que
+// Mi Huerto: cada jugador recibe una parcela, compra semillas, planta, espera a que
 // crezcan (también mientras está desconectado) y vende la cosecha en el puesto.
 // Las mutaciones (dorada, arcoíris) multiplican el precio. Tu huerto se guarda.
 import { WorldGen } from './builder.js';
@@ -11,7 +11,10 @@ export const SEEDS = {
   watermelon: { name: 'Sandía', icon: '🍉', price: 160, grow: 210, sell: 190, regrow: false, color: '#43a047' },
   pumpkin: { name: 'Calabaza', icon: '🎃', price: 320, grow: 300, sell: 360, regrow: false, color: '#fb8c00' },
   mango: { name: 'Mango', icon: '🥭', price: 800, grow: 420, sell: 180, regrow: true, color: '#ffb300' },
+  grape: { name: 'Uvas', icon: '🍇', price: 1200, grow: 540, sell: 140, regrow: true, color: '#7b1fa2' },
   starfruit: { name: 'Fruta estrella', icon: '⭐', price: 2500, grow: 900, sell: 2400, regrow: false, color: '#ffee58' },
+  dragonfruit: { name: 'Pitahaya', icon: '🐉', price: 6000, grow: 1500, sell: 5600, regrow: false, color: '#ec407a' },
+  goldapple: { name: 'Manzana dorada', icon: '🍎', price: 15000, grow: 2400, sell: 2600, regrow: true, color: '#ffc400' },
 };
 export const SEED_IDS = Object.keys(SEEDS);
 export const MUTATIONS = {
@@ -60,6 +63,35 @@ export function buildHuerto() {
   for (let i = 0; i < 20; i++) g.add('deco', [-60 + i * 6.3, 0.3, i % 2 ? 6.5 : -6.5], [0.6, 0.6, 0.6], ['#ff80ab', '#ffeb3b', '#b388ff'][i % 3], 'plastic', { kind: 'flower' });
   g.block([62, 6, 0], [5, 12, 5], '#d7ccc8', 'brick');
   g.add('cylinder', [62, 13, 0], [5.4, 2, 5.4], '#8d6e63', 'wood');
+  // Aspas del molino (decoración)
+  g.block([62, 11, 2.8], [1, 14, 0.3], '#efebe9', 'wood', { nc: true });
+  g.block([62, 11, 2.8], [14, 1, 0.3], '#efebe9', 'wood', { nc: true });
+
+  // Granero con pajar y tractor
+  g.building(-64, 0, 0, 12, 10, 7, 'e', { wall: '#c62828', roof: '#5d4037', material: 'wood', noWindows: true });
+  for (const [x, z] of [[-55, -6], [-55, 6], [-53, -4]]) g.add('cylinder', [x, 0.7, z], [1.6, 1.4, 1.6], '#ffd54f', 'grass');
+  g.block([-52, 1, 10], [3, 1.6, 2], '#43a047', 'metal');
+  g.add('cylinder', [-53, 0.9, 11.1], [1.8, 0.5, 1.8], '#212121', 'plastic');
+  g.add('cylinder', [-51, 0.6, 11.1], [1.2, 0.5, 1.2], '#212121', 'plastic');
+  // Estanque con patos y colmenas
+  g.add('cylinder', [0, 0.05, 54], [16, 0.1, 10], '#4fc3f7', 'glass', { nc: true });
+  for (const [x, z] of [[-3, 53], [2, 55], [4, 52]]) {
+    g.add('sphere', [x, 0.35, z], [0.7, 0.5, 0.9], '#fafafa', 'plastic', { nc: true });
+    g.add('sphere', [x, 0.7, z + 0.35], [0.35, 0.35, 0.35], '#fafafa', 'plastic', { nc: true });
+  }
+  for (let i = 0; i < 3; i++) {
+    g.block([-12 + i * 2.4, 0.6, 60], [1.6, 1.2, 1.4], '#ffca28', 'wood');
+    g.block([-12 + i * 2.4, 1.3, 60], [1.8, 0.2, 1.6], '#8d6e63', 'wood');
+  }
+  // Espantapájaros en cada parcela
+  for (let k = 0; k < HUERTO.plots; k++) {
+    const [x, z] = plotCenter(k);
+    const sz = z + (k < 4 ? -1 : 1) * 5.6, sx = x - 8.5;
+    g.block([sx, 1.2, sz], [0.2, 2.4, 0.2], '#6d4c41', 'wood', { nc: true });
+    g.block([sx, 1.8, sz], [1.6, 0.2, 0.2], '#6d4c41', 'wood', { nc: true });
+    g.add('sphere', [sx, 2.6, sz], [0.6, 0.6, 0.6], '#ffcc80', 'plastic', { nc: true });
+    g.add('cylinder', [sx, 3, sz], [1.1, 0.15, 1.1], '#a1887f', 'grass', { nc: true });
+  }
 
   return {
     version: 1,

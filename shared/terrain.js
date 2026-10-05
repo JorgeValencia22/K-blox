@@ -61,7 +61,7 @@ export function distToPolyline(px, pz, pts) {
   return best;
 }
 
-// Rasgos fijos de la isla principal (Kest City).
+// Rasgos fijos de la isla principal (Isla Metrópolis).
 export const ISLAND = {
   size: 512,
   res: 256,

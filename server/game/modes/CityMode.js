@@ -1,4 +1,4 @@
-// Kest City: gemas persistentes, cofres por sesión, cumbre y vuelo.
+// Isla Metrópolis: gemas persistentes, cofres por sesión, cumbre y vuelo.
 import { BaseMode } from './BaseMode.js';
 import * as users from '../../services/users.js';
 import { getHeightmap } from '../../../shared/terrain.js';

@@ -183,7 +183,7 @@ const tmpBody = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, r: 1, h: 1.4, step: 0.8
 /**
  * Conducción arcade de coche/kart.
  * ctl: { throttle(-1..1), steer(-1..1), brake(bool), boost(bool), jump(bool) }
- * El turbo y el salto se usan en Kest Rocket. Devuelve { hit } si choca a cierta velocidad.
+ * El turbo y el salto se usan en Turbo Gol. Devuelve { hit } si choca a cierta velocidad.
  */
 export function driveGround(v, ctl, dt, physics) {
   const s = v.state, c = v.cfg;

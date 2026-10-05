@@ -17,6 +17,7 @@ import { createScreen } from './ui/screens/create.js';
 import { profileScreen } from './ui/screens/profile.js';
 import { adminScreen } from './ui/screens/admin.js';
 import { coinsScreen } from './ui/screens/coins.js';
+import { showJumpscare } from './ui/adminPanel.js';
 import { Game } from './game/game.js';
 import { loginAsGuest } from './core/guest.js';
 
@@ -120,7 +121,7 @@ class App {
     engine.setView(this.menuScene);
     audio.startMusic();
     this.go('menu');
-    if (user.newAccount) toast('¡Bienvenido/a a Kest Worlds! Por seguridad, las cuentas nuevas tienen el chat limitado unos minutos.', 'info', 6000);
+    if (user.newAccount) toast('¡Bienvenido/a a KestWorlds! Por seguridad, las cuentas nuevas tienen el chat limitado unos minutos.', 'info', 6000);
   }
 
   bindNet() {
@@ -155,6 +156,8 @@ class App {
       });
     });
     net.on('toast', (t) => toast(t.text, t.kind || 'info'));
+    net.on('admin:jumpscare', () => showJumpscare());
+    net.on('inventory', () => store.refreshUser().catch(() => {}));
     net.on('announce', ({ text, from }) => {
       audio.play('checkpoint');
       const el = h('div.announce', h('small', `📢 Anuncio de ${from}`), text);

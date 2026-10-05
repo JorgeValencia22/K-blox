@@ -19,7 +19,7 @@ function randomAvatar() {
   };
 }
 
-/** Fondo del menú principal: la plaza de Kest Hangout con paseantes. */
+/** Fondo del menú principal: la plaza de La Plaza con paseantes. */
 export class MenuScene {
   constructor() {
     this.scene = new THREE.Scene();

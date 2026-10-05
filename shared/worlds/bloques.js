@@ -1,4 +1,4 @@
-// Kest Bloques Locos: suelo de baldosas de colores flotando en el cielo. Se anuncia
+// Bloques Locos: suelo de baldosas de colores flotando en el cielo. Se anuncia
 // un color y, al acabar la cuenta, desaparecen todas las demás baldosas. Cada ronda
 // hay menos tiempo. Gana quien quede en pie (con bots si hay pocos jugadores).
 import { WorldGen } from './builder.js';
@@ -39,6 +39,32 @@ export function buildBloques() {
     g.block([0, y - 0.9, s * (half + 0.6)], [n * tile + 2, 0.2, 0.3], '#00e5ff', 'neon', { nc: true });
     g.block([s * (half + 0.6), y - 0.9, 0], [0.3, 0.2, n * tile + 2], '#00e5ff', 'neon', { nc: true });
   }
+  // Gradas con público a los lados de la pista (decoración sin colisión)
+  const crowd = ['#f44336', '#2196f3', '#4caf50', '#ffeb3b', '#9c27b0', '#ff9800', '#ffffff'];
+  for (const s of [-1, 1]) {
+    for (let r = 0; r < 4; r++) {
+      g.block([s * (half + 6 + r * 2.5), y - 2 + r * 1.6, 0], [2.4, 1.2, n * tile], '#37474f', 'metal', { nc: true });
+      for (let k = 0; k < 14; k++) {
+        if ((k + r) % 4 === 0) continue;
+        g.block([s * (half + 6 + r * 2.5), y - 0.9 + r * 1.6, -half + 1.5 + k * 2.8], [0.7, 1, 0.7], crowd[(k + r * 3) % crowd.length], 'plastic', { nc: true });
+      }
+    }
+  }
+  // Globos flotando y focos de colores
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2, d = 34 + (i % 3) * 6;
+    const bx = Math.cos(a) * d, bz = Math.sin(a) * d, by = y + 8 + (i % 4) * 3;
+    g.add('sphere', [bx, by, bz], [1.6, 2, 1.6], crowd[i % crowd.length], 'plastic', { nc: true });
+    g.block([bx, by - 2.2, bz], [0.05, 2.4, 0.05], '#eeeeee', 'plastic', { nc: true });
+  }
+  for (const [x, z, c] of [[-half - 2, -half - 2, '#ff4081'], [half + 2, -half - 2, '#00e5ff'], [-half - 2, half + 2, '#76ff03'], [half + 2, half + 2, '#ffea00']]) {
+    g.block([x, y + 4, z], [0.6, 10, 0.6], '#263238', 'metal', { nc: true });
+    g.add('light', [x, y + 9.4, z], [0.8, 0.8, 0.8], c, 'neon', { intensity: 2, range: 26 });
+  }
+  // Marcador gigante sobre la grada de espera
+  g.block([lx, ly + 7.5, lz - 7.4], [16, 5, 0.4], '#111111', 'metal', { nc: true });
+  g.add('sign', [lx, ly + 7.5, lz - 7.1], [15, 4.2, 0.1], '#1a237e', 'neon', { text: '¡EL ÚLTIMO EN PIE GANA!' });
+
   for (let i = 0; i < 30; i++) {
     const a = (i / 30) * Math.PI * 2;
     g.add('sphere', [Math.cos(a) * 90, y - 30 + (i % 5) * 12, Math.sin(a) * 90], [10, 4, 8], '#ffffff', 'plastic', { nc: true });

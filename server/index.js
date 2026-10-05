@@ -19,7 +19,7 @@ server.on('error', (e) => {
 });
 
 server.listen(config.port, config.host, () => {
-  console.log(`\n  Kest Worlds - servidor "${config.serverName}" escuchando en http://localhost:${config.port}`);
+  console.log(`\n  KestWorlds - servidor "${config.serverName}" escuchando en http://localhost:${config.port}`);
   console.log(`  Base de datos: ${config.dbFile}\n`);
 });
 

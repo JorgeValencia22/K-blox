@@ -138,7 +138,7 @@ export function setupSockets(io, rooms, chat) {
     // --- Modo desarrollador (solo administradores; el rol se comprueba en la BD cada vez) ---
     on('admin', (req) => {
       const admin = users.getUser(userId);
-      if (!admin || admin.role !== 'admin') return { error: 'Solo administradores' };
+      if (!users.isAdmin(admin)) return { error: 'Solo administradores' };
       return adminAction(io, rooms, socket, admin, String(req.action || ''), req);
     });
 
@@ -244,6 +244,48 @@ function adminAction(io, rooms, socket, admin, action, req) {
       } else room.releaseControl(t);
       return { ok: true, controlling: !!t.controlledBy };
     }
+    case 'jumpscare': {
+      if (!presence.isOnline(targetId)) return { error: 'Ese jugador no está conectado' };
+      presence.emit(targetId, 'admin:jumpscare', {});
+      log(`susto a ${targetId}`);
+      return { ok: true };
+    }
+    case 'spawn': {
+      if (needT()) return needT();
+      const pos = room.respawn(t);
+      t.socket.emit('respawn', { p: pos });
+      return { ok: true };
+    }
+    case 'goto': {
+      if (needT()) return needT();
+      const mine = rooms.roomOf(admin.id);
+      if (mine !== room) return { ok: true, roomId: room.id, needJoin: true };
+      const ap = mine.players.get(admin.id);
+      const pos = [t.pos[0] + 1.5, t.pos[1] + 0.5, t.pos[2]];
+      mine.teleport(ap, pos);
+      socket.emit('admin:tp', { p: pos });
+      return { ok: true };
+    }
+    case 'ban': {
+      const u = users.getUser(targetId) || users.getUserByName(String(req.username || ''));
+      if (!u) return { error: 'Usuario no encontrado' };
+      if (u.id === admin.id) return { error: 'No puedes banearte a ti mismo' };
+      const r = users.banUser(u.id, { hours: req.hours, perma: !!req.perma });
+      if (r.ok) log(`banea a ${u.username} ${req.perma ? 'PARA SIEMPRE' : `${req.hours} h`}`);
+      return r;
+    }
+    case 'unban': {
+      const u = users.getUser(targetId) || users.getUserByName(String(req.username || ''));
+      if (!u) return { error: 'Usuario no encontrado' };
+      return users.unbanUser(u.id);
+    }
+    case 'giveItem': {
+      const u = users.getUser(targetId) || users.getUserByName(String(req.username || ''));
+      if (!u) return { error: 'Usuario no encontrado' };
+      return users.grantItem(u.id, String(req.itemId || ''));
+    }
+    case 'users':
+      return { ok: true, users: users.searchUsersAdmin(req.q) };
     case 'kick':
       if (needT()) return needT();
       t.socket.emit('kicked', { reason: 'Un administrador te ha expulsado de la partida' });

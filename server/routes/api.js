@@ -8,7 +8,9 @@ import { getDb } from '../db/database.js';
 import { presence } from '../realtime/presence.js';
 import { SHOP_ITEMS, ACHIEVEMENTS, EXPERIENCES } from '../../shared/catalog.js';
 import { CATEGORIES } from '../../shared/constants.js';
-import { httpLimit } from '../security/rateLimit.js';
+import { httpLimit, LoginGuard } from '../security/rateLimit.js';
+
+const unlockGuard = new LoginGuard(5, 5 * 60_000);
 
 const send = (res, out) => (out && out.error ? res.status(400).json(out) : res.json(out));
 
@@ -66,8 +68,24 @@ export function apiRouter(rooms) {
   r.post('/worlds/:id/unpublish', (req, res) => send(res, worlds.unpublishWorld(req.user.id, req.params.id)));
   r.delete('/worlds/:id', (req, res) => send(res, worlds.deleteWorld(req.user.id, req.params.id)));
 
+  // --- Modo admin con contraseña (5 intentos cada 5 minutos) ---------------
+  r.post('/admin/unlock', async (req, res) => {
+    const key = `admin:${req.user.id}`;
+    const wait = Math.max(unlockGuard.lockedFor(key), unlockGuard.lockedFor(`ip:${req.ip}`));
+    if (wait > 0) return res.status(429).json({ error: `Demasiados intentos. Espera ${Math.ceil(wait / 60000)} min` });
+    const out = await users.unlockAdmin(req.user.id, req.body?.password);
+    if (out.error) {
+      unlockGuard.fail(key);
+      unlockGuard.fail(`ip:${req.ip}`);
+      return res.status(403).json(out);
+    }
+    unlockGuard.success(key);
+    res.json({ ok: true, user: users.privateProfile(users.getUser(req.user.id)) });
+  });
+  r.post('/admin/lock', (req, res) => res.json({ ...users.lockAdmin(req.user.id), user: users.privateProfile(users.getUser(req.user.id)) }));
+
   // --- Moderación (solo administradores) -----------------------------------
-  const admin = (req, res, next) => (req.user.role === 'admin' ? next() : res.status(403).json({ error: 'Solo moderadores' }));
+  const admin = (req, res, next) => (users.isAdmin(req.user) ? next() : res.status(403).json({ error: 'Solo moderadores' }));
   r.get('/admin/reports', admin, (req, res) => {
     const rows = getDb().prepare(`SELECT r.*, ru.username AS reporter, tu.username AS target, w.name AS world_name
       FROM reports r LEFT JOIN users ru ON ru.id = r.reporter_id LEFT JOIN users tu ON tu.id = r.target_user_id LEFT JOIN worlds w ON w.id = r.world_id

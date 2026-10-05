@@ -1,4 +1,4 @@
-// Modos de la tercera tanda: Kest Pesadilla, Kest Desastres, Kest Huerto y Kest Bloques Locos.
+// Modos de la tercera tanda: Silencio Mortal, Desastres Naturales, Mi Huerto y Bloques Locos.
 import { BaseMode } from './BaseMode.js';
 import * as users from '../../services/users.js';
 import { WALL, mazeDistances } from '../../../shared/worlds/horror.js';
@@ -12,7 +12,7 @@ const dist2 = (a, x, z) => Math.hypot(a[0] - x, a[2] - z);
 const BOT_NAMES = ['Pixel', 'Nube', 'Turbo', 'Chispa', 'Bollo', 'Rayo', 'Coco', 'Menta', 'Bambú', 'Kiwi', 'Lupa', 'Trueno'];
 
 // =====================================================================================
-// Kest Pesadilla
+// Silencio Mortal
 // =====================================================================================
 const MON_SPEED = { wander: 2.6, investigate: 5.6, chase: 8.8 };
 const CATCH = 1.45;
@@ -272,7 +272,7 @@ export class PesadillaMode extends BaseMode {
 }
 
 // =====================================================================================
-// Kest Desastres
+// Desastres Naturales
 // =====================================================================================
 export class DesastresMode extends BaseMode {
   constructor(room) {
@@ -419,7 +419,7 @@ export class DesastresMode extends BaseMode {
 }
 
 // =====================================================================================
-// Kest Huerto
+// Mi Huerto
 // =====================================================================================
 const TILES = HUERTO.cols * HUERTO.rows;
 
@@ -577,7 +577,7 @@ export class HuertoMode extends BaseMode {
 }
 
 // =====================================================================================
-// Kest Bloques Locos
+// Bloques Locos
 // =====================================================================================
 const N_TILES = BLOQUES.n * BLOQUES.n;
 

@@ -1,4 +1,4 @@
-// Kest Terror: laberinto de setos de noche. Hay que encontrar las almas perdidas
+// Laberinto Sombrío: laberinto de setos de noche. Hay que encontrar las almas perdidas
 // para abrir la verja de salida mientras "La Sombra" persigue a los jugadores.
 // El laberinto se genera de forma determinista: el servidor usa la misma rejilla
 // para mover al monstruo (búsqueda en anchura por los pasillos).
@@ -59,7 +59,7 @@ export function mazeDistances(cells, n, si, sj) {
 }
 
 export function buildHorror() {
-  const N = 13, CELL = 8, H = 5, T = 0.8;
+  const N = 15, CELL = 8, H = 5, T = 0.8;
   const g = new WorldGen('t');
   const rnd = mulberry32(666);
   const cells = generateMaze(N, 1313);
@@ -120,18 +120,44 @@ export function buildHorror() {
     g.add('deco', [cx(i) + CELL / 2 - 1, 1.4, cz(j) + CELL / 2 - 1], [0.4, 2.8, 0.4], '#3e2723', 'wood', { kind: 'lamp' });
   }
   // Árboles muertos y lápidas fuera del laberinto
-  for (let k = 0; k < 40; k++) {
-    const a = rnd() * Math.PI * 2, d = 62 + rnd() * 40;
-    if (k % 3 === 0) g.block([Math.cos(a) * d, 0.7, Math.sin(a) * d], [1.2, 1.4, 0.3], '#757575', 'stone');
-    else g.add('tree', [Math.cos(a) * d, 3.5, Math.sin(a) * d], [2.2, 7, 2.2], '#3e2723', 'wood', { kind: 'pine' });
+  const half = (N * CELL) / 2;
+  const exitX = x0 + N * CELL, exitZ = cz(exit[1]);
+  for (let k = 0; k < 60; k++) {
+    const a = rnd() * Math.PI * 2, d = 66 + rnd() * 50;
+    const x = Math.cos(a) * d, z = Math.sin(a) * d;
+    if (Math.abs(x) < half + 5 && Math.abs(z) < half + 5) continue;
+    if (Math.hypot(x - exitX, z - exitZ) < 18 || Math.hypot(x - sx, z - sz) < 26) continue;
+    if (k % 3 === 0) g.block([x, 0.7, z], [1.2, 1.4, 0.3], '#757575', 'stone');
+    else g.add('tree', [x, 3.5, z], [2.2, 7, 2.2], '#3e2723', 'wood', { kind: 'pine' });
   }
+  // Cementerio junto a la entrada: lápidas en filas, verja y una cripta
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) {
+    const tx = sx + 12 + c * 3, tz = sz - 2 + r * 3.2;
+    g.block([tx, 0.6, tz], [1.1, 1.2 + ((r + c) % 3) * 0.3, 0.3], ['#757575', '#616161', '#9e9e9e'][(r * 5 + c) % 3], 'stone');
+    if ((r + c) % 4 === 0) g.block([tx, 1.6, tz], [0.9, 0.2, 0.25], '#757575', 'stone', { nc: true });
+  }
+  for (let i = 0; i < 9; i++) g.block([sx + 10 + i * 2.2, 0.9, sz + 8], [0.15, 1.8, 0.15], '#212121', 'metal');
+  g.block([sx + 19, 1.7, sz + 8], [19, 0.15, 0.15], '#212121', 'metal');
+  // Cripta
+  g.block([sx - 13, 2, sz + 2], [7, 4, 6], '#616161', 'stone');
+  g.add('wedge', [sx - 13, 4.8, sz + 0.5], [7, 1.6, 3], '#424242', 'stone').ry = 0;
+  g.add('wedge', [sx - 13, 4.8, sz + 3.5], [7, 1.6, 3], '#424242', 'stone').ry = 180;
+  g.block([sx - 13, 1.4, sz - 1.05], [2, 2.8, 0.1], '#1b1b1b', 'stone', { nc: true });
+  g.add('light', [sx - 13, 1.2, sz - 1.6], [0.3, 0.3, 0.3], '#b388ff', 'neon', { intensity: 0.9, range: 7 });
+  // Calabazas iluminadas por el laberinto (decoración)
+  for (let k = 0; k < 14; k++) {
+    const i = Math.floor(rnd() * N), j = Math.floor(rnd() * N);
+    g.add('sphere', [cx(i) - CELL / 2 + 1.2, 0.45, cz(j) - CELL / 2 + 1.2], [0.9, 0.7, 0.9], '#ef6c00', 'neon', { nc: true });
+  }
+  // Luna enorme sobre el laberinto
+  g.add('sphere', [-120, 70, -160], [26, 26, 26], '#fff9c4', 'neon', { nc: true });
 
   return {
     version: 1,
-    terrain: { type: 'flat', size: 260, height: 0, color: '#1e2a1e' },
+    terrain: { type: 'flat', size: 300, height: 0, color: '#1e2a1e' },
     water: null,
     sky: { time: 0.02, dayNight: false, fog: true },
-    bounds: { min: [-130, -20, -130], max: [130, 60, 130] },
+    bounds: { min: [-150, -20, -150], max: [150, 60, 150] },
     spawns: [[sx - 2, 0.2, sz], [sx + 2, 0.2, sz], [sx, 0.2, sz + 2]],
     objects: g.objects,
     vehicles: [],

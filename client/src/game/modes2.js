@@ -28,7 +28,7 @@ const mmss = (ms) => {
 };
 
 // =====================================================================================
-// Kest Only Up
+// Solo Arriba
 // =====================================================================================
 export class OnlyUpClient extends Base {
   constructor(game, state) {
@@ -77,7 +77,7 @@ export class OnlyUpClient extends Base {
 }
 
 // =====================================================================================
-// Kest Terror
+// Laberinto Sombrío
 // =====================================================================================
 export class HorrorClient extends Base {
   constructor(game, state) {
@@ -289,7 +289,7 @@ export class HorrorClient extends Base {
 }
 
 // =====================================================================================
-// Kest Royale
+// Isla Royale
 // =====================================================================================
 export class RoyaleClient extends Base {
   constructor(game, state) {
@@ -651,7 +651,7 @@ export class RoyaleClient extends Base {
 }
 
 // =====================================================================================
-// Kest Rocket
+// Turbo Gol
 // =====================================================================================
 export class RocketClient extends Base {
   constructor(game, state) {
@@ -776,7 +776,7 @@ export class RocketClient extends Base {
 }
 
 // =====================================================================================
-// Kest Castores
+// Castores al Ataque
 // =====================================================================================
 export class CastoresClient extends Base {
   constructor(game, state) {

@@ -40,7 +40,7 @@ const bar = (color) => {
 };
 
 // =====================================================================================
-// Kest Pesadilla (primera persona + micrófono)
+// Silencio Mortal (primera persona + micrófono)
 // =====================================================================================
 export class PesadillaClient extends Base {
   constructor(game, state) {
@@ -127,7 +127,7 @@ export class PesadillaClient extends Base {
     if (this.game.disposed) return;
     if (input.locked) { this.game.ignoreUnlock = true; input.unlockPointer(); }
     modal('🎤 ¿Activar el micrófono?', h('div',
-      h('p', 'En Kest Pesadilla, El Oyente puede oír tu voz real. Si hablas o gritas cerca de él, ¡irá a por ti!'),
+      h('p', 'En Silencio Mortal, El Oyente puede oír tu voz real. Si hablas o gritas cerca de él, ¡irá a por ti!'),
       h('p.muted.small', '🔒 Tu voz no se graba ni se envía a nadie: el juego solo mide lo fuerte que suena, en tu dispositivo. Puedes jugar igual sin micrófono.'),
     ), {
       actions: [
@@ -392,7 +392,7 @@ export class PesadillaClient extends Base {
 }
 
 // =====================================================================================
-// Kest Desastres
+// Desastres Naturales
 // =====================================================================================
 export class DesastresClient extends Base {
   constructor(game, state) {
@@ -616,7 +616,7 @@ export class DesastresClient extends Base {
 }
 
 // =====================================================================================
-// Kest Huerto
+// Mi Huerto
 // =====================================================================================
 const MUT_COLORS = { gold: '#ffd700', rainbow: null };
 
@@ -634,9 +634,9 @@ function cropMesh(seed, mut) {
     l.position.set(Math.cos(i * 2.1) * 0.22, 0.45 + i * 0.12, Math.sin(i * 2.1) * 0.22);
     g.add(l);
   }
-  const big = seed === 'watermelon' || seed === 'pumpkin';
+  const big = seed === 'watermelon' || seed === 'pumpkin' || seed === 'dragonfruit';
   const geoF = seed === 'carrot' ? new THREE.ConeGeometry(0.16, 0.6, 8).rotateX(Math.PI) : seed === 'corn' ? new THREE.CapsuleGeometry(0.14, 0.4, 3, 8) : seed === 'starfruit' ? new THREE.OctahedronGeometry(0.32) : new THREE.SphereGeometry(big ? 0.55 : 0.2, 12, 8);
-  const count = seed === 'strawberry' || seed === 'tomato' || seed === 'mango' ? 3 : 1;
+  const count = ['strawberry', 'tomato', 'mango', 'goldapple'].includes(seed) ? 3 : seed === 'grape' ? 5 : 1;
   const fruits = [];
   for (let i = 0; i < count; i++) {
     const f = new THREE.Mesh(geoF, fruit);
@@ -884,7 +884,7 @@ export class HuertoClient extends Base {
 }
 
 // =====================================================================================
-// Kest Bloques Locos
+// Bloques Locos
 // =====================================================================================
 export class BloquesClient extends Base {
   constructor(game, state) {

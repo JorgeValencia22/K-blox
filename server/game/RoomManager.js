@@ -6,6 +6,7 @@ import { getBuiltinWorld } from '../../shared/worlds/index.js';
 import { EXPERIENCES } from '../../shared/catalog.js';
 import { config } from '../config.js';
 import * as worldsSvc from '../services/worlds.js';
+import * as users from '../services/users.js';
 
 const EMPTY_ROOM_TTL = 30_000;
 
@@ -31,7 +32,7 @@ export class RoomManager {
     if (exp) {
       return { key, name: exp.name, world: getBuiltinWorld(key), builtin: true, mode: key, maxPlayers: Math.min(exp.maxPlayers, config.maxPlayersPerRoom) };
     }
-    const row = worldsSvc.playableWorld(user.id, key, { isAdmin: user.role === 'admin' });
+    const row = worldsSvc.playableWorld(user.id, key, { isAdmin: users.isAdmin(user) });
     if (!row) return null;
     const isPublic = row.visibility === 'public';
     return {
@@ -83,7 +84,7 @@ export class RoomManager {
   }
 
   join(socket, user, req) {
-    if (this.maintenance && user.role !== 'admin') return { error: '🛠️ Los servidores están en mantenimiento. Vuelve en un rato.' };
+    if (this.maintenance && !users.isAdmin(user)) return { error: '🛠️ Los servidores están en mantenimiento. Vuelve en un rato.' };
     this.unspectate(user.id);
     const pick = this.pickRoom(user, req || {});
     if (pick.error) return pick;

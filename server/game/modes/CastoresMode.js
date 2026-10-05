@@ -1,4 +1,4 @@
-// Kest Castores: atraco cooperativo. El servidor lleva los troncos (quién los
+// Castores al Ataque: atraco cooperativo. El servidor lleva los troncos (quién los
 // carga, dónde están), los tablones roídos, el tiempo y las entregas en la presa.
 import { BaseMode } from './BaseMode.js';
 import * as users from '../../services/users.js';

@@ -21,10 +21,48 @@ export function sidebar(app, active) {
     items.push(h(`button.nav-item.dev${active === 'admin' ? '.on' : ''}`, { on: { click: () => app.go('admin') } }, h('span.nav-ic', '🛡️'), h('span.nav-label', 'Desarrollador')));
   }
   items.push(h('button.nav-item', { on: { click: () => openSettings() } }, h('span.nav-ic', '⚙️'), h('span.nav-label', 'Ajustes')));
+  if (store.user?.role !== 'admin') items.push(h('button.nav-item', { title: 'Activa el modo admin con la contraseña', on: { click: () => unlockAdmin(app) } }, h('span.nav-ic', '🔑'), h('span.nav-label', 'Modo admin')));
+  else if (store.user?.adminTemp) items.push(h('button.nav-item', { on: { click: () => lockAdmin(app) } }, h('span.nav-ic', '🔒'), h('span.nav-label', 'Salir de admin')));
   if (/^Invitado_/.test(store.user?.username || '')) {
     items.push(h('button.nav-item', { title: 'Entra con tu cuenta (o la del modo desarrollador)', on: { click: () => app.logout() } }, h('span.nav-ic', '🔑'), h('span.nav-label', 'Iniciar sesión')));
   }
   return h('nav.sidebar', h('div.side-logo', { on: { click: () => app.go('menu') } }, logo()), h('div.nav-list', items));
+}
+
+/** Pide la contraseña del modo admin (la comprueba el servidor). */
+export function unlockAdmin(app) {
+  const pass = h('input.input', { type: 'password', placeholder: 'Contraseña de administrador', autocomplete: 'off', maxLength: 100 });
+  const err = h('div.err');
+  const send = async (close) => {
+    err.textContent = '';
+    try {
+      const r = await post('/admin/unlock', { password: pass.value });
+      store.setUser(r.user);
+      close();
+      audio.play('levelup');
+      toast('🛡️ Modo admin activado (12 h). Mira «Desarrollador» en el menú o pulsa F2 en partida.', 'ok', 5000);
+      app.go('admin');
+    } catch (e) {
+      err.textContent = e.message;
+      audio.ui('error');
+    }
+  };
+  const close = modal('🔑 Modo admin', h('div', h('div.field', h('label', 'Contraseña'), pass), err), {
+    actions: [{ label: 'Cancelar' }, { label: 'Entrar', cls: 'primary', onClick: (c) => send(c) }],
+  });
+  pass.addEventListener('keydown', (e) => e.key === 'Enter' && send(close));
+  setTimeout(() => pass.focus(), 50);
+}
+
+async function lockAdmin(app) {
+  try {
+    const r = await post('/admin/lock');
+    store.setUser(r.user);
+    toast('Has salido del modo admin', 'info');
+    app.go('menu');
+  } catch (e) {
+    toast(e.message, 'err');
+  }
 }
 
 export function topbar(app) {
@@ -158,7 +196,7 @@ export function menuScreen(app) {
     h('div.home',
       h('div.home-top', h('div.hero-wrap', hero, dots), daily),
       rows,
-      h('div.footer-note', 'Kest Worlds v0.3 · Las Kesty Coins son una moneda del juego sin valor real'),
+      h('div.footer-note', 'KestWorlds v0.3 · Las Kesty Coins son una moneda del juego sin valor real'),
     ),
   );
   const base = el.cleanup;

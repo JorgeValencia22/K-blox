@@ -451,7 +451,7 @@ export class Game {
     this.mode.filterCtl?.(ctl, dt);
     p.frozen = this.paused || this.mode.frozen || this.adminFrozen || this.spectator;
     p.update(dt, ctl, this.physics, camFwd);
-    // Primera persona (Kest Pesadilla): el cuerpo mira hacia donde mira la cámara y no se dibuja
+    // Primera persona (Silencio Mortal): el cuerpo mira hacia donde mira la cámara y no se dibuja
     const fp = !!this.mode.firstPerson && !veh;
     this.cam.firstPerson = fp;
     if (fp) {
@@ -536,7 +536,7 @@ export class Game {
         throttleDelta: frozen ? 0 : (input.down('Space') ? 1 : 0) - ((input.down('ShiftLeft') && !input.isTouch) || input.down('KeyC') ? 1 : 0),
       }, dt, this.physics);
     } else {
-      // Los modos pueden cambiar los controles del coche (turbo y salto en Kest Rocket)
+      // Los modos pueden cambiar los controles del coche (turbo y salto en Turbo Gol)
       const extra = this.mode.vehicleCtl?.(v, dt) || {};
       res = driveGround(v, { throttle: frozen ? 0 : move.y, steer: move.x, brake: input.down('Space') || frozen, ...extra }, dt, this.physics);
       if (res.hit > 10) audio.play('hit');

@@ -1,11 +1,11 @@
-// Modos sencillos: Kest Teclas (obby con estadísticas propias) y Kest Only Up.
+// Modos sencillos: Teclas ASMR (obby con estadísticas propias) y Solo Arriba.
 import { BaseMode } from './BaseMode.js';
 import { ObbyMode } from './ObbyMode.js';
 import * as users from '../../services/users.js';
 
 export class KeysMode extends ObbyMode {
   constructor(room) {
-    super(room, { stats: { best: 'keysBest', clears: 'keysClears', daily: 'keys', label: 'Kest Teclas completado', achievements: ['keys_clear'], fast: null } });
+    super(room, { stats: { best: 'keysBest', clears: 'keysClears', daily: 'keys', label: 'Teclas ASMR completado', achievements: ['keys_clear'], fast: null } });
   }
 }
 
@@ -50,7 +50,7 @@ export class OnlyUpMode extends BaseMode {
       users.award(p.id, { xp: 300, coins, reason: '¡Has llegado a la cima!' });
       users.unlockAchievement(p.id, 'summit_up');
       users.setHistoryResult(p.historyId, `Cima en ${Math.round(time / 1000)} s`);
-      this.room.systemMessage(`🏔️ ${p.name} ha llegado a la cima de Kest Only Up`);
+      this.room.systemMessage(`🏔️ ${p.name} ha llegado a la cima de Solo Arriba`);
       this.emit(p, 'up:summit', { time });
     }
   }

@@ -1,4 +1,4 @@
-// Kest Rocket: fútbol con coches. El servidor simula el balón (con subpasos) y
+// Turbo Gol: fútbol con coches. El servidor simula el balón (con subpasos) y
 // sus choques con los coches de jugadores y bots. Equipos: 0 Azul (defiende +z),
 // 1 Naranja (defiende -z).
 import { BaseMode } from './BaseMode.js';
