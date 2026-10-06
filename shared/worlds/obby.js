@@ -147,12 +147,13 @@ export function buildObby() {
 
   // Etapa 12: escalera flotante sobre un mar de lava
   const lavaStart = edge;
+  const lavaY = y - 5; // el mar de lava queda por debajo del principio de la escalera
   for (let i = 0; i < 9; i++) {
     y += 0.9;
     const c = place(2.4, 2.4);
     g.block([Math.sin(i * 0.9) * 3, y - 0.4, c], [2.4, 0.8, 2.4], C[i % 6], 'plastic');
   }
-  g.add('kill', [0, y - 7, (lavaStart + edge) / 2], [20, 0.4, lavaStart - edge + 6], '#ff3d00', 'neon');
+  g.add('kill', [0, lavaY, (lavaStart + edge) / 2], [20, 0.4, lavaStart - edge + 6], '#ff3d00', 'neon');
   checkpointPad(12, 'ETAPA 13');
 
   // Etapa 13: ascensores (plataformas que suben y bajan) encadenados

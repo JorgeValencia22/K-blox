@@ -124,6 +124,53 @@ export function buildCamaleon() {
     raw('sign', [0, 7, -24.6], [12, 2, 0.2], '#fafafa', 'wood', { text: 'MUSEO' });
   }
 
+  // 5) Biblioteca: estanterías de madera, libros de colores, alfombra verde y sillones
+  {
+    const { prop, raw, m } = makeMap('biblioteca', 'Biblioteca', 480, '#6d4c41', '#d7ccc8');
+    const book = ['#c62828', '#1565c0', '#2e7d32', '#f9a825', '#6a1b9a', '#ef6c00', '#00838f'];
+    for (let r = 0; r < 4; r++) {
+      const z = -15 + r * 10;
+      prop(-10, 3, z, 12, 6, 1.2, '#5d4037', 'wood');
+      for (let k = 0; k < 10; k++) for (let sh = 0; sh < 3; sh++) raw('block', [-15.4 + k * 1.2, 1.1 + sh * 1.8, z + 0.66], [0.9, 1.3, 0.1], book[(k + sh + r) % book.length], 'plastic', { nc: true });
+      m.spots.push({ p: [480 - 10 + (r % 2 ? 3 : -3), 0.2, z + 1.3], c: book[r % book.length], pose: 'normal' });
+    }
+    raw('block', [8, 0.02, 0], [14, 0.04, 20], '#2e7d32', 'plastic', { nc: true }); m.spots.push({ p: [488, 0.2, 2], c: '#2e7d32', pose: 'tumbado' });
+    prop(14, 0.6, -10, 3, 1.2, 3, '#880e4f'); prop(14, 0.6, 10, 3, 1.2, 3, '#880e4f');
+    prop(6, 0.9, 0, 6, 0.2, 3, '#8d6e63', 'wood');
+    raw('cylinder', [18, 4, 18], [2, 8, 2], '#d7ccc8', 'stone'); m.spots.push({ p: [496.6, 0.2, 18], c: '#d7ccc8', pose: 'normal' });
+    raw('sign', [0, 7, -22.6], [10, 2, 0.2], '#fff8e1', 'wood', { text: 'BIBLIOTECA' });
+  }
+  // 6) Playa: arena, agua, toallas de rayas, sombrillas, castillo de arena y rocas
+  {
+    const { prop, raw, m } = makeMap('playa', 'Playa', 600, '#ffe082', '#81d4fa');
+    raw('block', [0, 0.02, -15], [46, 0.04, 16], '#29b6f6', 'glass', { nc: true }); m.spots.push({ p: [596, 0.2, -16], c: '#29b6f6', pose: 'tumbado' }, { p: [612, 0.2, -12], c: '#29b6f6', pose: 'tumbado' });
+    const towels = [['#e53935', '#ffffff'], ['#1e88e5', '#ffeb3b'], ['#43a047', '#ffffff']];
+    towels.forEach(([a, b], i) => {
+      const x = -12 + i * 10;
+      for (let k = 0; k < 4; k++) raw('block', [x, 0.03, 4 + k * 0.8], [2, 0.04, 0.8], k % 2 ? b : a, 'plastic', { nc: true });
+      m.spots.push({ p: [600 + x, 0.2, 5.2], c: a, pose: 'tumbado' });
+      raw('cylinder', [x + 2, 1.5, 3], [0.15, 3, 0.15], '#eeeeee', 'plastic');
+      raw('cylinder', [x + 2, 3, 3], [4, 0.3, 4], a, 'plastic', { nc: true });
+    });
+    prop(14, 1, 12, 4, 2, 4, '#ffd54f', 'sand'); raw('cylinder', [14, 2.5, 12], [1.6, 1, 1.6], '#ffca28', 'sand');
+    for (const [x, z] of [[-18, 14], [-6, 16], [18, -4]]) prop(x, 1, z, 3, 2, 2.6, '#8d8d8d', 'stone');
+    raw('sphere', [4, 0.9, 14], [1.8, 1.8, 1.8], '#ff7043'); m.spots.push({ p: [605.6, 0.2, 14], c: '#ff7043', pose: 'agachado' });
+    raw('sign', [0, 6, 22.6], [10, 2, 0.2], '#fff8e1', 'wood', { text: 'PLAYA' });
+  }
+  // 7) Dormitorio gigante: cama, almohadas, peluches, armario y cajas de juguetes
+  {
+    const { prop, raw, m } = makeMap('dormitorio', 'Dormitorio', 720, '#90caf9', '#f8bbd0');
+    prop(-12, 1.5, -12, 14, 3, 18, '#5c6bc0'); prop(-12, 3.4, -18, 10, 1, 4, '#ffffff');
+    raw('block', [-12, 3.02, -6], [14, 0.04, 6], '#e1bee7', 'plastic', { nc: true });
+    m.spots.push({ p: [708, 3.2, -10], c: '#5c6bc0', pose: 'tumbado' }, { p: [708, 4.1, -18], c: '#ffffff', pose: 'tumbado' });
+    prop(17, 4, -18, 6, 8, 4, '#a1887f', 'wood');
+    prop(14, 0.8, 12, 4, 1.6, 4, '#ff7043'); prop(19, 0.8, 12, 4, 1.6, 4, '#26a69a');
+    raw('sphere', [4, 1.2, 14], [2.4, 2.6, 2.2], '#8d6e63'); raw('sphere', [4, 2.9, 14], [1.6, 1.6, 1.6], '#8d6e63'); m.spots.push({ p: [725.8, 0.2, 14], c: '#8d6e63', pose: 'agachado' });
+    for (let i = 0; i < 6; i++) raw('block', [-16 + i * 2.2, 0.02, 14], [2.2, 0.04, 6], i % 2 ? '#ffffff' : '#ffeb3b', 'plastic', { nc: true });
+    m.spots.push({ p: [706, 0.2, 14], c: '#ffeb3b', pose: 'tumbado' });
+    raw('sign', [0, 6.5, -22.6], [10, 2, 0.2], '#ffffff', 'wood', { text: 'DORMITORIO' });
+  }
+
   // Sala de espera común (entre rondas)
   g.block([0, -0.25, -80], [20, 0.5, 20], '#cfd8dc', 'stone');
   for (const [x, z, sx, sz] of [[0, -90, 20, 0.4], [0, -70, 20, 0.4], [-10, -80, 0.4, 20], [10, -80, 0.4, 20]]) g.block([x, 1, z], [sx, 2, sz], '#90a4ae', 'glass');
@@ -132,10 +179,10 @@ export function buildCamaleon() {
 
   return {
     version: 1,
-    terrain: { type: 'flat', size: 900, height: -0.6, color: '#37474f' },
+    terrain: { type: 'flat', size: 1800, height: -0.6, color: '#37474f' },
     water: null,
     sky: { time: 0.38, dayNight: false, fog: true },
-    bounds: { min: [-120, -20, -160], max: [500, 60, 120] },
+    bounds: { min: [-120, -20, -160], max: [860, 60, 120] },
     spawns: [[-3, 0.2, -80], [3, 0.2, -80], [0, 0.2, -77], [0, 0.2, -83]],
     objects: g.objects,
     vehicles: [],

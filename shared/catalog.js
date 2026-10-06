@@ -4,7 +4,7 @@
 export const EXPERIENCES = [
   {
     id: 'camaleon', name: 'Pinta y Escóndete', category: 'party', maxPlayers: 12, creator: 'KestWorlds Studio', isNew: true, featured: true,
-    description: 'Escondite de camaleones: píntate el cuerpo con el cuentagotas para confundirte con el escenario y quédate quieto… o sé el buscador y encuéntralos. 4 mapas: Juguetería, Jardín, Cocina y Museo (con bots).',
+    description: 'Escondite de camaleones: píntate el cuerpo con el cuentagotas para confundirte con el escenario y quédate quieto… o sé el buscador y encuéntralos. 7 mapas: Juguetería, Jardín, Cocina, Museo, Biblioteca, Playa y Dormitorio (con bots).',
     cover: { a: '#00bfa5', b: '#ec407a', icon: '🦎' },
   },
   {
