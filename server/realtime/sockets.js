@@ -244,6 +244,10 @@ function adminAction(io, rooms, socket, admin, action, req) {
       } else room.releaseControl(t);
       return { ok: true, controlling: !!t.controlledBy };
     }
+    case 'dance':
+      if (needT()) return needT();
+      t.socket.emit('admin:dance', { by: admin.username });
+      return { ok: true };
     case 'jumpscare': {
       if (!presence.isOnline(targetId)) return { error: 'Ese jugador no está conectado' };
       presence.emit(targetId, 'admin:jumpscare', {});

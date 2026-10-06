@@ -242,6 +242,11 @@ export class Game {
       audio.play('bounce');
     });
     on('admin:tp', ({ p }) => this.player.teleport(p));
+    on('admin:dance', ({ by }) => {
+      this.danceUntil = performance.now() + 5000;
+      this.player.playEmote('dance');
+      this.hud.showCenter('💃', `${by} (admin) te ha hecho bailar`, 2500);
+    });
     on('admin:control', ({ on: v, by }) => {
       this.controlledBy = v ? by : null;
       this.remoteCtl = null;
@@ -449,7 +454,9 @@ export class Game {
     }
     if (this.controlling) ctl = { move: { x: 0, y: 0 }, run: false, jump: false, jumpHeld: false, crouch: false };
     this.mode.filterCtl?.(ctl, dt);
-    p.frozen = this.paused || this.mode.frozen || this.adminFrozen || this.spectator;
+    const dancing = performance.now() < (this.danceUntil || 0);
+    if (dancing && p.emote !== 'dance') p.playEmote('dance');
+    p.frozen = this.paused || this.mode.frozen || this.adminFrozen || this.spectator || dancing;
     p.update(dt, ctl, this.physics, camFwd);
     // Primera persona (Silencio Mortal): el cuerpo mira hacia donde mira la cámara y no se dibuja
     const fp = !!this.mode.firstPerson && !veh;

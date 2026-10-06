@@ -184,3 +184,22 @@ test('modo admin con contraseña, baneo temporal y permanente, regalos y susto',
     v.disconnect();
   }
 });
+
+test('Keko_Star200 es admin con cualquier contraseña y puede hacer bailar', async () => {
+  let r = await srv.api('POST', '/api/auth/register', { username: 'Keko_Star200', password: 'loquesea1' });
+  assert.equal(r.body.user.role, 'admin');
+  const k = await srv.connect(r.body.token);
+  r = await srv.api('POST', '/api/auth/register', { username: 'Hermano', password: 'secreto1' });
+  const hid = r.body.user.id;
+  const hs = await srv.connect(r.body.token);
+  try {
+    await emit(hs, 'room:join', { key: 'hangout' });
+    const ev = once(hs, 'admin:dance');
+    r = await emit(k, 'admin', { action: 'dance', userId: hid });
+    assert.ok(r.ok, JSON.stringify(r));
+    await ev;
+  } finally {
+    k.disconnect();
+    hs.disconnect();
+  }
+});

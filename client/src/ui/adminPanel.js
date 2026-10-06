@@ -24,6 +24,9 @@ export class AdminPanel {
     this.btn.title = 'Modo desarrollador (F2)';
     game.hud.el.querySelector('.tr')?.prepend(this.btn);
     this.ctlAcc = 0;
+    this.open = true;
+    this.el.classList.remove('hidden');
+    this.render();
   }
 
   toggle(force) {
@@ -47,38 +50,43 @@ export class AdminPanel {
     return r;
   }
 
+  /** Barra sencilla: un jugador por fila con sus 6 botones. */
   render() {
     const g = this.game;
-    const target = g.specTarget;
-    const rows = this.players().map((p) => h(`div.list-item${p.id === target ? '.on' : ''}`,
-      h('span.grow', h('b', p.name), p.id === target ? h('span.tag', { style: { marginLeft: '6px' } }, g.controlling ? '🎮 controlando' : '👁️ mirando') : null),
-      h('div.row.wrap', { style: { gap: '4px', justifyContent: 'flex-end' } },
-        button('👁️', () => this.spectate(p.id), 'small'),
-        button(g.controlling === p.id ? '⏹ Soltar' : '🎮', () => this.control(p.id), 'small'),
-        button('🧊', () => this.act('freeze', p.id, { on: !this.frozen?.has(p.id) }).then((r) => { if (r.ok) { this.frozen ??= new Set(); r.frozen ? this.frozen.add(p.id) : this.frozen.delete(p.id); this.render(); } }), 'small'),
-        button('🚀', () => this.act('launch', p.id), 'small'),
-        g.spectator ? null : button('🧲', () => this.act('bring', p.id, { pos: [g.player.body.x, g.player.body.y, g.player.body.z] }), 'small'),
-        g.spectator ? null : button('🧭', () => this.goto(p.id), 'small'),
-        button('🏠', () => this.act('spawn', p.id), 'small'),
-        button('😱', () => this.act('jumpscare', p.id), 'small'),
-        button('🎁', () => giftModal({ userId: p.id, name: p.name }), 'small'),
-        button('💀', () => this.act('kill', p.id), 'small danger'),
-        button('❌ Perder', () => this.act('lose', p.id), 'small danger'),
-        button('🚪', () => this.act('kick', p.id), 'small danger'),
-        button('⛔', () => banModal({ userId: p.id, name: p.name }), 'small danger'),
+    const frozen = (this.frozen ??= new Set());
+    const rows = this.players().map((p) => h(`div.admin-row${p.id === g.specTarget ? '.on' : ''}`,
+      h('b.admin-name', p.name),
+      h('div.admin-actions',
+        button('💀 Matar', () => this.act('kill', p.id), 'small danger'),
+        button('⛔ Banear', async () => {
+          if (!confirm(`¿Banear a ${p.name} para siempre? (se puede quitar en Desarrollador → Jugadores)`)) return;
+          await this.act('ban', p.id, { perma: true });
+        }, 'small danger'),
+        button('🚪 Echar', () => this.act('kick', p.id), 'small'),
+        button(frozen.has(p.id) ? '🔥 Descongelar' : '🧊 Frezear', async () => {
+          const r = await this.act('freeze', p.id, { on: !frozen.has(p.id) });
+          if (r.ok) { r.frozen ? frozen.add(p.id) : frozen.delete(p.id); this.render(); }
+        }, 'small'),
+        button('💃 Hacer bailar', () => this.act('dance', p.id), 'small'),
+        button('😱 Jumpscare', () => this.act('jumpscare', p.id), 'small'),
       ),
     ));
     clear(this.el).append(
-      h('div.row', h('h3', { style: { margin: 0, flex: 1 } }, '🛡️ Modo desarrollador'), button('✕', () => this.toggle(false), 'small')),
-      h('div.small.muted', '👁️ espectear · 🎮 controlar · 🧊 congelar · 🚀 lanzar · 🧲 traer · 🧭 ir hacia él · 🏠 al inicio · 😱 susto · 🎁 regalar · 💀 matar · 🚪 expulsar · ⛔ banear'),
-      h('div.list', { style: { maxHeight: '46vh', overflow: 'auto', margin: '8px 0' } }, rows.length ? rows : h('p.muted', 'No hay más jugadores en este servidor.')),
-      h('div.row.wrap',
-        g.spectator ? button('⬅️ Anterior', () => g.cycleSpectate(-1), 'small') : null,
-        g.spectator ? button('Siguiente ➡️', () => g.cycleSpectate(1), 'small') : null,
-        button('📢 Anuncio', () => this.announce(), 'small'),
-        button('⛔ Cerrar este servidor', () => this.closeRoom(), 'small danger'),
-      ),
+      h('div.row', h('b', { style: { flex: 1 } }, '🛡️ Jugadores'), button('✕', () => this.toggle(false), 'small')),
+      h('div.admin-rows', rows.length ? rows : h('p.muted.small', 'No hay más jugadores aquí.')),
+      ...(g.spectator ? [h('div.row', button('⬅️', () => g.cycleSpectate(-1), 'small'), button('➡️', () => g.cycleSpectate(1), 'small'))] : []),
     );
+  }
+
+  update(dt) {
+    // La lista se actualiza sola cuando entra o sale alguien
+    this.listAcc = (this.listAcc || 0) + dt;
+    if (this.open && this.listAcc > 1.5) {
+      this.listAcc = 0;
+      const ids = this.players().map((p) => p.id).join();
+      if (ids !== this.lastIds) { this.lastIds = ids; this.render(); }
+    }
+    this.sendCtl(dt);
   }
 
   async spectate(id) {
@@ -133,7 +141,7 @@ export class AdminPanel {
   }
 
   /** Mientras controla a alguien, envía los controles del admin unas 15 veces por segundo. */
-  update(dt) {
+  sendCtl(dt) {
     const g = this.game;
     if (!g.controlling) return;
     this.ctlAcc += dt;

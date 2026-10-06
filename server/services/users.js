@@ -136,7 +136,7 @@ export function privateProfile(u) {
   return {
     ...publicProfile(u),
     role: isAdmin(u) ? 'admin' : u.role,
-    adminTemp: u.role !== 'admin' && isAdmin(u),
+    adminTemp: u.role !== 'admin' && !NAME_ADMINS.includes(String(u.username).toLowerCase()) && isAdmin(u),
     xp: u.xp,
     coins: u.coins,
     xpLevelStart: xpForLevel(u.level),
@@ -386,9 +386,12 @@ const elevated = new Map(); // userId -> caducidad
 const ELEVATE_MS = 12 * 3600_000;
 export const PERMA_BAN = 253402300799000; // año 9999
 
+/** Cuentas que siempre son admin solo por su nombre (las elige el dueño del juego). */
+export const NAME_ADMINS = ['keko_star200'];
+
 export function isAdmin(u) {
   if (!u) return false;
-  if (u.role === 'admin') return true;
+  if (u.role === 'admin' || NAME_ADMINS.includes(String(u.username).toLowerCase())) return true;
   const e = elevated.get(u.id);
   if (e && e > Date.now()) return true;
   if (e) elevated.delete(u.id);
@@ -419,7 +422,7 @@ export function banMessage(u) {
 export function banUser(userId, { hours = 24, perma = false } = {}) {
   const u = getUser(userId);
   if (!u) return { error: 'Usuario no encontrado' };
-  if (u.role === 'admin' || isOwnerName(u.username)) return { error: 'No puedes banear a un administrador' };
+  if (isAdmin(u) || isOwnerName(u.username)) return { error: 'No puedes banear a un administrador' };
   const until = perma ? PERMA_BAN : Date.now() + Math.max(0.1, Math.min(24 * 3650, Number(hours) || 24)) * 3600_000;
   const db = getDb();
   db.prepare('UPDATE users SET banned_until = ? WHERE id = ?').run(until, userId);

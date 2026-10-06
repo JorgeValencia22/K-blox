@@ -118,3 +118,12 @@
 .jumpscare.out { opacity: 0; transition: opacity .45s; }
 @keyframes scareIn { from { transform: scale(.2); } to { transform: scale(1); } }
 @keyframes scareShake { 25% { translate: 6px -4px; } 50% { translate: -5px 5px; } 75% { translate: 4px 3px; } }
+
+/* Barra de admin en partida */
+.admin-panel { left: 12px; right: auto; top: 150px; width: min(430px, calc(100% - 24px)); padding: 10px; max-height: calc(100vh - 260px); overflow: auto; }
+.admin-rows { display: grid; gap: 6px; margin-top: 8px; }
+.admin-row { padding: 8px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.admin-row.on { border-color: var(--brand); }
+.admin-name { display: block; margin-bottom: 6px; }
+.admin-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+.admin-actions .btn.small { padding: 4px 8px; font-size: 12px; }
