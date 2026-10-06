@@ -489,7 +489,7 @@ export class Game {
       const want = veh.state.yaw + Math.PI;
       this.cam.yaw += Math.atan2(Math.sin(want - this.cam.yaw), Math.cos(want - this.cam.yaw)) * Math.min(1, dt * 2.5);
     }
-    this.cam.height = veh ? (veh.type === 'plane' ? 2.6 : 1.8) : 1.7;
+    this.cam.height = veh ? (veh.type === 'plane' ? 2.6 : 1.8) : this.mode.camHeight?.() ?? 1.7;
     this.cam.update(dt, target);
 
     const renderT = now - NET.interpDelayMs;

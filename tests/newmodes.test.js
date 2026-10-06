@@ -221,6 +221,17 @@ test('Pinta y Escóndete: pintarse camufla, los bots buscan y el buscador pilla 
     assert.ok(r.ok);
     const after = mode.camo(p.pos, mode.paints.get(userId));
     assert.ok(after > before + 0.3, `camuflaje ${before} -> ${after}`);
+    // Pintar a mano: el trazo llega a los demás y el color medio cuenta para el camuflaje
+    const stroke = once(s, 'cam:stroke');
+    r = await emit(s, 'mode', { name: 'stroke', data: { part: 'body', color: '#ff0000', r: 9, pts: [[0.2, 0.5], [0.4, 0.5]] } });
+    assert.ok(r.ok, JSON.stringify(r));
+    assert.equal((await stroke).color, '#ff0000');
+    assert.equal(mode.strokes.get(userId).length, 1);
+    r = await emit(s, 'mode', { name: 'avg', data: { colors: { head: '#ff00ff', body: '#ff00ff', arms: '#ff00ff', legs: '#ff00ff' } } });
+    assert.ok(mode.camo(p.pos, mode.paints.get(userId)) < after, 'si la pintura a mano no pega, baja el camuflaje');
+    p.data.paintAt = 0;
+    r = await emit(s, 'mode', { name: 'paint', data: { part: 'body', color: m.floorColor } });
+    assert.equal(mode.strokes.get(userId).length, 0, 'rellenar con el bote borra los trazos de esa parte');
     // Ronda siguiente: ahora eres buscador y pillas a un bot escondido
     mode.finish();
     mode.until = Date.now() - 1;

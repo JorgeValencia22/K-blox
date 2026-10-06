@@ -37,6 +37,7 @@ export class CamaleonMode extends BaseMode {
     this.bots = new Map();
     this.roles = new Map();
     this.paints = new Map();
+    this.strokes = new Map(); // id -> trazos de pincel de esta ronda
     this.seq = 0;
     this.round = 0;
     this.mapIdx = Math.floor(this.rng() * this.maps.length);
@@ -74,12 +75,13 @@ export class CamaleonMode extends BaseMode {
       this.room.teleport(p, pos);
       p.pos = [...pos];
     }
-    return { cam: this.publicState() };
+    return { cam: this.publicState(), strokes: Object.fromEntries(this.strokes) };
   }
 
   onLeave(p) {
     this.roles.delete(p.id);
     this.paints.delete(p.id);
+    this.strokes.delete(p.id);
     this.sync();
   }
 
@@ -131,6 +133,7 @@ export class CamaleonMode extends BaseMode {
     while (seekers.size < nSeek && botIds.length) seekers.add(botIds.splice(Math.floor(this.rng() * botIds.length), 1)[0]);
     this.roles.clear();
     this.paints.clear();
+    this.strokes.clear();
     const m = this.map;
     const spots = [...m.spots].sort(() => this.rng() - 0.5);
     for (const id of all) {
@@ -211,6 +214,7 @@ export class CamaleonMode extends BaseMode {
     if (this.roles.get(id) !== 'hider') return false;
     this.roles.set(id, 'seeker');
     this.paints.set(id, { ...FOUND });
+    this.strokes.delete(id);
     const p = this.room.players.get(id);
     const name = p?.name || this.bots.get(id)?.name;
     this.broadcast('cam:found', { id, name, by: byName });
@@ -233,7 +237,10 @@ export class CamaleonMode extends BaseMode {
     if (!near.length) return 0.1;
     const w = { head: 0.2, body: 0.4, arms: 0.2, legs: 0.2 };
     let score = 0;
-    for (const part of PARTS) score += w[part] * Math.min(...near.map((c) => colorDist(paint[part], c)));
+    for (const part of PARTS) {
+      const col = paint.avg?.[part] || paint[part];
+      score += w[part] * Math.min(...near.map((c) => colorDist(col, c)));
+    }
     return Math.max(0, Math.min(1, 1 - score * 4));
   }
 
@@ -255,9 +262,36 @@ export class CamaleonMode extends BaseMode {
         const parts = data.part === 'all' ? PARTS : [data.part];
         if (!parts.every((x) => PARTS.includes(x))) return { error: 'Parte no válida' };
         for (const x of parts) paint[x] = data.color.toLowerCase();
+        // Rellenar con el bote borra los trazos de esa parte
+        const st = this.strokes.get(p.id);
+        if (st) this.strokes.set(p.id, st.filter((k) => !parts.includes(k.part)));
+        if (paint.avg) for (const x of parts) delete paint.avg[x];
       }
       this.paints.set(p.id, paint);
       this.broadcast('cam:paint', { id: p.id, paint });
+      return { ok: true };
+    }
+    if (name === 'stroke') {
+      if (role !== 'hider' || (this.phase !== 'hide' && this.phase !== 'seek')) return { error: 'Ahora no puedes pintar' };
+      if (now - (p.data.strokeAt || 0) < 35) return { ok: true };
+      p.data.strokeAt = now;
+      if (!PARTS.includes(data.part) || !HEX.test(data.color)) return { error: 'Trazo no válido' };
+      const pts = Array.isArray(data.pts) ? data.pts.slice(0, 24).filter((q) => Array.isArray(q) && q.length === 2 && q.every((v) => Number.isFinite(v) && v >= -0.1 && v <= 1.1)) : [];
+      if (!pts.length) return { error: 'Trazo vacío' };
+      const stroke = { part: data.part, color: data.color.toLowerCase(), r: Math.max(2, Math.min(24, Number(data.r) || 6)), pts: pts.map(([u, v]) => [Math.round(u * 1000) / 1000, Math.round(v * 1000) / 1000]) };
+      const list = this.strokes.get(p.id) || [];
+      list.push(stroke);
+      if (list.length > 300) list.shift();
+      this.strokes.set(p.id, list);
+      this.broadcast('cam:stroke', { id: p.id, ...stroke });
+      return { ok: true };
+    }
+    if (name === 'avg') {
+      if (role !== 'hider') return { ok: true };
+      const paint = this.paints.get(p.id);
+      if (!paint || !data.colors || typeof data.colors !== 'object') return { ok: true };
+      paint.avg = {};
+      for (const x of PARTS) if (HEX.test(data.colors[x] || '')) paint.avg[x] = data.colors[x].toLowerCase();
       return { ok: true };
     }
     if (name === 'tag') {
