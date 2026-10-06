@@ -105,16 +105,14 @@ export function buildObby() {
     g.add('platform', [0, y - 0.3, c], [3.5, 0.6, 3.5], '#ffca28', 'metal', { axis: axes[i], dist: axes[i] === 'y' ? 3 : axes[i] === 'z' ? 2.5 : 9, speed: 0.3 + i * 0.04 });
   }
   checkpointPad(7, 'ETAPA 8');
-  // Trampolín de salida: las barras de lava solo se superan con el arco del trampolín
-  g.add('jumppad', [0, y + 0.2, edge + 1.6], [1.8, 0.4, 1.8], '#ab47bc', 'neon', { power: 15 });
 
-  // Etapa 8: islas con trampolines y barras de lava (hay que usar el trampolín)
+  // Etapa 8: islas separadas por huecos con una barra de lava baja en medio.
+  // Se pasa con un salto normal (andando o corriendo); la barra queda por debajo del arco.
   for (let i = 0; i < 4; i++) {
     const gapStart = edge;
-    const c = place(3.4, 6);
-    g.block([0, y - 0.5, c], [3.4, 1, 3.4], '#eceff1', 'stone');
-    g.add('jumppad', [0, y + 0.2, c], [1.8, 0.4, 1.8], '#ab47bc', 'neon', { power: 15 });
-    g.add('kill', [0, y + 2.2, gapStart - 3], [6, 0.5, 0.5], '#ff3d00', 'neon');
+    const c = place(7, 4);
+    g.block([0, y - 0.5, c], [3.4, 1, 7], '#eceff1', 'stone');
+    g.add('kill', [0, y + 0.6, gapStart - 2], [5, 0.5, 0.4], '#ff3d00', 'neon');
   }
   checkpointPad(8, 'ETAPA 9');
 

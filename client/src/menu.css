@@ -127,3 +127,12 @@
 .admin-name { display: block; margin-bottom: 6px; }
 .admin-actions { display: flex; flex-wrap: wrap; gap: 4px; }
 .admin-actions .btn.small { padding: 4px 8px; font-size: 12px; }
+
+/* Pinta y Escóndete */
+.paint-panel { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); padding: 10px; display: grid; gap: 8px; width: min(560px, calc(100% - 24px)); z-index: 3; }
+.cam-palette { display: grid; grid-template-columns: repeat(15, 1fr); gap: 4px; }
+.cam-palette .swatch { width: auto; height: 26px; border-radius: 7px; border: 1px solid rgba(255,255,255,.3); }
+.cam-blind { position: absolute; inset: 0; background: #05060f; display: grid; place-items: center; text-align: center; z-index: 4; color: #fff; }
+.cam-blind b { display: block; font-size: 30px; margin: 8px 0; }
+.cam-blind > div > div:nth-child(3) { font-size: 44px; font-weight: 900; }
+@media (max-width: 600px) { .cam-palette { grid-template-columns: repeat(10, 1fr); } }

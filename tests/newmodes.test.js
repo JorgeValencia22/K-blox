@@ -195,3 +195,55 @@ test('Asalto a la Casa: recoger, tapiar, la noche trae ladrones que rompen tabla
     s.disconnect();
   }
 });
+
+test('Pinta y Escóndete: pintarse camufla, los bots buscan y el buscador pilla con clic', async () => {
+  const s = await srv.connect(token);
+  try {
+    await emit(s, 'room:join', { key: 'camaleon' });
+    const room = roomOf();
+    const mode = room.mode;
+    const p = room.players.get(userId);
+    mode.mapIdx = mode.maps.length - 1; // ronda 1: Juguetería, ronda 2: Jardín
+    mode.until = Date.now() - 1;
+    mode.tick(0.05);
+    assert.equal(mode.phase, 'hide');
+    assert.equal(mode.roles.get(userId), 'hider', 'jugando solo, la primera ronda te escondes');
+    assert.equal(mode.bots.size, 3);
+    // Pintarse del color del suelo sube el camuflaje
+    const m = mode.map;
+    room.teleport(p, [m.center[0] + 3, 0.2, m.center[2] + 3]);
+    let r = await emit(s, 'mode', { name: 'paint', data: { part: 'all', color: '#ff00ff' } });
+    const before = mode.camo(p.pos, mode.paints.get(userId));
+    p.data.paintAt = 0;
+    r = await emit(s, 'mode', { name: 'paint', data: { part: 'all', color: m.floorColor } });
+    assert.ok(r.ok, JSON.stringify(r));
+    r = await emit(s, 'mode', { name: 'paint', data: { pose: 'tumbado' } });
+    assert.ok(r.ok);
+    const after = mode.camo(p.pos, mode.paints.get(userId));
+    assert.ok(after > before + 0.3, `camuflaje ${before} -> ${after}`);
+    // Ronda siguiente: ahora eres buscador y pillas a un bot escondido
+    mode.finish();
+    mode.until = Date.now() - 1;
+    mode.tick(0.05);
+    assert.equal(mode.roles.get(userId), 'seeker');
+    mode.until = Date.now() - 1;
+    mode.tick(0.05);
+    assert.equal(mode.phase, 'seek');
+    const hider = [...mode.bots.values()].find((b) => mode.roles.get(b.id) === 'hider');
+    hider.pos = [mode.map.center[0], 0.2, mode.map.center[2]];
+    mode.paints.get(hider.id).pose = 'normal';
+    room.teleport(p, [hider.pos[0], 0.2, hider.pos[2] + 6]);
+    // Un fallo bloquea un momento
+    r = await emit(s, 'mode', { name: 'tag', data: { d: [0, 1, 0] } });
+    assert.equal(r.hit, null);
+    r = await emit(s, 'mode', { name: 'tag', data: { d: [0, -0.1, -1] } });
+    assert.equal(r.error, 'cadencia');
+    p.data.missUntil = 0;
+    p.data.tagAt = 0;
+    r = await emit(s, 'mode', { name: 'tag', data: { d: [0, -0.1, -1] } });
+    assert.equal(r.hit, hider.id, JSON.stringify(r));
+    assert.equal(mode.roles.get(hider.id), 'seeker', 'el pillado pasa a buscar');
+  } finally {
+    s.disconnect();
+  }
+});

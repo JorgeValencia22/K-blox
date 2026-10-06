@@ -15,11 +15,12 @@ import { buildDesastres } from './desastres.js';
 import { buildHuerto } from './huerto.js';
 import { buildBloques } from './bloques.js';
 import { buildAsalto } from './asalto.js';
+import { buildCamaleon } from './camaleon.js';
 
 const builders = {
   city: buildCity, obby: buildObby, racing: buildRacing, survival: buildSurvival, hangout: buildHangout,
   onlyup: buildOnlyUp, keys: buildKeys, horror: buildHorror, royale: buildRoyale, rocket: buildRocket, castores: buildCastores,
-  asalto: buildAsalto, pesadilla: buildPesadilla, desastres: buildDesastres, huerto: buildHuerto, bloques: buildBloques,
+  camaleon: buildCamaleon, asalto: buildAsalto, pesadilla: buildPesadilla, desastres: buildDesastres, huerto: buildHuerto, bloques: buildBloques,
 };
 const cache = new Map();
 

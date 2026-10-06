@@ -3,6 +3,11 @@
 
 export const EXPERIENCES = [
   {
+    id: 'camaleon', name: 'Pinta y Escóndete', category: 'party', maxPlayers: 12, creator: 'KestWorlds Studio', isNew: true, featured: true,
+    description: 'Escondite de camaleones: píntate el cuerpo con el cuentagotas para confundirte con el escenario y quédate quieto… o sé el buscador y encuéntralos. 4 mapas: Juguetería, Jardín, Cocina y Museo (con bots).',
+    cover: { a: '#00bfa5', b: '#ec407a', icon: '🦎' },
+  },
+  {
     id: 'asalto', name: 'Asalto a la Casa', category: 'adventure', maxPlayers: 8, creator: 'KestWorlds Studio', isNew: true, featured: true,
     description: 'Historia por noches: de día busca tablas, comida y armas de broma y tapia ventanas y puertas. De noche llegan Los Encapuchados a por el tesoro familiar… y la última noche, su jefe.',
     cover: { a: '#1a237e', b: '#ff8f00', icon: '🏠' },
@@ -177,6 +182,7 @@ export const ACHIEVEMENTS = [
   { id: 'farmer', name: 'Granjero', desc: 'Vende tu primera cosecha en Mi Huerto', reward: 30 },
   { id: 'golden', name: 'Toque de oro', desc: 'Cosecha una fruta dorada o arcoíris', reward: 80 },
   { id: 'blocks_win', name: 'Pies rápidos', desc: 'Gana una partida de Bloques Locos', reward: 80 },
+  { id: 'camaleon_win', name: 'Invisible', desc: 'Termina una ronda de Pinta y Escóndete sin que te encuentren', reward: 60 },
   { id: 'asalto_win', name: 'Hogar, dulce hogar', desc: 'Sobrevive a las 3 noches de Asalto a la Casa', reward: 150 },
   { id: 'heist', name: 'Golpe maestro', desc: 'Completa un atraco en Castores al Ataque', reward: 100 },
 ];

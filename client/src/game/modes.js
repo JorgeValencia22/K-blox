@@ -11,6 +11,7 @@ import { store } from '../core/store.js';
 import { OnlyUpClient, HorrorClient, RoyaleClient, RocketClient, CastoresClient } from './modes2.js';
 import { PesadillaClient, DesastresClient, HuertoClient, BloquesClient } from './modes3.js';
 import { AsaltoClient } from './asalto.js';
+import { CamaleonClient } from './camaleon.js';
 
 class BaseClient {
   constructor(game, state) {
@@ -580,6 +581,7 @@ class KeysClient extends ObbyClient {
 
 export function createClientMode(name, game, state) {
   switch (name) {
+    case 'camaleon': return new CamaleonClient(game, state);
     case 'asalto': return new AsaltoClient(game, state);
     case 'pesadilla': return new PesadillaClient(game, state);
     case 'desastres': return new DesastresClient(game, state);
