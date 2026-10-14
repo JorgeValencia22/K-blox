@@ -7,6 +7,7 @@ import { input } from '../engine/input.js';
 import { audio } from '../audio/audio.js';
 import { store } from '../core/store.js';
 import { h, toast, clear } from '../ui/dom.js';
+import { setGroupState } from '../world/worldBuilder.js';
 import { POPPY, DOORS, GRABS, GRAB_BY_ID, MACHINE, TAPES, POPPY_AREAS } from '../../../shared/worlds/poppy.js';
 
 const HANDS = { blue: { color: '#2979ff', side: -1 }, red: { color: '#ff1744', side: 1 } };
@@ -23,12 +24,18 @@ function handMesh(color) {
   const palm = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), mat);
   palm.scale.set(1, 0.55, 1.15);
   g.add(palm);
+  const fingers = [];
   for (let i = 0; i < 4; i++) {
+    const piv = new THREE.Group();
+    piv.position.set(-0.06 + i * 0.04, 0, -0.1);
     const f = new THREE.Mesh(new THREE.CapsuleGeometry(0.024, 0.09, 3, 6), mat);
-    f.position.set(-0.06 + i * 0.04, 0, -0.14);
+    f.position.z = -0.05;
     f.rotation.x = Math.PI / 2;
-    g.add(f);
+    piv.add(f);
+    g.add(piv);
+    fingers.push(piv);
   }
+  g.userData.fingers = fingers;
   const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.025, 0.07, 3, 6), mat);
   thumb.position.set(0.1, 0, -0.04);
   thumb.rotation.set(Math.PI / 2, 0, -0.8);
@@ -64,59 +71,162 @@ function tapeMesh() {
   return g;
 }
 
-/** Tito Larguirucho: peluche altísimo de brazos larguísimos y sonrisa enorme. */
+/** Tito Larguirucho: peluche altísimo con brazos larguísimos articulados y una boca enorme. */
 function buildTito() {
   const root = new THREE.Group();
+  const body = new THREE.Group();
+  root.add(body);
   const fur = new THREE.MeshStandardMaterial({ color: '#3949ab', roughness: 0.95 });
+  const furDark = new THREE.MeshStandardMaterial({ color: '#283593', roughness: 1 });
   const dark = new THREE.MeshStandardMaterial({ color: '#1a1a2e', roughness: 1 });
   const hand = new THREE.MeshStandardMaterial({ color: '#fdd835', roughness: 0.8 });
-  const add = (geo, mat, x, y, z, parent = root, s = null) => {
+  const mouthMat = new THREE.MeshStandardMaterial({ color: '#4a0000', roughness: 1 });
+  const teethMat = new THREE.MeshStandardMaterial({ color: '#fffde7', roughness: 0.4 });
+  const eyeMat = new THREE.MeshStandardMaterial({ color: '#111111', emissive: '#ff1744', emissiveIntensity: 0.2 });
+  const add = (geo, mat, x, y, z, parent, s = null, r = null) => {
     const o = new THREE.Mesh(geo, mat);
     o.position.set(x, y, z);
     if (s) o.scale.set(...s);
+    if (r) o.rotation.set(...r);
     o.castShadow = true;
     parent.add(o);
     return o;
   };
-  add(new THREE.CapsuleGeometry(0.42, 1.5, 4, 10), fur, 0, 2.55, 0, root, [1, 1, 0.8]);
-  const legs = [-1, 1].map((s) => {
-    const piv = new THREE.Group();
-    piv.position.set(s * 0.25, 1.75, 0);
-    root.add(piv);
-    add(new THREE.CapsuleGeometry(0.14, 1.4, 4, 8), fur, 0, -0.85, 0, piv);
-    add(new THREE.SphereGeometry(0.2, 10, 8), dark, 0, -1.65, 0.08, piv, [1, 0.6, 1.4]);
-    return piv;
+  // Torso con barriga y costuras
+  add(new THREE.CapsuleGeometry(0.42, 1.5, 4, 12), fur, 0, 2.55, 0, body, [1, 1, 0.8]);
+  add(new THREE.SphereGeometry(0.36, 12, 10), furDark, 0, 2.35, 0.2, body, [0.9, 1.4, 0.5]);
+  for (let i = 0; i < 4; i++) add(new THREE.BoxGeometry(0.05, 0.02, 0.02), dark, 0, 1.9 + i * 0.28, 0.36, body);
+  // Piernas con rodilla
+  const legs = [-1, 1].map((sd) => {
+    const hip = new THREE.Group();
+    hip.position.set(sd * 0.25, 1.75, 0);
+    body.add(hip);
+    add(new THREE.CapsuleGeometry(0.14, 0.65, 4, 8), fur, 0, -0.42, 0, hip);
+    const knee = new THREE.Group();
+    knee.position.y = -0.85;
+    hip.add(knee);
+    add(new THREE.CapsuleGeometry(0.13, 0.6, 4, 8), fur, 0, -0.38, 0, knee);
+    add(new THREE.SphereGeometry(0.2, 10, 8), dark, 0, -0.8, 0.08, knee, [1, 0.6, 1.4]);
+    return { hip, knee };
   });
-  const arms = [-1, 1].map((s) => {
-    const piv = new THREE.Group();
-    piv.position.set(s * 0.5, 3.35, 0);
-    root.add(piv);
-    add(new THREE.CapsuleGeometry(0.1, 2.6, 4, 8), fur, 0, -1.4, 0, piv);
-    add(new THREE.SphereGeometry(0.2, 10, 8), hand, 0, -2.85, 0.05, piv, [1, 1.3, 0.7]);
-    for (let i = 0; i < 3; i++) add(new THREE.CapsuleGeometry(0.04, 0.22, 3, 6), hand, -0.08 + i * 0.08, -3.1, 0.05, piv);
-    return piv;
+  // Brazos larguísimos: hombro, codo y mano con dedos
+  const arms = [-1, 1].map((sd) => {
+    const shoulder = new THREE.Group();
+    shoulder.position.set(sd * 0.52, 3.35, 0);
+    body.add(shoulder);
+    add(new THREE.SphereGeometry(0.16, 10, 8), fur, 0, 0, 0, shoulder);
+    add(new THREE.CapsuleGeometry(0.1, 1.3, 4, 8), fur, 0, -0.75, 0, shoulder);
+    const elbow = new THREE.Group();
+    elbow.position.y = -1.5;
+    shoulder.add(elbow);
+    add(new THREE.CapsuleGeometry(0.09, 1.25, 4, 8), fur, 0, -0.7, 0, elbow);
+    const palm = add(new THREE.SphereGeometry(0.2, 10, 8), hand, 0, -1.45, 0.05, elbow, [1, 1.3, 0.7]);
+    for (let i = 0; i < 3; i++) add(new THREE.CapsuleGeometry(0.045, 0.3, 3, 6), hand, -0.09 + i * 0.09, -0.3, 0.02, palm, null, [0, 0, (i - 1) * 0.25]);
+    return { shoulder, elbow };
   });
+  // Cabeza con boca que se abre
   const head = new THREE.Group();
   head.position.set(0, 4.05, 0.05);
-  root.add(head);
-  add(new THREE.SphereGeometry(0.5, 18, 14), fur, 0, 0, 0, head, [1, 0.95, 0.9]);
-  // Cara: sonrisa enorme pintada en una textura
-  const cv = document.createElement('canvas');
-  cv.width = 256; cv.height = 128;
-  const g = cv.getContext('2d');
-  g.fillStyle = '#3949ab'; g.fillRect(0, 0, 256, 128);
-  g.fillStyle = '#c62828'; g.beginPath(); g.moveTo(40, 62); g.quadraticCurveTo(128, 140, 216, 62); g.quadraticCurveTo(128, 92, 40, 62); g.fill();
-  g.fillStyle = '#fffde7';
-  for (let i = 0; i < 12; i++) { const x = 52 + i * 13.5; g.beginPath(); g.moveTo(x, 66 + Math.abs(6 - i) * 0.8); g.lineTo(x + 6, 82); g.lineTo(x + 12, 66 + Math.abs(6 - i) * 0.8); g.fill(); }
-  g.fillStyle = '#000000'; g.beginPath(); g.arc(98, 40, 9, 0, Math.PI * 2); g.arc(158, 40, 9, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#ffffff'; g.beginPath(); g.arc(101, 37, 3, 0, Math.PI * 2); g.arc(161, 37, 3, 0, Math.PI * 2); g.fill();
-  const tex = new THREE.CanvasTexture(cv);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const face = new THREE.Mesh(new THREE.SphereGeometry(0.505, 24, 16, Math.PI * 0.15, Math.PI * 0.7, Math.PI * 0.2, Math.PI * 0.6), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }));
-  face.scale.set(1, 0.95, 0.9);
-  head.add(face);
-  for (const s of [-1, 1]) add(new THREE.SphereGeometry(0.16, 10, 8), fur, s * 0.42, 0.38, 0, head, [0.7, 1, 0.5]);
-  return { root, arms, legs, head };
+  body.add(head);
+  add(new THREE.SphereGeometry(0.5, 18, 14), fur, 0, 0.05, 0, head, [1, 0.95, 0.9]);
+  for (const sd of [-1, 1]) {
+    add(new THREE.SphereGeometry(0.16, 10, 8), fur, sd * 0.42, 0.45, 0, head, [0.7, 1, 0.5]);
+    add(new THREE.SphereGeometry(0.1, 10, 8), dark, sd * 0.17, 0.16, 0.4, head);
+    add(new THREE.SphereGeometry(0.04, 8, 6), eyeMat, sd * 0.17, 0.17, 0.49, head);
+  }
+  add(new THREE.SphereGeometry(0.34, 14, 10), mouthMat, 0, -0.12, 0.2, head, [1, 0.55, 0.8]); // interior de la boca
+  // Labio y dientes de arriba (fijos)
+  add(new THREE.TorusGeometry(0.33, 0.045, 6, 20, Math.PI), new THREE.MeshStandardMaterial({ color: '#c62828' }), 0, -0.04, 0.33, head, [1, 0.45, 1], [0, 0, Math.PI]);
+  for (let i = 0; i < 9; i++) add(new THREE.ConeGeometry(0.03, 0.09, 4), teethMat, -0.24 + i * 0.06, -0.09, 0.38 - Math.abs(i - 4) * 0.012, head, null, [Math.PI, 0, 0]);
+  const jaw = new THREE.Group();
+  jaw.position.set(0, -0.12, 0.05);
+  head.add(jaw);
+  add(new THREE.SphereGeometry(0.36, 14, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), fur, 0, 0.02, 0, jaw, [1, 0.6, 0.95]);
+  add(new THREE.TorusGeometry(0.31, 0.045, 6, 20, Math.PI), new THREE.MeshStandardMaterial({ color: '#c62828' }), 0, -0.02, 0.28, jaw, [1, 0.45, 1]);
+  for (let i = 0; i < 8; i++) add(new THREE.ConeGeometry(0.028, 0.08, 4), teethMat, -0.21 + i * 0.06, 0.02, 0.33 - Math.abs(i - 3.5) * 0.012, jaw);
+  return { root, body, arms, legs, head, jaw, eyeMat };
+}
+
+/** Pose de Tito según lo que esté haciendo (t en segundos). */
+function poseTito(T, mode, t) {
+  const [la, ra] = T.arms;
+  const [ll, rl] = T.legs;
+  if (mode === 'chase') {
+    const sw = Math.sin(t * 11);
+    T.body.rotation.x = 0.35;
+    ll.hip.rotation.x = sw * 0.8; rl.hip.rotation.x = -sw * 0.8;
+    ll.knee.rotation.x = Math.max(0, -sw) * 1.2; rl.knee.rotation.x = Math.max(0, sw) * 1.2;
+    la.shoulder.rotation.set(-1.4 + sw * 0.5, 0, 0.3); ra.shoulder.rotation.set(-1.4 - sw * 0.5, 0, -0.3);
+    la.elbow.rotation.x = -0.4; ra.elbow.rotation.x = -0.4;
+    T.jaw.rotation.x = 0.35 + Math.abs(Math.sin(t * 7)) * 0.4;
+    T.head.rotation.set(-0.25, 0, Math.sin(t * 3) * 0.15);
+    T.eyeMat.emissiveIntensity = 3;
+  } else if (mode === 'scare') {
+    T.body.rotation.x = -0.04;
+    la.shoulder.rotation.set(-1.9, 0, 1.0 + Math.sin(t * 30) * 0.1); ra.shoulder.rotation.set(-1.9, 0, -1.0 - Math.sin(t * 30) * 0.1);
+    la.elbow.rotation.x = -0.9; ra.elbow.rotation.x = -0.9;
+    T.jaw.rotation.x = 0.85 + Math.sin(t * 40) * 0.12;
+    T.head.rotation.set(0.1 + Math.sin(t * 45) * 0.06, Math.sin(t * 37) * 0.08, Math.sin(t * 29) * 0.25);
+    T.eyeMat.emissiveIntensity = 5;
+    for (const l of T.legs) { l.hip.rotation.x = 0; l.knee.rotation.x = 0; }
+  } else if (mode === 'dead') {
+    T.body.rotation.x = 0;
+    T.jaw.rotation.x = 0.6;
+    T.eyeMat.emissiveIntensity = 0;
+  } else {
+    // Dormido o asomándose: cabeza ladeada y brazos colgando
+    const peek = mode === 'peek';
+    T.body.rotation.x = peek ? 0.12 : 0;
+    for (const l of T.legs) { l.hip.rotation.x = 0; l.knee.rotation.x = 0; }
+    la.shoulder.rotation.set(Math.sin(t * 0.7) * 0.06, 0, 0.05); ra.shoulder.rotation.set(-Math.sin(t * 0.7) * 0.06, 0, -0.05);
+    la.elbow.rotation.x = peek ? -0.3 : 0; ra.elbow.rotation.x = peek ? -0.3 : 0;
+    T.jaw.rotation.x = peek ? 0.25 + Math.sin(t * 2) * 0.1 : 0.03;
+    T.head.rotation.set(peek ? 0 : 0.3, 0, peek ? 0.45 : 0.35);
+    T.eyeMat.emissiveIntensity = peek ? 2 : 0.15;
+  }
+}
+
+/** Muñeco colgado de un hilo (susto de la sala de montaje). */
+function buildPuppet() {
+  const g = new THREE.Group();
+  const m = new THREE.MeshStandardMaterial({ color: '#ffe0b2', roughness: 0.9 });
+  const cloth = new THREE.MeshStandardMaterial({ color: '#8e24aa', roughness: 1 });
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), m);
+  head.position.y = -0.35;
+  g.add(head);
+  for (const sd of [-1, 1]) {
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), new THREE.MeshStandardMaterial({ color: '#000', emissive: '#ff1744', emissiveIntensity: 2 }));
+    e.position.set(sd * 0.1, -0.32, 0.25);
+    g.add(e);
+  }
+  const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.4, 4, 8), cloth);
+  b.position.y = -0.85;
+  g.add(b);
+  const line = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 4, 4), new THREE.MeshBasicMaterial({ color: '#dddddd' }));
+  line.position.y = 1.9;
+  g.add(line);
+  return g;
+}
+
+/** Brazo de Tito que sale por la rejilla de ventilación. */
+function buildVentArm() {
+  const g = new THREE.Group();
+  const fur = new THREE.MeshStandardMaterial({ color: '#3949ab', roughness: 0.95 });
+  const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 2.6, 4, 8), fur);
+  arm.rotation.z = Math.PI / 2;
+  arm.position.x = 1.3;
+  g.add(arm);
+  const palm = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), new THREE.MeshStandardMaterial({ color: '#fdd835' }));
+  palm.position.x = 2.7;
+  palm.scale.set(1.3, 1, 0.7);
+  g.add(palm);
+  for (let i = 0; i < 3; i++) {
+    const f = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.3, 3, 6), palm.material);
+    f.position.set(2.95, -0.12 + i * 0.12, 0);
+    f.rotation.z = Math.PI / 2;
+    g.add(f);
+  }
+  return g;
 }
 
 export class PoppyClient {
@@ -189,6 +299,23 @@ export class PoppyClient {
     this.titoTarget = this.titoPos.clone();
     this.titoRy = Math.PI;
     this.titoState = 'sleep';
+    this.titoT = 0;
+    this.scared = new Set(); // sustos de esta ronda ya vistos
+    this.darkUntil = 0;
+    this.redUntil = 0;
+    this.props = []; // objetos temporales de los sustos
+    this.puppet = buildPuppet();
+    this.puppet.visible = false;
+    this.ventArm = buildVentArm();
+    this.ventArm.position.set(-12.3, 4.6, 30);
+    this.ventArm.scale.set(0.01, 1, 1);
+    this.alarm = new THREE.PointLight('#ff1744', 0, 22, 1.4);
+    game.scene.add(this.puppet, this.ventArm, this.alarm);
+    // Capas de los sustos
+    this.vignette = h('div.pp-vignette');
+    this.blackEl = h('div.pp-black.hidden', h('div.pp-black-text'));
+    this.hud.el.append(this.vignette, this.blackEl);
+    this.intro();
 
     // HUD
     this.chargeEl = h('div.pp-charge.hidden', h('div'));
@@ -267,6 +394,7 @@ export class PoppyClient {
       this.crateFall = 0;
       const cr = this.game.built.objects.get('crate');
       if (cr?.mesh) cr.mesh.position.set(0, 5.4, 165);
+      this.scared.clear();
       audio.stopLoops();
       this.startAudio();
     }
@@ -377,7 +505,19 @@ export class PoppyClient {
       s.mesh.position.copy(p);
       if (s.remote) s.mesh.lookAt(s.to);
       const wp = s.own ? this.viewHands.localToWorld(s.mesh.position.clone()) : s.mesh.position;
-      s.line.geometry.setFromPoints([origin, wp]);
+      // El cable cuelga un poco (más al recogerlo)
+      const pts = [];
+      const len = origin.distanceTo(wp);
+      const sag = len * (s.t > out + hold ? 0.12 : 0.04);
+      for (let i = 0; i <= 12; i++) {
+        const u = i / 12;
+        const q = origin.clone().lerp(wp, u);
+        q.y -= Math.sin(u * Math.PI) * sag;
+        pts.push(q);
+      }
+      s.line.geometry.setFromPoints(pts);
+      const grip = s.t > out * 0.8 && s.t < out + hold + back * 0.5 ? 1.2 : 0;
+      for (const fg of s.mesh.userData.fingers || []) fg.rotation.x += (grip - fg.rotation.x) * 0.4;
       if (s.carry && s.t > out + hold) s.carry.position.copy(wp);
       if (s.t >= out + hold + back) {
         this.game.scene.remove(s.line);
@@ -434,12 +574,93 @@ export class PoppyClient {
     return performance.now() < this.scareUntil;
   }
 
+  /** Susto animado: Tito se abalanza desde la oscuridad, sacude la cabeza y grita; luego todo se apaga. */
   jumpscare() {
-    this.scareUntil = performance.now() + 1700;
-    audio.play('fnafscream');
-    const flash = h('div', { style: { position: 'absolute', inset: 0, background: 'radial-gradient(circle, rgba(120,0,0,0.15), rgba(0,0,0,0.85) 75%)', zIndex: 5, pointerEvents: 'none', animation: 'hurt 1.6s forwards' } });
-    this.hud.el.appendChild(flash);
-    setTimeout(() => flash.remove(), 1700);
+    const now = performance.now();
+    this.scareStart = now;
+    this.scareUntil = now + 2600;
+    audio.play('laugh');
+    setTimeout(() => audio.play('fnafscream'), 280);
+    this.vignette.className = 'pp-vignette scare';
+    setTimeout(() => {
+      this.blackEl.classList.remove('hidden');
+      this.blackEl.firstChild.textContent = 'TITO TE HA ATRAPADO';
+      this.vignette.className = 'pp-vignette';
+    }, 1500);
+    setTimeout(() => this.blackEl.classList.add('hidden'), 2900);
+  }
+
+  /** Apaga las luces de la fábrica un momento (los sustos). */
+  dark(ms) {
+    this.darkUntil = performance.now() + ms;
+    const g = this.game;
+    g.groupState.pplights = false;
+    setGroupState(g.built, 'pplights', false);
+    audio.play('powerdown');
+    clearTimeout(this.darkT);
+    this.darkT = setTimeout(() => {
+      g.groupState.pplights = true;
+      setGroupState(g.built, 'pplights', true);
+      audio.play('switch');
+    }, ms);
+  }
+
+  /** Sustos preparados en cada zona (una vez por ronda). */
+  scares(b, now) {
+    const once = (id, cond, fn) => { if (!this.scared.has(id) && cond) { this.scared.add(id); fn(); } };
+    once('crate', b.z > 19.5 && b.z < 34, () => {
+      this.dark(1300);
+      const crate = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), new THREE.MeshStandardMaterial({ color: '#8d6e63', roughness: 0.9 }));
+      crate.position.set(b.x > 0 ? b.x - 2.5 : b.x + 2.5, 6, b.z + 3);
+      this.game.scene.add(crate);
+      this.props.push({ mesh: crate, vy: 0, floor: 0.7, until: now + 25000, bang: true });
+    });
+    once('vent', b.z > 27.5 && b.z < 35, () => {
+      this.ventAt = now;
+      audio.play('servo', { x: -12, y: 4.6, z: 30 });
+      setTimeout(() => audio.play('laugh', { x: -12, y: 4.6, z: 30 }, { quiet: true }), 300);
+    });
+    once('puppet', b.z > 45 && b.z < 58, () => {
+      this.puppetAt = now;
+      this.puppet.position.set(b.x * 0.5, 6, b.z + 4.5);
+      this.puppet.visible = true;
+      audio.play('whisper');
+      audio.play('switch', { x: this.puppet.position.x, y: 4, z: this.puppet.position.z });
+    });
+    once('blackout', b.z > 70 && b.z < 79 && !this.s.chase, () => {
+      this.dark(2600);
+      audio.play('musicbox');
+      this.redUntil = now + 2600;
+      this.peek = { p: [5.5, 0, 77.5], until: now + 2400, close: true };
+    });
+  }
+
+  /** Pantalla de inicio estilo cinta VHS (se puede saltar). */
+  intro() {
+    if (PoppyClient.introShown) return;
+    PoppyClient.introShown = true;
+    const lines = ['▶ PLAY    12-03-1995', 'FÁBRICA FELIZ', '«Donde cada juguete tiene un corazón»', 'Hace diez años, todo el personal desapareció en una sola noche.', 'Hoy alguien te ha dejado una cinta… y una mochila con dos manos.', 'Encuentra la salida.'];
+    const box = h('div.pp-intro-lines');
+    const el = h('div.pp-intro', h('div.pp-intro-rec', '● REC'), box, h('small.pp-intro-skip', 'Pulsa cualquier tecla o toca para saltar'));
+    this.hud.el.appendChild(el);
+    audio.play('static', null, { dur: 0.8 });
+    let i = 0;
+    const next = () => {
+      if (i >= lines.length) return;
+      box.append(h(`div${i === 1 ? '.big' : ''}`, lines[i++]));
+      audio.play('keyUp');
+      this.introT = setTimeout(next, i === 2 ? 1500 : 1700);
+    };
+    next();
+    const end = () => {
+      clearTimeout(this.introT);
+      el.classList.add('out');
+      setTimeout(() => el.remove(), 700);
+      removeEventListener('keydown', end);
+    };
+    el.addEventListener('pointerdown', end);
+    addEventListener('keydown', end);
+    setTimeout(end, 11000);
   }
 
   // --- Audio y luz ---------------------------------------------------------------------
@@ -458,7 +679,8 @@ export class PoppyClient {
   afterSky(dt) {
     const g = this.game;
     const now = performance.now();
-    g.sky.hemi.intensity = 0.22;
+    const darkNow = now < this.darkUntil;
+    g.sky.hemi.intensity = darkNow ? 0.03 : 0.22 + (Math.random() < 0.004 ? -0.15 : 0);
     g.sky.sun.intensity = 0;
     g.scene.fog.color.set('#07070a');
     g.scene.fog.near = 4;
@@ -476,7 +698,12 @@ export class PoppyClient {
     cam.getWorldDirection(fwd);
     this.flash.position.copy(cam.position).addScaledVector(fwd, 0.3);
     this.flashTarget.position.copy(cam.position).addScaledVector(fwd, 8);
-    this.flash.intensity = this.flashOn ? 380 : 0;
+    // La linterna parpadea cuando se apagan las luces
+    this.flash.intensity = this.flashOn ? (darkNow && Math.sin(now / 37) > 0.4 ? 60 : 380) : 0;
+    // Alarma roja giratoria durante la persecución y en los apagones
+    const red = this.s.chase && !this.s.won ? 1 : now < this.redUntil ? 0.6 : 0;
+    this.alarm.intensity = red ? (Math.sin(now / 120) > 0 ? 30 * red : 4) : 0;
+    this.alarm.position.set(cam.position.x + Math.sin(now / 300) * 3, 5.6, cam.position.z + 4);
     // Mano roja cargada
     const charged = now < this.chargeUntil;
     this.hands.red.userData.mat.emissiveIntensity = charged ? 1.2 + Math.sin(now / 40) * 0.6 : 0.15;
@@ -499,13 +726,18 @@ export class PoppyClient {
 
     // Tito
     const t = this.tito;
+    this.titoT += dt;
     if (now < this.scareUntil) {
-      const p = cam.position.clone().addScaledVector(fwd, 1.4);
-      t.root.position.set(p.x, cam.position.y - 4.05, p.z);
-      t.root.rotation.y = Math.atan2(-fwd.x, -fwd.z);
-      t.arms[0].rotation.x = -2.2; t.arms[1].rotation.x = -2.2;
-      t.head.rotation.z = Math.sin(now / 40) * 0.2;
-      g.cam.shake = 0.16;
+      const k = Math.min(1, (now - this.scareStart) / 320);
+      const dist = 6.5 - k * k * 5.1; // de 6,5 m a 1,4 m en un tercio de segundo
+      const p = cam.position.clone().addScaledVector(new THREE.Vector3(fwd.x, 0, fwd.z).normalize(), dist);
+      t.root.position.set(p.x, cam.position.y - 4.05 + (1 - k) * 0.6, p.z);
+      t.root.rotation.set(0, Math.atan2(-fwd.x, -fwd.z), 0);
+      poseTito(t, 'scare', this.titoT);
+      g.cam.shake = k < 1 ? 0.05 : 0.22;
+      this.handGlow.intensity = 9;
+      this.handGlow.position.copy(cam.position).addScaledVector(fwd, 0.4);
+      this.flash.intensity = Math.random() < 0.3 ? 0 : 40; // la linterna falla
       return;
     }
     if (g.cam.shake > 0.1) g.cam.shake = 0;
@@ -520,14 +752,36 @@ export class PoppyClient {
     }
     t.root.position.copy(pos);
     t.root.rotation.y = ry;
-    const run = this.titoState === 'chase';
-    const sw = run ? Math.sin(now / 90) : 0;
-    t.legs[0].rotation.x = sw * 0.7; t.legs[1].rotation.x = -sw * 0.7;
-    t.arms[0].rotation.x = run ? -0.6 + sw * 0.9 : Math.sin(now / 900) * 0.08;
-    t.arms[1].rotation.x = run ? -0.6 - sw * 0.9 : -Math.sin(now / 900) * 0.08;
-    t.head.rotation.z = this.titoState === 'sleep' && !peek ? 0.35 : Math.sin(now / 500) * 0.12;
+    poseTito(t, peek ? 'peek' : this.titoState, this.titoT);
     t.root.position.y = pos.y + (this.titoState === 'dead' ? -1 : 0);
     t.root.rotation.x = this.titoState === 'dead' ? -1.4 : 0;
+    // En el apagón de la sala de juegos solo se le ven los ojos
+    t.root.visible = !(peek?.close && !darkNow);
+
+    // Objetos de los sustos
+    for (const pr of [...this.props]) {
+      if (pr.mesh.position.y > pr.floor) {
+        pr.vy -= 30 * dt;
+        pr.mesh.position.y = Math.max(pr.floor, pr.mesh.position.y + pr.vy * dt);
+        pr.mesh.rotation.x += dt * 2;
+        if (pr.mesh.position.y <= pr.floor && pr.bang) { audio.play('bang', pr.mesh.position); g.cam.shake = 0.08; setTimeout(() => (g.cam.shake = 0), 300); }
+      }
+      if (now > pr.until) { g.scene.remove(pr.mesh); this.props.splice(this.props.indexOf(pr), 1); }
+    }
+    if (this.ventAt) {
+      const e = (now - this.ventAt) / 1000;
+      const out = e < 0.5 ? e / 0.5 : e < 1.8 ? 1 : Math.max(0, 1 - (e - 1.8) / 0.4);
+      this.ventArm.scale.x = Math.max(0.01, out);
+      this.ventArm.rotation.z = Math.sin(now / 90) * 0.08 * out;
+      if (e > 2.3) this.ventAt = 0;
+    }
+    if (this.puppetAt) {
+      const e = (now - this.puppetAt) / 1000;
+      this.puppet.position.y = 6 - Math.min(1, e / 0.35) * 3.2 + (e > 3 ? (e - 3) * 4 : 0);
+      this.puppet.rotation.z = Math.sin(e * 5) * 0.4 * Math.max(0, 1 - e / 3);
+      this.puppet.rotation.y += dt * 2;
+      if (e > 4.5) { this.puppetAt = 0; this.puppet.visible = false; }
+    }
   }
 
   onSnap(m) {
@@ -570,6 +824,7 @@ export class PoppyClient {
       if (Math.random() < dt * 0.6) audio.play('servo', { x: this.titoPos.x, y: 2, z: this.titoPos.z });
     }
     // Ruidos de la fábrica
+    this.scares(b, now);
     this.creakAcc += dt;
     if (this.creakAcc > 9 + Math.random() * 10) {
       this.creakAcc = 0;
@@ -588,7 +843,12 @@ export class PoppyClient {
     this.hud.crosshair.classList.remove('pp-target');
     const g = this.game;
     for (const s of this.shots) { g.scene.remove(s.line); if (s.remote) g.scene.remove(s.mesh); }
+    clearTimeout(this.darkT);
+    clearTimeout(this.introT);
+    for (const pr of this.props) g.scene.remove(pr.mesh);
+    g.scene.remove(this.puppet, this.ventArm, this.alarm);
     g.scene.remove(this.viewHands, this.flash, this.flashTarget, this.handGlow, this.tito.root, ...this.items.values(), ...this.tapeMeshes.values());
-    for (const el of [this.chargeEl, this.aimEl, this.tapeEl]) el.remove();
+    for (const el of [this.chargeEl, this.aimEl, this.tapeEl, this.vignette, this.blackEl]) el.remove();
+    document.querySelector('.pp-intro')?.remove();
   }
 }

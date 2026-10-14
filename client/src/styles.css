@@ -375,3 +375,21 @@ input, textarea, .chat-log { -webkit-user-select: text; user-select: text; }
 .pp-charge > div { height: 100%; background: linear-gradient(90deg, #ff1744, #ffeb3b); }
 .pp-tape { position: absolute; right: 16px; bottom: 120px; width: min(360px, calc(100vw - 32px)); padding: 14px; pointer-events: none; }
 .pp-tape p { margin: 6px 0; font-style: italic; }
+
+.pp-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle, transparent 55%, rgba(0,0,0,.55)); z-index: 1; }
+.pp-vignette.scare { animation: ppscare 1.5s ease-out forwards; z-index: 6; }
+@keyframes ppscare { 0% { background: radial-gradient(circle, transparent 40%, rgba(120,0,0,.6)); } 25% { background: radial-gradient(circle, rgba(255,0,0,.25), rgba(80,0,0,.9)); } 30% { background: rgba(255,255,255,.35); } 35% { background: radial-gradient(circle, rgba(120,0,0,.2), rgba(40,0,0,.95)); } 100% { background: radial-gradient(circle, rgba(60,0,0,.5), #000 70%); } }
+.pp-black { position: absolute; inset: 0; background: #000; z-index: 7; display: grid; place-items: center; pointer-events: none; animation: ppfade 1.4s ease forwards; }
+.pp-black-text { font: 900 34px monospace; color: #ff1744; letter-spacing: 4px; text-shadow: 3px 0 #00e5ff, -3px 0 #ff1744; animation: ppglitch .12s steps(2) infinite; }
+@keyframes ppglitch { 50% { transform: translate(2px, -1px) skewX(4deg); } }
+@keyframes ppfade { 0% { opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+.pp-intro { position: absolute; inset: 0; z-index: 8; background: #050505; color: #e0e0e0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; font-family: monospace; pointer-events: auto; transition: opacity .7s; }
+.pp-intro::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(255,255,255,.04) 0 2px, transparent 2px 4px); pointer-events: none; animation: ppvhs 3s linear infinite; }
+@keyframes ppvhs { 0% { transform: translateY(0); } 100% { transform: translateY(8px); } }
+.pp-intro.out { opacity: 0; }
+.pp-intro-rec { position: absolute; top: 24px; left: 28px; color: #ff1744; font-weight: 900; animation: fnblink 1s steps(2) infinite; }
+.pp-intro-lines { text-align: center; display: grid; gap: 14px; max-width: 760px; padding: 0 20px; font-size: 18px; }
+.pp-intro-lines > div { animation: ppline .8s ease; }
+.pp-intro-lines .big { font: 900 54px Nunito, sans-serif; color: #ff4081; text-shadow: 3px 0 #2979ff; letter-spacing: 2px; }
+@keyframes ppline { from { opacity: 0; filter: blur(6px); } }
+.pp-intro-skip { position: absolute; bottom: 24px; color: #777; }
