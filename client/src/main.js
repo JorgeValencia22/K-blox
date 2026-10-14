@@ -6,7 +6,7 @@ import { audio } from './audio/audio.js';
 import { auth, get, post } from './core/api.js';
 import { store } from './core/store.js';
 import { net } from './core/net.js';
-import { h, toast, modal, button } from './ui/dom.js';
+import { h, toast, modal, button, LOGO_SVG } from './ui/dom.js';
 import { MenuScene } from './ui/menuScene.js';
 import { authScreen } from './ui/screens/auth.js';
 import { menuScreen, shell } from './ui/screens/menu.js';
@@ -21,6 +21,7 @@ import { showJumpscare } from './ui/adminPanel.js';
 import { Game } from './game/game.js';
 import { loginAsGuest } from './core/guest.js';
 import { loadCustomEmotes } from './core/emotes.js';
+import { EXPERIENCES } from '../../shared/catalog.js';
 
 const SCREENS = { menu: menuScreen, discover: discoverScreen, avatar: avatarScreen, friends: friendsScreen, create: createScreen, profile: profileScreen, admin: adminScreen, coins: coinsScreen };
 
@@ -79,16 +80,33 @@ class App {
       }
     }
     document.getElementById('boot').classList.add('hide');
+    this.intro();
     if (user) this.onLogin(user);
     else this.showScreen(authScreen(this));
   }
 
-  loading(text) {
+  /** Pantalla de carga. Con `game` (id de experiencia) muestra su imagen y su nombre, como Roblox. */
+  loading(text, game = null) {
     const b = document.getElementById('boot');
     if (text) {
       b.querySelector('.boot-text').textContent = text;
+      const exp = game && EXPERIENCES.find((e) => e.id === game);
+      b.classList.toggle('game', !!exp);
+      b.querySelector('.boot-cover').style.backgroundImage = exp ? `url(/covers/${exp.id}.jpg)` : '';
+      b.querySelector('.boot-title').textContent = exp ? exp.name : '';
+      b.querySelector('.boot-sub').textContent = exp ? `por ${exp.creator}` : '';
       b.classList.remove('hide');
     } else b.classList.add('hide');
+  }
+
+  /** Intro al abrir el juego (una vez por sesión): el logo se monta y aparece el nombre. */
+  intro() {
+    try { if (sessionStorage.getItem('kest.intro')) return; sessionStorage.setItem('kest.intro', '1'); } catch { /* sin almacenamiento */ }
+    const el = h('div.intro', { html: `<div class="intro-logo">${LOGO_SVG}</div><div class="intro-word">Kest<b>Worlds</b></div><div class="intro-tag">Juega · Crea · Comparte</div>` });
+    document.body.appendChild(el);
+    const end = () => { el.classList.add('out'); setTimeout(() => el.remove(), 600); };
+    el.addEventListener('pointerdown', end);
+    setTimeout(end, 2600);
   }
 
   showScreen(el) {
@@ -180,7 +198,7 @@ class App {
     if (this.joining) return;
     if (this.game) await this.game.exit('switch');
     this.joining = true;
-    this.loading('Entrando en la partida…');
+    this.loading('Entrando en la partida…', req.key || null);
     try {
       if (!net.connected) {
         net.connect();

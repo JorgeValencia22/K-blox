@@ -46,6 +46,7 @@ start.bat dev
 | `npm run build` | Compila el cliente en `dist/` |
 | `npm start` | Arranca el servidor (sirve `dist/`, la API y Socket.IO) en el puerto 3000 |
 | `npm run dev` | Servidor con `--watch` + Vite en <http://localhost:5173> (redirige `/api` y `/socket.io` al 3000) |
+| `npm run covers` | Regenera las portadas de los mapas (`client/public/covers`) con el propio motor: necesita `npm run dev:client` en marcha y Chrome o Edge |
 | `npm test` | Pruebas automáticas (servidor, filtro de chat, mundos, física) |
 
 ## Configuración (`.env`)
@@ -244,6 +245,9 @@ la velocidad, efectos de interfaz y ambiente (viento, pájaros de día, grillos 
 independiente de música, efectos y ambiente; sonidos posicionales atenuados por distancia.
 
 ---
+
+### Interfaz
+Estilo profesional inspirado en las plataformas de juegos: tema oscuro, tipografía Montserrat, barra lateral con iconos, buscador, tarjetas con la **imagen real de cada mapa** (generada con el propio juego), página de cada juego con botón JUGAR, pantalla de carga con la imagen del juego e **intro animada** al abrir. En partida, botones cuadrados arriba a la izquierda (menú, chat, emotes y jugadores).
 
 ## Estructura
 

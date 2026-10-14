@@ -1,5 +1,6 @@
 // Catálogo de experiencias: oficiales y publicadas por la comunidad.
 import { h, button, toast, modal, clear, coverStyle } from '../dom.js';
+import { store } from '../../core/store.js';
 import { get, post } from '../../core/api.js';
 import { pageHead } from './menu.js';
 import { CATEGORIES } from '../../../../shared/constants.js';
@@ -60,35 +61,53 @@ export function discoverScreen(app) {
   );
 }
 
-/** Tarjeta de experiencia (se usa en Descubrir y en el menú principal). */
+const catName = (w) => CATEGORIES.find((c) => c.id === w.category)?.name || w.category;
+
+/** Tarjeta de experiencia estilo Roblox: imagen del mapa, nombre y jugadores. Clic = página del juego. */
 export function worldCard(app, w, { reportWorld } = {}) {
-  const icon = w.official ? EXPERIENCES.find((e) => e.id === w.id)?.cover.icon : null;
-  const fav = button(w.favorite ? '★' : '☆', async () => {
+  const open = () => gameDetail(app, w, { reportWorld });
+  return h('div.card.tile',
+    h('div.cover', { style: coverStyle(w), on: { click: open } },
+      w.isNew ? h('span.badge-new', 'NUEVO') : null,
+      w.players > 0 ? h('span.live', h('i'), `${w.players} jugando`) : null,
+      h('button.tile-play', { title: 'Jugar', on: { click: (e) => { e.stopPropagation(); app.play({ key: w.id }); } } }, '▶'),
+    ),
+    h('div.body', { on: { click: open } },
+      h('div.title', w.name),
+      h('div.tile-meta', h('span', `👥 ${w.players}/${w.maxPlayers}`), h('span', catName(w))),
+    ),
+  );
+}
+
+/** Página del juego (como la de una experiencia de Roblox). */
+export function gameDetail(app, w, { reportWorld } = {}) {
+  const fav = button(w.favorite ? '★ Favorito' : '☆ Favorito', async () => {
     try {
       const r = await post(`/favorites/${w.id}`);
       w.favorite = r.favorite;
-      fav.textContent = r.favorite ? '★' : '☆';
+      fav.textContent = r.favorite ? '★ Favorito' : '☆ Favorito';
       toast(r.favorite ? 'Añadido a favoritos' : 'Quitado de favoritos', 'ok', 1500);
     } catch (e) { toast(e.message, 'err'); }
-  }, 'small fav');
-  fav.title = 'Favorito';
-  const cat = CATEGORIES.find((c) => c.id === w.category)?.name || w.category;
-  return h('div.card.panel',
-    h('div.cover', { style: coverStyle(w), on: { click: () => app.play({ key: w.id }) } },
-      icon ? h('div.cover-icon', icon) : null,
-      w.isNew ? h('span.badge-new', 'NUEVO') : null,
-      h('span.players', `👥 ${w.players}/${w.maxPlayers}`), fav),
-    h('div.body',
-      h('div.title', w.name),
-      h('div.row.small', h('span.muted', `por ${w.creator}`), h('span.tag', cat)),
-      h('div.desc', w.description || 'Sin descripción'),
+  }, 'small');
+  const visited = (store.user?.stats?.visited || []).includes(w.id);
+  const close = modal('', h('div.gd',
+    h('div.gd-media', { style: coverStyle(w) }, w.isNew ? h('span.badge-new', 'NUEVO') : null),
+    h('div.gd-info',
+      h('h2.gd-title', w.name),
+      h('div.gd-by', 'por ', h('b', w.creator || 'KestWorlds Studio')),
+      h('button.gd-play', { on: { click: () => { close(); app.play({ key: w.id }); } } }, h('span', '▶'), 'JUGAR'),
+      h('div.gd-row', fav, button('🔒 Servidor privado', () => { close(); privateRoomModal(app, w); }, 'small'),
+        !w.official && reportWorld ? button('⚠️ Reportar', () => { close(); reportWorld(w); }, 'small') : null),
+      h('div.gd-stats',
+        h('div', h('b', String(w.players)), h('small', 'Jugando')),
+        h('div', h('b', String(w.maxPlayers)), h('small', 'Máx. por servidor')),
+        h('div', h('b', catName(w)), h('small', 'Género')),
+        h('div', h('b', visited ? 'Sí' : 'Aún no'), h('small', 'Lo has jugado')),
+      ),
     ),
-    h('div.actions',
-      button('▶ JUGAR', () => app.play({ key: w.id }), 'primary grow'),
-      button('🔒', () => privateRoomModal(app, w), 'small'),
-      !w.official && reportWorld ? button('⚠️', () => reportWorld(w), 'small') : null,
-    ),
-  );
+    h('div.gd-desc', h('h3', 'Descripción'), h('p', w.description || 'Sin descripción')),
+  ), { wide: true, actions: [{ label: 'Cerrar' }] });
+  document.querySelector('.modal-back:last-child .modal')?.classList.add('gd-modal');
 }
 
 export function privateRoomModal(app, w) {

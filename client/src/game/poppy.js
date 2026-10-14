@@ -72,7 +72,7 @@ function tapeMesh() {
 }
 
 /** Tito Larguirucho: peluche altísimo con brazos larguísimos articulados y una boca enorme. */
-function buildTito() {
+export function buildTito() {
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
@@ -148,7 +148,7 @@ function buildTito() {
 }
 
 /** Pose de Tito según lo que esté haciendo (t en segundos). */
-function poseTito(T, mode, t) {
+export function poseTito(T, mode, t) {
   const [la, ra] = T.arms;
   const [ll, rl] = T.legs;
   if (mode === 'chase') {

@@ -112,8 +112,16 @@ export function formatTime(ms) {
   return `${m}:${(s % 60).toFixed(1).padStart(4, '0')}`;
 }
 
+/** Imagen de portada: captura real del mapa (oficiales) o la que subió su creador. */
+export function coverUrl(world) {
+  if (world.cover) return world.cover;
+  if (world.official || world.builtin) return `/covers/${world.id}.jpg`;
+  return null;
+}
+
 export function coverStyle(world) {
-  if (world.cover) return { backgroundImage: `url(${world.cover})` };
   const c = world.coverStyle || { a: '#3949ab', b: '#00acc1', icon: '🧱' };
-  return { backgroundImage: `linear-gradient(135deg, ${c.a}, ${c.b})` };
+  const url = coverUrl(world);
+  const grad = `linear-gradient(135deg, ${c.a}, ${c.b})`;
+  return { backgroundImage: url ? `url(${url}), ${grad}` : grad };
 }

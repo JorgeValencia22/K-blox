@@ -39,7 +39,7 @@ const SKINS = {
   fox: { body: '#b3332c', belly: '#e8b796', extra: '#212121' },
 };
 
-function buildAnimatronic(id) {
+export function buildAnimatronic(id) {
   const c = SKINS[id];
   const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...extra });
   const fur = mat(c.body), belly = mat(c.belly), dark = mat(c.extra), metal = mat('#8a8f98', { metalness: 0.7, roughness: 0.4 });

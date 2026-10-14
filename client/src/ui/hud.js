@@ -26,7 +26,14 @@ export class Hud {
     this.xpBar = h('div');
     this.coinsEl = h('b');
     this.objEl = h('div.hud-card.objectives.hidden');
+    // Fila de botones cuadrados (menú, chat, emotes), al estilo Roblox
+    const sq = (label, title, fn) => h('button.hud-sq', { title, on: { click: fn } }, label);
     this.el.appendChild(h('div.tl',
+      h('div.hud-sqs',
+        sq('☰', 'Menú (Esc)', () => game.openPause()),
+        sq('💬', 'Mostrar u ocultar el chat', () => { this.chatEl.classList.toggle('collapsed'); this.chatEl.classList.remove('idle'); }),
+        sq('😀', 'Emotes (G)', () => this.toggleEmoteMenu()),
+        sq('👥', 'Jugadores (Tab)', () => this.togglePlayerList())),
       h('div.hud-card', this.nameEl, h('div.xpbar', { style: { margin: '7px 0' } }, this.xpBar),
         h('div.row.small', h('span.chip', { style: { padding: '2px 8px', cursor: 'default' } }, h('span.coin', 'K'), this.coinsEl), h('span.muted.grow', { style: { textAlign: 'right' } }, game.title))),
       this.objEl,

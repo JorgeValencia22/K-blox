@@ -6,7 +6,8 @@ import { get, post } from '../../core/api.js';
 import { audio } from '../../audio/audio.js';
 import { openSettings } from '../settingsPanel.js';
 import { EXPERIENCES } from '../../../../shared/catalog.js';
-import { worldCard } from './discover.js';
+import { worldCard, gameDetail } from './discover.js';
+import { icon } from '../icons.js';
 
 const NAV = [
   ['menu', '🏠', 'Inicio'], ['discover', '🧭', 'Descubrir'], ['avatar', '🧍', 'Avatar'], ['coins', '🪙', 'Kesty Coins'],
@@ -16,15 +17,15 @@ const NAV = [
 export function sidebar(app, active) {
   const items = NAV.map(([id, ic, label]) => h(`button.nav-item${active === id ? '.on' : ''}`, {
     on: { click: () => { audio.ui('open'); app.go(id); }, mouseenter: () => audio.ui('hover') },
-  }, h('span.nav-ic', ic), h('span.nav-label', label)));
+  }, h('span.nav-ic', { html: icon(id) }), h('span.nav-label', label)));
   if (store.user?.role === 'admin') {
-    items.push(h(`button.nav-item.dev${active === 'admin' ? '.on' : ''}`, { on: { click: () => app.go('admin') } }, h('span.nav-ic', '🛡️'), h('span.nav-label', 'Desarrollador')));
+    items.push(h(`button.nav-item.dev${active === 'admin' ? '.on' : ''}`, { on: { click: () => app.go('admin') } }, h('span.nav-ic', { html: icon('admin') }), h('span.nav-label', 'Desarrollador')));
   }
-  items.push(h('button.nav-item', { on: { click: () => openSettings() } }, h('span.nav-ic', '⚙️'), h('span.nav-label', 'Ajustes')));
-  if (store.user?.role !== 'admin') items.push(h('button.nav-item', { title: 'Activa el modo admin con la contraseña', on: { click: () => unlockAdmin(app) } }, h('span.nav-ic', '🔑'), h('span.nav-label', 'Modo admin')));
-  else if (store.user?.adminTemp) items.push(h('button.nav-item', { on: { click: () => lockAdmin(app) } }, h('span.nav-ic', '🔒'), h('span.nav-label', 'Salir de admin')));
+  items.push(h('button.nav-item', { on: { click: () => openSettings() } }, h('span.nav-ic', { html: icon('settings') }), h('span.nav-label', 'Ajustes')));
+  if (store.user?.role !== 'admin') items.push(h('button.nav-item', { title: 'Activa el modo admin con la contraseña', on: { click: () => unlockAdmin(app) } }, h('span.nav-ic', { html: icon('key') }), h('span.nav-label', 'Modo admin')));
+  else if (store.user?.adminTemp) items.push(h('button.nav-item', { on: { click: () => lockAdmin(app) } }, h('span.nav-ic', { html: icon('lock') }), h('span.nav-label', 'Salir de admin')));
   if (/^Invitado_/.test(store.user?.username || '')) {
-    items.push(h('button.nav-item', { title: 'Entra con tu cuenta (o la del modo desarrollador)', on: { click: () => app.logout() } }, h('span.nav-ic', '🔑'), h('span.nav-label', 'Iniciar sesión')));
+    items.push(h('button.nav-item', { title: 'Entra con tu cuenta (o la del modo desarrollador)', on: { click: () => app.logout() } }, h('span.nav-ic', { html: icon('key') }), h('span.nav-label', 'Iniciar sesión')));
   }
   return h('nav.sidebar', h('div.side-logo', { on: { click: () => app.go('menu') } }, logo()), h('div.nav-list', items));
 }
@@ -85,7 +86,19 @@ export function topbar(app) {
   const u1 = store.on('user', render);
   const u2 = store.on('notifications', render);
   render();
+  // Buscador como el de Roblox: lleva a Descubrir con la búsqueda
+  const search = h('input.top-search', { placeholder: 'Buscar experiencias', maxLength: 40 });
+  search.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const q = search.value.trim();
+    app.go('discover');
+    setTimeout(() => {
+      const inp = document.querySelector('.page-head input.input');
+      if (inp) { inp.value = q; inp.dispatchEvent(new Event('input')); }
+    }, 60);
+  });
   const bar = h('div.topbar',
+    h('div.top-search-wrap', search),
     h('div.spacer'),
     h('div.chip.coins-chip', { title: 'Tienda de Kesty Coins', on: { click: () => app.go('coins') } }, h('span.coin', 'K'), coins, h('span.plus', '+')),
     h('div.chip.bell', { title: 'Notificaciones', on: { click: () => openNotifications(app) } }, '🔔', badge),
@@ -132,7 +145,7 @@ export function menuScreen(app) {
   const renderHero = () => {
     const e = featured[idx];
     clear(hero).append(
-      h('div.hero-bg', { style: { backgroundImage: `linear-gradient(120deg, ${e.cover.a}, ${e.cover.b})` } }, h('span.hero-icon', e.cover.icon)),
+      h('div.hero-bg', { style: { backgroundImage: `url(/covers/${e.id}.jpg), linear-gradient(120deg, ${e.cover.a}, ${e.cover.b})` } }),
       h('div.hero-shade'),
       h('div.hero-content',
         h('span.badge-new', e.isNew ? '¡NUEVO!' : 'DESTACADO'),
@@ -140,7 +153,7 @@ export function menuScreen(app) {
         h('p', e.description),
         h('div.row.wrap',
           button('▶  JUGAR AHORA', () => app.play({ key: e.id }), 'primary big'),
-          button('Ver todas', () => app.go('discover'), ''),
+          button('ℹ️ Más información', () => gameDetail(app, { ...e, official: true, players: 0 }), ''),
         ),
       ),
     );
@@ -194,6 +207,7 @@ export function menuScreen(app) {
 
   const el = shell(app, 'menu',
     h('div.home',
+      h('div.home-hello', h('span.avatar-mini.big', store.user.username[0].toUpperCase()), h('h2', `¡Hola, ${store.user.username}!`)),
       h('div.home-top', h('div.hero-wrap', hero, dots), daily),
       rows,
       h('div.footer-note', 'KestWorlds v0.3 · Las Kesty Coins son una moneda del juego sin valor real'),
