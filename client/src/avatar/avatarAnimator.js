@@ -2,7 +2,7 @@
 // objetivo de las extremidades; las transiciones se suavizan interpolando,
 // por lo que nunca se mezclan dos animaciones contradictorias.
 
-export const LOOP_STATES = new Set(['idle', 'walk', 'run', 'fall', 'dance', 'robot', 'sit', 'swim', 'drive', 'fly', 'dead', 'crouch', 'floss', 'jacks', 'headbang']);
+export const LOOP_STATES = new Set(['idle', 'walk', 'run', 'fall', 'dance', 'robot', 'sit', 'swim', 'drive', 'fly', 'dead', 'crouch', 'floss', 'jacks', 'headbang', 'takel']);
 export const ONESHOT = {
   jump: 0.35, land: 0.18, wave: 1.6, cheer: 1.6, spin: 1.0, flip: 0.9, attack: 0.3,
   clap: 1.6, bow: 1.5, salute: 1.6, laugh: 2.0, sad: 2.4, shrug: 1.2, dab: 1.3, think: 2.2, point: 1.5,
@@ -10,7 +10,7 @@ export const ONESHOT = {
 export const EMOTES = {
   emote_wave: 'wave', emote_dance: 'dance', emote_cheer: 'cheer', emote_spin: 'spin', emote_robot: 'robot', emote_flip: 'flip',
   emote_clap: 'clap', emote_bow: 'bow', emote_salute: 'salute', emote_laugh: 'laugh', emote_sad: 'sad', emote_shrug: 'shrug',
-  emote_dab: 'dab', emote_think: 'think', emote_point: 'point', emote_floss: 'floss', emote_jacks: 'jacks', emote_headbang: 'headbang',
+  emote_dab: 'dab', emote_think: 'think', emote_point: 'point', emote_floss: 'floss', emote_jacks: 'jacks', emote_headbang: 'headbang', emote_takel: 'takel',
 };
 
 // --- Emotes personalizados (creados por el admin con fotogramas clave) ---------------
@@ -18,7 +18,7 @@ export const EMOTES = {
 export const POSE_PARTS = ['la', 'ra', 'll', 'rl', 'body', 'head'];
 export const CUSTOM_EMOTES = new Map();
 export const isCustom = (state) => typeof state === 'string' && state.startsWith('c:');
-export const emptyPose = () => ({ la: [0, 0, 0.08], ra: [0, 0, -0.08], ll: [0, 0, 0], rl: [0, 0, 0], body: [0, 0, 0], head: [0, 0, 0], y: 0 });
+export const emptyPose = () => ({ la: [0, 0, -0.08], ra: [0, 0, 0.08], ll: [0, 0, 0], rl: [0, 0, 0], body: [0, 0, 0], head: [0, 0, 0], y: 0 });
 
 export function setCustomEmotes(list) {
   CUSTOM_EMOTES.clear();
@@ -102,6 +102,15 @@ export class AvatarAnimator {
       const e = CUSTOM_EMOTES.get(this.state.slice(2));
       return e ? sampleCustom(e, st) : P;
     }
+    this.targetBuiltin(P, t, st, speed);
+    // En las poses fijas, ángulo lateral (Z) del brazo izq. positivo = hacia FUERA (el der. al revés). En el modelo
+    // un giro Z positivo del brazo izquierdo lo mete hacia el cuerpo: se invierte aquí.
+    P.la[2] = -P.la[2];
+    P.ra[2] = -P.ra[2];
+    return P;
+  }
+
+  targetBuiltin(P, t, st, speed) {
     switch (this.state) {
       case 'idle': {
         const b = Math.sin(t * 2) * 0.04;
@@ -187,44 +196,46 @@ export class AvatarAnimator {
         P.ra = [-2.2 + Math.min(1, st / 0.3) * 2.4, 0, -0.2];
         break;
       case 'clap': {
-        const c = Math.abs(Math.sin(st * 11)) * 0.55;
-        P.la = [-1.35, 0.9 - c, 0.1]; P.ra = [-1.35, -0.9 + c, -0.1]; P.head[0] = 0.08;
+        // Brazos al frente; las manos se juntan y se separan
+        const c = Math.abs(Math.sin(st * 11)) * 0.42;
+        P.la = [-1.35, 0, -0.3 - c]; P.ra = [-1.35, 0, 0.3 + c]; P.head[0] = 0.08;
         break;
       }
       case 'bow': {
         const k = Math.sin(Math.min(1, st / ONESHOT.bow) * Math.PI);
-        P.body[0] = k * 0.95; P.la = [0, 0, 0.05]; P.ra = [-0.9 * k, 0.6 * k, -0.2]; P.head[0] = k * 0.2;
+        P.body[0] = k * 0.95; P.la = [0, 0, 0.05]; P.ra = [-1.5 * k, 0, 0.2 * k]; P.head[0] = k * 0.2;
         break;
       }
       case 'salute':
-        P.ra = [-2.2, 0, -1.25]; P.head[0] = -0.05; P.la = [0, 0, 0.05];
+        P.ra = [-2.57, 0, 0.5]; P.head[0] = -0.05; P.la = [0, 0, 0.05];
         break;
       case 'laugh': {
         const f = Math.sin(st * 16);
         P.body[0] = -0.25 + f * 0.06; P.head[0] = -0.3 + f * 0.08; P.y = Math.abs(f) * 0.04;
-        P.la = [-0.6, 0, 0.5]; P.ra = [-0.6, 0, -0.5];
+        P.la = [-1.0, 0, -0.28]; P.ra = [-1.0, 0, 0.28];
         break;
       }
       case 'sad': {
         const f = Math.sin(st * 9) * 0.05;
-        P.body[0] = 0.35; P.head[0] = 0.45 + f; P.la = [-2.0, 0.6, 0.2]; P.ra = [-2.0, -0.6, -0.2]; P.y = -0.03;
+        P.body[0] = 0.35; P.head[0] = 0.45 + f; P.la = [-2.39, 0, -0.61]; P.ra = [-2.39, 0, 0.61]; P.y = -0.03;
         break;
       }
       case 'shrug':
-        P.la = [-0.3, 0, 0.9]; P.ra = [-0.3, 0, -0.9]; P.head[2] = 0.18; P.y = Math.sin(Math.min(1, st / 0.4) * Math.PI) * 0.05;
+        P.la = [-0.5, 0, 0.7]; P.ra = [-0.5, 0, -0.7]; P.head[2] = 0.18; P.y = Math.sin(Math.min(1, st / 0.4) * Math.PI) * 0.05;
         break;
       case 'dab':
-        P.la = [-1.2, 0, 1.3]; P.ra = [-1.5, -0.8, 1.9]; P.head = [0.5, -0.4, 0]; P.body[1] = -0.2;
+        P.la = [-0.3, 0, 2.3]; P.ra = [-2.53, 0, 0.91]; P.head = [0.45, 0.35, 0]; P.body[1] = 0.15;
         break;
       case 'think':
-        P.ra = [-1.6, 0, -0.9]; P.la = [-0.7, 0, 0.9]; P.head = [-0.15, 0, 0.18 + Math.sin(st * 2) * 0.05];
+        P.ra = [-2.08, 0, 0.85]; P.la = [-1.25, 0, -0.3]; P.head = [-0.15, 0, 0.18 + Math.sin(st * 2) * 0.05];
         break;
       case 'point':
         P.ra = [-1.55, -0.1, 0]; P.head[0] = 0.05; P.body[1] = -0.1;
         break;
       case 'floss': {
         const f = Math.sin(t * 9);
-        P.body[1] = f * 0.25; P.la = [f * 0.5, 0, 0.45 + f * 0.25]; P.ra = [f * 0.5, 0, -0.45 + f * 0.25];
+        // Los dos brazos van al mismo lado, uno por delante y otro por detrás; la cadera al contrario
+        P.body[1] = -f * 0.15; P.la = [f * 0.85, 0, 0.25 + f * 0.55]; P.ra = [-f * 0.85, 0, -0.25 + f * 0.55];
         P.ll[2] = -f * 0.1; P.rl[2] = -f * 0.1;
         break;
       }
@@ -232,6 +243,14 @@ export class AvatarAnimator {
         const k = (1 - Math.cos(t * 9)) / 2;
         P.la = [0, 0, 0.15 + k * 2.6]; P.ra = [0, 0, -0.15 - k * 2.6]; P.ll[2] = -k * 0.35; P.rl[2] = k * 0.35;
         P.y = Math.sin(k * Math.PI) * 0.18;
+        break;
+      }
+      case 'takel': {
+        // "Toma la L": mano en la frente haciendo la L y patadas laterales a saltitos
+        const f = Math.sin(t * 8);
+        P.ra = [-2.55, 0, 0.58]; P.la = [-0.3, 0, 0.45 + Math.abs(f) * 0.25];
+        P.ll[2] = -Math.max(0, f) * 0.75; P.rl[2] = Math.max(0, -f) * 0.75;
+        P.body[2] = f * 0.1; P.y = Math.abs(f) * 0.12; P.head = [-0.1, 0, f * 0.08];
         break;
       }
       case 'headbang': {

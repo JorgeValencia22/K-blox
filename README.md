@@ -110,7 +110,7 @@ arriba, 10 de abajo (faldas incluidas), 18 caras, 29 accesorios (alas, mochila c
 flotante, orejas, sombreros…), emotes y efectos. Los objetos raros llevan la etiqueta ★ RARO.
 Geometrías y materiales se comparten entre todos los avatares para ahorrar memoria.
 **Color propio para cada accesorio**, 22 tipos de ropa inferior (bermudas, pirata, jogger, ancho, campana, pijama, rayas, estrellas, cuadros, tutú, cuero, lava…), pelo «Despeinado gamer» y **Conjuntos**: guarda hasta 12 avatares con nombre en tu cuenta y cámbiate con un clic.
-**24 emotes** (aplaudir, reverencia, dab, baile del hilo, rockero, saltos de tijera…). En partida, **G** (o 😀 en el móvil) abre el menú con todos.
+**25 emotes** (aplaudir, reverencia, dab, toma la L, baile del hilo, rockero, saltos de tijera…). En partida, **G** (o 😀 en el móvil) abre el menú con todos.
 **Creador de emotes (admin)**: en Avatar → 🎬 Creador de emotes, Keko_Star200 crea emotes por fotogramas (mueve brazos, piernas, cuerpo y cabeza, añade otro fotograma más adelante y el personaje pasa de una pose a otra con movimiento suave). Los emotes creados los pueden usar todos los jugadores. Como Render gratis borra la base de datos al dormirse, el navegador del admin guarda una copia y los vuelve a subir solo al entrar.
 Personajes originales (cabeza, torso, brazos, piernas, cara, ojos, boca, pelo, ropa,
 accesorios y efectos). Editor con vista previa giratoria, colores personalizados y tienda.

@@ -3,7 +3,7 @@ import { PHYSICS, VEHICLES } from '../../shared/constants.js';
 export { insideObject } from '../../shared/geometry.js';
 
 export const ANIMS = new Set(['idle', 'walk', 'run', 'jump', 'fall', 'land', 'dance', 'robot', 'wave', 'cheer', 'spin', 'flip', 'sit', 'dead', 'swim', 'drive', 'fly', 'attack', 'crouch',
-  'clap', 'bow', 'salute', 'laugh', 'sad', 'shrug', 'dab', 'think', 'point', 'floss', 'jacks', 'headbang']);
+  'clap', 'bow', 'salute', 'laugh', 'sad', 'shrug', 'dab', 'think', 'point', 'floss', 'jacks', 'headbang', 'takel']);
 /** Animación válida: una de las fijas o un emote personalizado ("c:<id>"). */
 export const validAnim = (a) => ANIMS.has(a) || (typeof a === 'string' && /^c:[a-z0-9]{4,16}$/.test(a));
 

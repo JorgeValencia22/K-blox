@@ -16,10 +16,10 @@ const rad = (d) => (d * Math.PI) / 180;
 
 // Poses rápidas para empezar (radianes)
 const QUICK = {
-  'Brazos arriba': { la: [-3, 0, 0.3], ra: [-3, 0, -0.3] },
-  'Brazos en cruz': { la: [0, 0, 1.5], ra: [0, 0, -1.5] },
+  'Brazos arriba': { la: [-3, 0, -0.3], ra: [-3, 0, 0.3] },
+  'Brazos en cruz': { la: [0, 0, -1.5], ra: [0, 0, 1.5] },
   'Agachado': { ll: [-1.2, 0, 0], rl: [-1.2, 0, 0], body: [0.4, 0, 0], y: -0.35 },
-  'Saludo': { ra: [-2.8, 0, -0.4] },
+  'Saludo': { ra: [-2.8, 0, 0.4] },
 };
 
 export function emoteCreator(preview) {

@@ -149,7 +149,7 @@ export const SHOP_ITEMS = [
     ['emote_point', 'Señalar', 0], ['emote_clap', 'Aplaudir', 0], ['emote_think', 'Pensar', 80],
     ['emote_bow', 'Reverencia', 100], ['emote_shrug', 'Ni idea', 100], ['emote_salute', 'Saludo militar', 120],
     ['emote_laugh', 'Reírse', 140], ['emote_sad', 'Llorar', 140], ['emote_jacks', 'Saltos de tijera', 200],
-    ['emote_dab', 'Dab', 250], ['emote_headbang', 'Rockero', 300], ['emote_floss', 'Baile del hilo', 350],
+    ['emote_dab', 'Dab', 250], ['emote_headbang', 'Rockero', 300], ['emote_floss', 'Baile del hilo', 350], ['emote_takel', 'Toma la L', 300],
   ]),
   ...I('effect', [
     ['fx_sparkles', 'Destellos', 360], ['fx_hearts', 'Corazones', 450], ['fx_snow', 'Copos de nieve', 500],
