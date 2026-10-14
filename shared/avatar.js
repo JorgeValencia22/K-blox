@@ -14,6 +14,7 @@ export const DEFAULT_AVATAR = {
   shoesColor: '#212121',
   face: 'face_smile',
   accessories: [],
+  accColors: {},
   effect: null,
 };
 
@@ -42,6 +43,7 @@ export function sanitizeAvatar(a, owned) {
     shoesColor: color(a.shoesColor, d.shoesColor),
     face: has(a.face, 'face') ? a.face : d.face,
     accessories: [],
+    accColors: {},
     effect: a.effect && has(a.effect, 'effect') ? a.effect : null,
   };
   if (Array.isArray(a.accessories)) {
@@ -49,6 +51,10 @@ export function sanitizeAvatar(a, owned) {
       if (out.accessories.length >= 4) break;
       if (has(id, 'accessory') && !out.accessories.includes(id)) out.accessories.push(id);
     }
+  }
+  // Color personalizado solo para los accesorios equipados
+  if (a.accColors && typeof a.accColors === 'object') {
+    for (const id of out.accessories) if (HEX.test(a.accColors[id])) out.accColors[id] = a.accColors[id].toLowerCase();
   }
   return out;
 }

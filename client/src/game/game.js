@@ -21,10 +21,11 @@ import { Hud } from '../ui/hud.js';
 import { PauseMenu } from '../ui/pause.js';
 import { toast } from '../ui/dom.js';
 import { EMOTES } from '../avatar/avatarAnimator.js';
+import { SHOP_BY_ID } from '../../../shared/catalog.js';
+import { loadCustomEmotes } from '../core/emotes.js';
 import { AdminPanel, isAdmin } from '../ui/adminPanel.js';
 
 const EMOTE_KEYS = { Digit1: 'emote_wave', Digit2: 'emote_dance', Digit3: 'emote_cheer', Digit4: 'sit', Digit5: 'emote_spin', Digit6: 'emote_robot', Digit7: 'emote_flip' };
-const FREE_EMOTES = ['emote_wave', 'emote_dance', 'emote_cheer', 'sit'];
 
 export class Game {
   /**
@@ -93,6 +94,7 @@ export class Game {
     for (const name of this.built.groupMeshes.keys()) setGroupState(this.built, name, this.groupState[name] !== false);
 
     this.hud = new Hud(this);
+    if (!this.offline) loadCustomEmotes();
     if (this.spectator) this.player.model.root.visible = false;
     this.pause = new PauseMenu(this);
     this.mode = createClientMode(this.meta.mode, this, this.offline ? {} : join.mode || {});
@@ -376,6 +378,7 @@ export class Game {
     }
     const emote = EMOTE_KEYS[e.code];
     if (emote && !this.player.vehicle && !this.mode.blockEmotes) this.tryEmote(emote);
+    if (e.code === 'KeyG' && !this.mode.blockEmotes) this.hud.toggleEmoteMenu();
   }
 
   tryEmote(id) {
@@ -383,7 +386,12 @@ export class Game {
       this.player.playEmote('sit');
       return;
     }
-    if (!FREE_EMOTES.includes(id) && !store.owns(id)) {
+    if (this.player.vehicle || this.mode.blockEmotes) return;
+    if (id.startsWith('c:')) {
+      this.player.playEmote(id);
+      return;
+    }
+    if (SHOP_BY_ID[id]?.price !== 0 && !store.owns(id)) {
       toast('Consigue este emote en la tienda', 'warn');
       return;
     }
@@ -410,7 +418,7 @@ export class Game {
     let lines;
     if (v && v.type === 'plane') lines = ['[Espacio]/[Shift] o [C] potencia  [W]/[S] morro', '[A]/[D] alabeo  [Q]/[R] timón  [E] salir'];
     else if (v) lines = ['[W]/[S] acelerar/frenar  [A]/[D] girar', '[Espacio] freno de mano  ' + (this.mode?.lockVehicle ? '[R] recolocar' : '[E] salir')];
-    else lines = ['[WASD] mover  [Shift] correr  [Espacio] saltar', '[E] interactuar  [Enter] chat  [Tab] jugadores', '[1-7] emotes  [Esc] pausa'];
+    else lines = ['[WASD] mover  [Shift] correr  [Espacio] saltar', '[E] interactuar  [Enter] chat  [Tab] jugadores', '[1-7] emotes  [G] todos los emotes  [Esc] pausa'];
     this.hud?.setHint([...(this.mode?.hint || []), ...lines]);
     this.hud?.setVehicleTouch(v?.type || null);
   }

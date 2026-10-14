@@ -102,6 +102,7 @@ export const SHOP_ITEMS = [
     ['hair_mohawk', 'Cresta', 250], ['hair_pigtails', 'Dos coletas', 250], ['hair_emo', 'Flequillo largo', 280],
     ['hair_afro', 'Afro', 300], ['hair_wavy', 'Melena ondulada', 300], ['hair_spacebuns', 'Moños espaciales', 350],
     ['hair_braids', 'Trenzas', 350], ['hair_swoop', 'Tupé', 400], ['hair_anime', 'Puntas de anime', 450, { rare: true }],
+    ['hair_messy', 'Despeinado gamer', 320],
   ]),
   ...I('shirt', [
     ['shirt_tee', 'Camiseta', 0], ['shirt_tank', 'Camiseta de tirantes', 90], ['shirt_stripes', 'Camiseta a rayas', 100],
@@ -117,6 +118,10 @@ export const SHOP_ITEMS = [
     ['pants_skirt', 'Falda', 140], ['pants_cargo', 'Pantalón cargo', 160], ['pants_ripped', 'Vaqueros rotos', 180],
     ['pants_camo', 'Pantalón camuflaje', 200], ['pants_plaid', 'Falda escocesa', 220], ['pants_galaxy', 'Pantalón galaxia', 400, { rare: true }],
     ['pants_armor', 'Grebas de caballero', 500, { rare: true }],
+    ['pants_bermuda', 'Bermudas', 90], ['pants_capri', 'Pantalón pirata', 110], ['pants_joggers', 'Jogger', 130],
+    ['pants_baggy', 'Pantalón ancho', 150], ['pants_pajama', 'Pijama de lunares', 160], ['pants_flare', 'Pantalón de campana', 170],
+    ['pants_stripes', 'Rayas de colores', 200], ['pants_stars', 'Pantalón de estrellas', 220], ['pants_checker', 'Cuadros skater', 240],
+    ['pants_tutu', 'Tutú', 260], ['pants_leather', 'Pantalón de cuero', 300], ['pants_lava', 'Pantalón de lava', 550, { rare: true }],
   ]),
   ...I('face', [
     ['face_smile', 'Sonrisa', 0], ['face_happy', 'Feliz', 0], ['face_surprised', 'Sorpresa', 100],
@@ -141,6 +146,10 @@ export const SHOP_ITEMS = [
   ...I('emote', [
     ['emote_wave', 'Saludar', 0], ['emote_dance', 'Bailar', 0], ['emote_cheer', 'Celebrar', 0],
     ['emote_spin', 'Giro', 160], ['emote_robot', 'Baile robot', 300], ['emote_flip', 'Voltereta', 450],
+    ['emote_point', 'Señalar', 0], ['emote_clap', 'Aplaudir', 0], ['emote_think', 'Pensar', 80],
+    ['emote_bow', 'Reverencia', 100], ['emote_shrug', 'Ni idea', 100], ['emote_salute', 'Saludo militar', 120],
+    ['emote_laugh', 'Reírse', 140], ['emote_sad', 'Llorar', 140], ['emote_jacks', 'Saltos de tijera', 200],
+    ['emote_dab', 'Dab', 250], ['emote_headbang', 'Rockero', 300], ['emote_floss', 'Baile del hilo', 350],
   ]),
   ...I('effect', [
     ['fx_sparkles', 'Destellos', 360], ['fx_hearts', 'Corazones', 450], ['fx_snow', 'Copos de nieve', 500],

@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { PHYSICS } from '../../../shared/constants.js';
 import { AvatarModel } from '../avatar/avatarModel.js';
-import { AvatarAnimator, ONESHOT, LOOP_STATES } from '../avatar/avatarAnimator.js';
+import { AvatarAnimator, oneShotDuration, isKnownState } from '../avatar/avatarAnimator.js';
 import { audio } from '../audio/audio.js';
 
 const tmpQ = new THREE.Quaternion();
@@ -37,7 +37,7 @@ export class LocalPlayer {
   playEmote(name) {
     if (this.vehicle || this.dead) return;
     this.seat = null;
-    if (ONESHOT[name]) this.oneShot = name;
+    if (oneShotDuration(name) != null) this.oneShot = name;
     else this.emote = name;
     this.anim.set(name);
   }
@@ -174,7 +174,7 @@ export class LocalPlayer {
 
   /** Estado de animación para la red. */
   netAnim() {
-    return LOOP_STATES.has(this.anim.state) || ONESHOT[this.anim.state] ? this.anim.state : 'idle';
+    return isKnownState(this.anim.state) ? this.anim.state : 'idle';
   }
 
   dispose() {

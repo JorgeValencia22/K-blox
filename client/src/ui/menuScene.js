@@ -89,6 +89,8 @@ export class AvatarPreview {
     this.anim = new AvatarAnimator(this.model);
     this.rot = 0.4;
     this.dragging = false;
+    this.autoRotate = true;
+    this.manualPose = null; // pose fija (creador de emotes)
     this.offsetX = 0;
   }
 
@@ -97,6 +99,8 @@ export class AvatarPreview {
   }
 
   play(state) {
+    this.manualPose = null;
+    this.anim.set('idle');
     this.anim.set(state);
   }
 
@@ -106,10 +110,13 @@ export class AvatarPreview {
   }
 
   update(dt) {
-    if (!this.dragging) this.rot += dt * 0.4;
+    if (!this.dragging && this.autoRotate) this.rot += dt * 0.4;
     this.model.root.rotation.y = this.rot;
-    if (this.anim.finished) this.anim.set('idle');
-    this.anim.update(dt, 0);
+    if (this.manualPose) this.anim.applyPose(this.manualPose);
+    else {
+      if (this.anim.finished) this.anim.set('idle');
+      this.anim.update(dt, 0);
+    }
     this.model.updateEffects(dt, false);
     const narrow = innerWidth <= 860;
     this.camera.position.set(this.offsetX, narrow ? 1.6 : 1.4, narrow ? 8 : 7.2);

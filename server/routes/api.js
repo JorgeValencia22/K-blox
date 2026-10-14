@@ -4,6 +4,7 @@ import { requireAuth } from './auth.js';
 import * as users from '../services/users.js';
 import * as social from '../services/social.js';
 import * as worlds from '../services/worlds.js';
+import * as emotes from '../services/emotes.js';
 import { getDb } from '../db/database.js';
 import { presence } from '../realtime/presence.js';
 import { SHOP_ITEMS, ACHIEVEMENTS, EXPERIENCES } from '../../shared/catalog.js';
@@ -31,6 +32,14 @@ export function apiRouter(rooms) {
     res.json({ user: { ...users.publicProfile(u), friend: social.areFriends(req.user.id, u.id) } });
   });
   r.put('/avatar', (req, res) => res.json({ avatar: users.saveAvatar(req.user.id, req.body?.avatar) }));
+
+  // --- Conjuntos de avatar guardados ------------------------------------------
+  r.get('/presets', (req, res) => res.json({ presets: emotes.listPresets(req.user.id) }));
+  r.post('/presets', (req, res) => send(res, emotes.savePreset(req.user.id, req.body?.name, req.body?.avatar)));
+  r.delete('/presets/:name', (req, res) => send(res, emotes.deletePreset(req.user.id, req.params.name)));
+
+  // --- Emotes personalizados (todos los usan; solo el admin los crea) ---------
+  r.get('/emotes', (req, res) => res.json({ emotes: emotes.listEmotes() }));
 
   // --- Tienda ---------------------------------------------------------------
   r.post('/shop/buy', (req, res) => send(res, users.buyItem(req.user.id, String(req.body?.itemId || ''))));
@@ -92,6 +101,8 @@ export function apiRouter(rooms) {
       WHERE r.status = 'open' ORDER BY r.created_at DESC LIMIT 100`).all();
     res.json({ reports: rows });
   });
+  r.post('/admin/emotes', admin, express.json({ limit: '200kb' }), (req, res) => send(res, emotes.saveEmote(req.user.id, req.body?.emote)));
+  r.delete('/admin/emotes/:id', admin, (req, res) => send(res, emotes.deleteEmote(req.params.id)));
   r.post('/admin/reports/:id/resolve', admin, (req, res) => {
     getDb().prepare("UPDATE reports SET status = 'resolved' WHERE id = ?").run(Number(req.params.id));
     res.json({ ok: true });

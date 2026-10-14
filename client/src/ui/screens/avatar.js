@@ -1,6 +1,6 @@
 // Editor de avatar con vista previa 3D giratoria, y tienda de Kesty Coins.
 import { h, button, toast, clear, confirmDialog } from '../dom.js';
-import { put, post } from '../../core/api.js';
+import { put, post, get, del } from '../../core/api.js';
 import { store } from '../../core/store.js';
 import { engine } from '../../engine/renderer.js';
 import { audio } from '../../audio/audio.js';
@@ -8,7 +8,8 @@ import { AvatarPreview } from '../menuScene.js';
 import { pageHead } from './menu.js';
 import { SHOP_ITEMS, SHOP_BY_ID } from '../../../../shared/catalog.js';
 import { SKIN_TONES } from '../../../../shared/avatar.js';
-import { EMOTES } from '../../avatar/avatarAnimator.js';
+import { EMOTES, CUSTOM_EMOTES } from '../../avatar/avatarAnimator.js';
+import { emoteCreator } from './emoteCreator.js';
 
 const COLORS = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722', '#795548', '#9e9e9e', '#607d8b', '#212121', '#fafafa'];
 const HAIR_COLORS = ['#212121', '#4e342e', '#8d6e63', '#d84315', '#fdd835', '#f5f5f5', '#7e57c2', '#26c6da', '#ec407a'];
@@ -16,6 +17,10 @@ const TYPE_NAMES = { hair: 'Pelo', shirt: 'Ropa superior', pants: 'Ropa inferior
 
 export function avatarScreen(app, { tab = 'body' } = {}) {
   const draft = JSON.parse(JSON.stringify(store.user.avatar));
+  draft.accColors = draft.accColors || {};
+  const isAdmin = store.user.role === 'admin';
+  let presets = null; // se cargan al abrir la pestaña
+  let creator = null;
   const preview = new AvatarPreview(draft);
   const prevView = engine.view;
   engine.setView(preview);
@@ -83,8 +88,11 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
   const items = (type) => SHOP_ITEMS.filter((i) => i.type === type);
 
   function render() {
-    clear(tabsEl).append(...[['body', 'Cuerpo'], ['hair', 'Pelo'], ['clothes', 'Ropa'], ['face', 'Cara'], ['acc', 'Accesorios'], ['emotes', 'Emotes'], ['fx', 'Efectos'], ['shop', '🛒 Tienda']].map(([id, label]) =>
+    const tabs = [['body', 'Cuerpo'], ['hair', 'Pelo'], ['clothes', 'Ropa'], ['face', 'Cara'], ['acc', 'Accesorios'], ['emotes', 'Emotes'], ['fx', 'Efectos'], ['sets', '💾 Conjuntos'], ['shop', '🛒 Tienda']];
+    if (isAdmin) tabs.push(['creator', '🎬 Creador de emotes']);
+    clear(tabsEl).append(...tabs.map(([id, label]) =>
       h(`button.pill${current === id ? '.on' : ''}`, { on: { click: () => { current = id; render(); } } }, label)));
+    if (current !== 'creator' && creator) { creator.cleanup(); creator = null; }
     clear(content);
     const sec = (t) => h('div.section-title', t);
     switch (current) {
@@ -116,9 +124,36 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
           update();
           render();
         }))));
+        if (draft.accessories.length) {
+          content.append(sec('Color de cada accesorio'));
+          for (const id of draft.accessories) {
+            const color = draft.accColors[id];
+            const set = (c) => { if (c) draft.accColors[id] = c; else delete draft.accColors[id]; update(); };
+            const picker = h('input', { type: 'color', value: color || '#ffffff', title: 'Color personalizado' });
+            picker.addEventListener('input', () => set(picker.value));
+            picker.addEventListener('change', () => render());
+            content.append(h('div.acc-color',
+              h('b.small', SHOP_BY_ID[id]?.name || id),
+              h('div.swatches',
+                h(`div.swatch.orig${!color ? '.on' : ''}`, { title: 'Color original', on: { click: () => { set(null); render(); } } }, '↺'),
+                ...COLORS.map((c) => h(`div.swatch${color === c ? '.on' : ''}`, { style: { background: c }, on: { click: () => { audio.ui('click'); set(c); render(); } } })),
+                picker)));
+          }
+        }
         break;
       case 'emotes':
-        content.append(sec('Prueba tus emotes (teclas 1-7 en partida)'), h('div.items', items('emote').map((i) => itemTile(i, false, () => preview.play(EMOTES[i.id])))));
+        content.append(sec('Prueba tus emotes (teclas 1-7 o G en partida)'), h('div.items', items('emote').map((i) => itemTile(i, false, () => preview.play(EMOTES[i.id])))));
+        if (CUSTOM_EMOTES.size) {
+          content.append(sec('⭐ Emotes especiales (gratis para todos)'), h('div.items',
+            [...CUSTOM_EMOTES.values()].map((e) => h('div.item.custom-emote', { on: { click: () => { audio.ui('click'); preview.play(`c:${e.id}`); } } }, e.name))));
+        }
+        break;
+      case 'sets':
+        renderPresets();
+        break;
+      case 'creator':
+        if (!creator) creator = emoteCreator(preview);
+        content.append(creator);
         break;
       case 'fx':
         content.append(sec('Efecto visual'), h('div.items',
@@ -142,12 +177,66 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
     }
   }
 
+  function presetSwatch(a) {
+    return h('div.preset-dots', [a.skin, a.hairColor, a.shirtColor, a.pantsColor, a.shoesColor].map((c) => h('i', { style: { background: c } })));
+  }
+
+  function renderPresets() {
+    const sec = (t) => h('div.section-title', t);
+    const nameIn = h('input.input', { maxLength: 24, placeholder: 'Nombre (p. ej. "Ninja", "De fiesta")' });
+    const saveSet = async () => {
+      const name = nameIn.value.trim();
+      if (!name) return toast('Escribe un nombre para el conjunto', 'warn');
+      if (presets?.some((p) => p.name === name) && !(await confirmDialog('Reemplazar conjunto', `Ya tienes "${name}". ¿Reemplazarlo por el avatar actual?`, 'Reemplazar'))) return;
+      try {
+        ({ presets } = await post('/presets', { name, avatar: draft }));
+        toast(`Conjunto "${name}" guardado`, 'ok');
+        render();
+      } catch (e) {
+        toast(e.message, 'err');
+      }
+    };
+    nameIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveSet(); });
+    content.append(sec('Guardar el avatar actual como conjunto'), h('div.row', { style: { gap: '8px' } }, nameIn, button('💾 Guardar', saveSet, 'primary')),
+      h('p.muted.small', 'Guarda hasta 12 conjuntos con nombre y cámbiate de ropa con un clic. Se guardan en tu cuenta.'));
+    content.append(sec('Tus conjuntos'));
+    if (!presets) {
+      content.append(h('p.muted.small', 'Cargando…'));
+      get('/presets').then((r) => { presets = r.presets; if (current === 'sets') render(); }).catch((e) => toast(e.message, 'err'));
+      return;
+    }
+    if (!presets.length) {
+      content.append(h('p.muted.small', 'Todavía no tienes conjuntos guardados.'));
+      return;
+    }
+    content.append(h('div.preset-list', presets.map((p) => h('div.preset',
+      presetSwatch(p.avatar),
+      h('b.grow', p.name),
+      button('Ponérmelo', () => {
+        Object.assign(draft, JSON.parse(JSON.stringify(p.avatar)));
+        draft.accColors = draft.accColors || {};
+        update();
+        toast(`Te has puesto "${p.name}". Pulsa Guardar cambios para usarlo en las partidas.`, 'info', 4500);
+      }, 'small primary'),
+      button('🗑', async () => {
+        if (!(await confirmDialog('Borrar conjunto', `¿Borrar "${p.name}"?`, 'Borrar', 'danger'))) return;
+        try {
+          ({ presets } = await del(`/presets/${encodeURIComponent(p.name)}`));
+          render();
+        } catch (e) {
+          toast(e.message, 'err');
+        }
+      }, 'small danger'),
+    ))));
+  }
+
   async function save() {
     saveBtn.disabled = true;
     try {
       const { avatar } = await put('/avatar', { avatar: draft });
       store.patchUser({ avatar });
       Object.assign(draft, avatar);
+      draft.accColors = draft.accColors || {};
       preview.set(draft);
       dirty = false;
       toast('Avatar guardado', 'ok');
@@ -174,6 +263,7 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
   );
   el.cleanup = () => {
     unsub();
+    creator?.cleanup();
     preview.dispose();
     engine.setView(prevView);
   };

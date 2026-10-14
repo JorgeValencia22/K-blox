@@ -20,6 +20,7 @@ import { coinsScreen } from './ui/screens/coins.js';
 import { showJumpscare } from './ui/adminPanel.js';
 import { Game } from './game/game.js';
 import { loginAsGuest } from './core/guest.js';
+import { loadCustomEmotes } from './core/emotes.js';
 
 const SCREENS = { menu: menuScreen, discover: discoverScreen, avatar: avatarScreen, friends: friendsScreen, create: createScreen, profile: profileScreen, admin: adminScreen, coins: coinsScreen };
 
@@ -116,6 +117,7 @@ class App {
   onLogin(user) {
     try { localStorage.removeItem('kest.loggedOut'); } catch { /* sin almacenamiento */ }
     store.setUser(user);
+    loadCustomEmotes();
     net.connect();
     this.bindNet();
     engine.setView(this.menuScene);

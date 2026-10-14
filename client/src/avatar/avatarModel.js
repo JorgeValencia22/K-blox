@@ -314,8 +314,9 @@ function shirtMaterial(style, color) {
 }
 
 function pantsMaterial(style, color, skin) {
-  const plain = ['pants_jeans', 'pants_shorts', 'pants_cargo', 'pants_skirt', 'pants_armor'];
+  const plain = ['pants_jeans', 'pants_shorts', 'pants_cargo', 'pants_skirt', 'pants_armor', 'pants_baggy', 'pants_flare', 'pants_joggers', 'pants_capri', 'pants_bermuda', 'pants_tutu'];
   if (plain.includes(style)) return std(color);
+  if (style === 'pants_leather') return std(color, { roughness: 0.22, metalness: 0.15 });
   return texMat(`pants|${style}|${color}|${skin}`, (g) => {
     const W = 64, H = 128;
     g.fillStyle = color; g.fillRect(0, 0, W, H);
@@ -325,6 +326,30 @@ function pantsMaterial(style, color, skin) {
       g.fillStyle = 'rgba(255,255,255,0.25)'; for (let i = 0; i < 30; i++) g.fillRect(rnd() * W, rnd() * H, 6, 1);
       g.fillStyle = skin; g.beginPath(); g.ellipse(32, 64, 7, 4, 0, 0, Math.PI * 2); g.fill();
       g.fillStyle = '#ffffff'; g.fillRect(25, 60, 14, 1); g.fillRect(25, 68, 14, 1);
+    } else if (style === 'pants_pajama') {
+      g.fillStyle = 'rgba(255,255,255,0.85)';
+      for (let y = 6; y < H; y += 14) for (let x = (y / 14) % 2 ? 4 : 11; x < W; x += 14) { g.beginPath(); g.arc(x, y, 3, 0, Math.PI * 2); g.fill(); }
+    } else if (style === 'pants_stars') {
+      for (let i = 0; i < 16; i++) {
+        const cx = rnd() * W, cy = rnd() * H, r = 3 + rnd() * 3;
+        g.fillStyle = i % 3 ? '#ffeb3b' : '#ffffff'; g.beginPath();
+        for (let k = 0; k < 10; k++) { const rr = k % 2 ? r * 0.45 : r, a = -Math.PI / 2 + (k * Math.PI) / 5; g.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+        g.fill();
+      }
+    } else if (style === 'pants_checker') {
+      g.fillStyle = '#fafafa';
+      for (let y = 0; y < H; y += 8) for (let x = (y / 8) % 2 ? 8 : 0; x < W; x += 16) g.fillRect(x, y, 8, 8);
+    } else if (style === 'pants_stripes') {
+      const cols = [shade(color, 1.4), '#ffffff', shade(color, 0.6)];
+      for (let y = 0, i = 0; y < H; y += 10, i++) { g.fillStyle = cols[i % 3]; g.fillRect(0, y, W, 5); }
+    } else if (style === 'pants_lava') {
+      g.fillStyle = '#2b1b17'; g.fillRect(0, 0, W, H);
+      for (let i = 0; i < 14; i++) {
+        g.strokeStyle = i % 2 ? '#ff6d00' : '#ffab00'; g.lineWidth = 1.5 + rnd() * 2; g.beginPath();
+        let x = rnd() * W, y = rnd() * H; g.moveTo(x, y);
+        for (let k = 0; k < 4; k++) { x += (rnd() - 0.5) * 24; y += 6 + rnd() * 12; g.lineTo(x, y); }
+        g.stroke();
+      }
     } else pattern(g, style.replace('pants_', ''), color, W, H, rnd);
   }, 64, 128);
 }
@@ -420,16 +445,26 @@ export class AvatarModel {
     this.rArm = arm(1);
 
     // Piernas
-    const skirt = d.pants === 'pants_skirt' || d.pants === 'pants_plaid';
-    if (skirt) body.add(mesh(cyl(0.3, 0.44, 0.4, 16, true), pants, 0, 0.6, 0, [1, 1, 0.85]));
+    const skirt = d.pants === 'pants_skirt' || d.pants === 'pants_plaid' || d.pants === 'pants_tutu';
+    if (d.pants === 'pants_tutu') {
+      body.add(mesh(cyl(0.3, 0.56, 0.16, 18, true), pants, 0, 0.7, 0, [1, 1, 0.9]));
+      body.add(mesh(cyl(0.32, 0.62, 0.14, 18, true), std(shade(d.pantsColor, 1.25)), 0, 0.6, 0, [1, 1, 0.9]));
+    } else if (skirt) body.add(mesh(cyl(0.3, 0.44, 0.4, 16, true), pants, 0, 0.6, 0, [1, 1, 0.85]));
     const leg = (side) => {
       const pivot = new THREE.Group();
       pivot.position.set(side * 0.16, 0.74, 0);
       if (d.pants === 'pants_shorts' || skirt) {
         if (!skirt) pivot.add(mesh(capsule(0.145, 0.14), pants, 0, -0.12, 0));
         pivot.add(mesh(capsule(0.115, 0.36), skin, 0, -0.36, 0));
+      } else if (d.pants === 'pants_bermuda' || d.pants === 'pants_capri') {
+        const capri = d.pants === 'pants_capri';
+        pivot.add(mesh(capsule(capri ? 0.14 : 0.15, capri ? 0.3 : 0.24), pants, 0, capri ? -0.22 : -0.17, 0));
+        pivot.add(mesh(capsule(0.112, 0.3), skin, 0, -0.42, 0));
       } else {
-        pivot.add(mesh(capsule(0.135, 0.38), pants, 0, -0.3, 0, null, [0, Math.PI, 0]));
+        const baggy = d.pants === 'pants_baggy';
+        pivot.add(mesh(capsule(baggy ? 0.165 : 0.135, 0.38), pants, 0, -0.3, 0, baggy ? [1, 1.04, 1] : null, [0, Math.PI, 0]));
+        if (d.pants === 'pants_flare') pivot.add(mesh(cyl(0.13, 0.22, 0.24, 14, true), pants, 0, -0.5, 0.02));
+        if (d.pants === 'pants_joggers') pivot.add(mesh(torus(0.115, 0.045), std(shade(d.pantsColor, 0.7)), 0, -0.53, 0, null, [Math.PI / 2, 0, 0]));
         if (d.pants === 'pants_cargo') pivot.add(mesh(rbox(0.06, 0.14, 0.16, 0.02), std(shade(d.pantsColor, 0.75)), side * 0.13, -0.3, 0));
         if (d.pants === 'pants_armor') pivot.add(mesh(sphere(0.1), std('#b0bec5', { metalness: 0.7, roughness: 0.3 }), 0, -0.36, 0.1, [1, 1, 0.6]));
       }
@@ -532,6 +567,21 @@ export class AvatarModel {
         top(0.42); back();
         add(sphere(0.26), 0, y + 0.36, 0.1, [1.15, 0.6, 1.25], [-0.35, 0, 0]);
         break;
+      case 'hair_messy': {
+        // Despeinado con volumen y flequillo hacia un lado (estilo youtuber)
+        const rr = mulberry(1337);
+        top(0.44, R * 1.04); back(0.3, 0.68, R * 1.02);
+        for (let i = 0; i < 15; i++) {
+          const a = (i / 15) * Math.PI * 2 + rr() * 0.3, ring = 0.1 + rr() * 0.17, k = 0.5 + rr() * 0.6;
+          add(cone(0.1 + rr() * 0.04, 0.26 + rr() * 0.12, 5), Math.cos(a) * ring, y + 0.29 + rr() * 0.07, Math.sin(a) * ring - 0.05, [1, 1, 0.7], [Math.sin(a) * k, 0, -Math.cos(a) * k]);
+        }
+        for (let i = 0; i < 6; i++) {
+          const x = -0.24 + i * 0.09;
+          add(cone(0.085, 0.3, 5), x, y + 0.21 - Math.abs(x) * 0.15, 0.29 - Math.abs(x) * 0.2, [1, 1, 0.6], [2.35 + rr() * 0.2, 0, 0.45 + rr() * 0.35]);
+        }
+        for (const s of [-1, 1]) add(cone(0.08, 0.26, 5), s * 0.34, y + 0.04, 0.02, [0.7, 1, 1], [0, 0, Math.PI - s * 0.25]);
+        break;
+      }
       case 'hair_anime':
         top(0.42); back(0.3, 0.66);
         for (let i = 0; i < 9; i++) {
@@ -550,78 +600,82 @@ export class AvatarModel {
     const gold = std('#ffca28', { metalness: 0.7, roughness: 0.3 });
     const dark = std('#212121');
     const metal = std('#b0bec5', { metalness: 0.7, roughness: 0.3 });
+    // Color principal personalizable de cada accesorio (avatar.accColors[id])
+    const tint = d.accColors?.[id] || null;
+    const main = (def, extra) => std(tint || def, extra);
+    const mainHex = (def) => tint || def;
     const N = (g, m, x, yy, z, s, r) => { const o = mesh(g, m, x, yy, z, s, r); n.add(o); return o; };
     const B = (g, m, x, yy, z, s, r) => { const o = mesh(g, m, x, yy, z, s, r); b.add(o); return o; };
     switch (id) {
       case 'acc_cap': {
-        const red = std('#e53935');
+        const red = main('#e53935');
         N(shell(HEAD_R * 1.12, 0, Math.PI * 2, 0, Math.PI * 0.44), red, 0, y, 0);
         N(cyl(0.3, 0.3, 0.03, 16), red, 0, y + 0.18, 0.28, [1, 1, 0.75]);
         break;
       }
       case 'acc_glasses':
-        for (const s of [-1, 1]) N(torus(0.085, 0.016), dark, s * 0.13, y + 0.03, HEAD_R - 0.02);
-        N(cyl(0.012, 0.012, 0.09, 6), dark, 0, y + 0.04, HEAD_R - 0.01, null, [0, 0, Math.PI / 2]);
+        for (const s of [-1, 1]) N(torus(0.085, 0.016), main('#212121'), s * 0.13, y + 0.03, HEAD_R - 0.02);
+        N(cyl(0.012, 0.012, 0.09, 6), main('#212121'), 0, y + 0.04, HEAD_R - 0.01, null, [0, 0, Math.PI / 2]);
         break;
       case 'acc_bow': {
-        const pink = std('#ff4081');
+        const pink = main('#ff4081');
         N(cone(0.1, 0.16, 8), pink, 0.1, top - 0.06, 0.1, null, [0, 0, Math.PI / 2]);
         N(cone(0.1, 0.16, 8), pink, 0.3, top - 0.06, 0.1, null, [0, 0, -Math.PI / 2]);
         N(sphere(0.05, 8, 6), pink, 0.2, top - 0.06, 0.1);
         break;
       }
       case 'acc_scarf': {
-        const c = std('#e53935');
+        const c = main('#e53935');
         B(torus(0.2, 0.07), c, 0, 1.54, 0, [1, 1, 1], [Math.PI / 2, 0, 0]);
         B(capsule(0.06, 0.26), c, 0.12, 1.36, 0.2, [1.4, 1, 0.6]);
         break;
       }
       case 'acc_beanie': {
-        const c = std('#26a69a');
+        const c = main('#26a69a');
         N(shell(HEAD_R * 1.13, 0, Math.PI * 2, 0, Math.PI * 0.45), c, 0, y + 0.03, 0);
-        N(torus(0.37, 0.05), std('#00897b'), 0, y + 0.1, 0, null, [Math.PI / 2, 0, 0]);
+        N(torus(0.37, 0.05), std(shade(mainHex('#26a69a'), 0.75)), 0, y + 0.1, 0, null, [Math.PI / 2, 0, 0]);
         N(sphere(0.09, 8, 6), std('#ffffff'), 0, top + 0.1, 0);
         break;
       }
       case 'acc_partyhat':
-        N(cone(0.16, 0.42, 14), std('#7c4dff'), 0.05, top + 0.17, 0, null, [0, 0, -0.15]);
+        N(cone(0.16, 0.42, 14), main('#7c4dff'), 0.05, top + 0.17, 0, null, [0, 0, -0.15]);
         N(sphere(0.06, 8, 6), std('#ffeb3b'), 0.08, top + 0.4, 0);
         break;
       case 'acc_sunglasses':
-        N(rbox(0.52, 0.12, 0.06, 0.03), std('#111111', { metalness: 0.5, roughness: 0.2 }), 0, y + 0.04, HEAD_R - 0.03);
+        N(rbox(0.52, 0.12, 0.06, 0.03), main('#111111', { metalness: 0.5, roughness: 0.2 }), 0, y + 0.04, HEAD_R - 0.03);
         break;
       case 'acc_backpack':
-        B(rbox(0.5, 0.56, 0.22, 0.07), std('#ff7043'), 0, 1.15, -0.33);
-        B(rbox(0.36, 0.2, 0.06, 0.03), std('#ffab91'), 0, 1.02, -0.46);
+        B(rbox(0.5, 0.56, 0.22, 0.07), main('#ff7043'), 0, 1.15, -0.33);
+        B(rbox(0.36, 0.2, 0.06, 0.03), std(shade(mainHex('#ff7043'), 1.35)), 0, 1.02, -0.46);
         break;
       case 'acc_antenna':
         for (const s of [-1, 1]) {
           N(cyl(0.015, 0.015, 0.32, 6), dark, s * 0.12, top + 0.12, 0, null, [0, 0, -s * 0.3]);
-          N(sphere(0.05, 8, 6), std('#76ff03', { emissive: '#33691e' }), s * 0.17, top + 0.28, 0);
+          N(sphere(0.05, 8, 6), main('#76ff03', { emissive: shade(mainHex('#76ff03'), 0.4) }), s * 0.17, top + 0.28, 0);
         }
         break;
       case 'acc_cateears':
         for (const s of [-1, 1]) {
-          N(cone(0.11, 0.2, 4), std(d.hairColor), s * 0.22, top - 0.02, 0, null, [0, 0, -s * 0.35]);
+          N(cone(0.11, 0.2, 4), main(d.hairColor), s * 0.22, top - 0.02, 0, null, [0, 0, -s * 0.35]);
           N(cone(0.06, 0.12, 4), std('#ff8a9a'), s * 0.215, top - 0.03, 0.03, null, [0, 0, -s * 0.35]);
         }
         break;
       case 'acc_bunnyears':
         for (const s of [-1, 1]) {
-          N(capsule(0.07, 0.36), std('#fafafa'), s * 0.13, top + 0.2, 0, [1, 1, 0.5], [0, 0, -s * 0.15]);
+          N(capsule(0.07, 0.36), main('#fafafa'), s * 0.13, top + 0.2, 0, [1, 1, 0.5], [0, 0, -s * 0.15]);
           N(capsule(0.035, 0.28), std('#ff8a9a'), s * 0.13, top + 0.2, 0.03, [1, 1, 0.4], [0, 0, -s * 0.15]);
         }
         break;
       case 'acc_chef':
-        N(cyl(0.28, 0.28, 0.2, 16), std('#fafafa'), 0, top + 0.02, 0);
-        N(sphere(0.33, 12, 8), std('#ffffff'), 0, top + 0.22, 0, [1, 0.6, 1]);
+        N(cyl(0.28, 0.28, 0.2, 16), main('#fafafa'), 0, top + 0.02, 0);
+        N(sphere(0.33, 12, 8), main('#ffffff'), 0, top + 0.22, 0, [1, 0.6, 1]);
         break;
       case 'acc_headphones':
         N(torus(HEAD_R + 0.04, 0.035, Math.PI), dark, 0, y, 0);
-        for (const s of [-1, 1]) N(cyl(0.12, 0.12, 0.1, 14), std('#7c4dff'), s * (HEAD_R + 0.04), y, 0, null, [0, 0, Math.PI / 2]);
+        for (const s of [-1, 1]) N(cyl(0.12, 0.12, 0.1, 14), main('#7c4dff'), s * (HEAD_R + 0.04), y, 0, null, [0, 0, Math.PI / 2]);
         break;
       case 'acc_cowboy': {
-        const c = std('#8d6e63');
+        const c = main('#8d6e63');
         N(cyl(0.6, 0.6, 0.04, 20), c, 0, top - 0.1, 0, [1, 1, 0.9]);
         N(cyl(0.26, 0.3, 0.3, 16), c, 0, top + 0.05, 0);
         N(cyl(0.305, 0.305, 0.06, 16), std('#3e2723'), 0, top - 0.04, 0);
@@ -631,37 +685,37 @@ export class AvatarModel {
         N(torus(0.32, 0.03), std('#66bb6a'), 0, top - 0.1, 0, null, [Math.PI / 2, 0, 0]);
         for (let i = 0; i < 8; i++) {
           const a = (i / 8) * Math.PI * 2;
-          N(sphere(0.06, 8, 6), std(['#ff80ab', '#ffeb3b', '#ffffff', '#b388ff'][i % 4]), Math.cos(a) * 0.32, top - 0.08, Math.sin(a) * 0.32);
+          N(sphere(0.06, 8, 6), std(tint ? (i % 2 ? tint : shade(tint, 1.3)) : ['#ff80ab', '#ffeb3b', '#ffffff', '#b388ff'][i % 4]), Math.cos(a) * 0.32, top - 0.08, Math.sin(a) * 0.32);
         }
         break;
       case 'acc_tophat':
-        N(cyl(0.26, 0.26, 0.46, 16), dark, 0, top + 0.16, 0);
-        N(cyl(0.44, 0.44, 0.04, 18), dark, 0, top - 0.06, 0);
+        N(cyl(0.26, 0.26, 0.46, 16), main('#212121'), 0, top + 0.16, 0);
+        N(cyl(0.44, 0.44, 0.04, 18), main('#212121'), 0, top - 0.06, 0);
         N(cyl(0.265, 0.265, 0.08, 16), std('#c62828'), 0, top + 0.0, 0);
         break;
       case 'acc_ninjamask':
-        N(shell(HEAD_R * 1.03, 0, Math.PI * 2, Math.PI * 0.56, Math.PI * 0.2), dark, 0, y, 0);
-        N(torus(HEAD_R * 1.02, 0.03), dark, 0, y + 0.16, 0, null, [Math.PI / 2, 0, 0]);
+        N(shell(HEAD_R * 1.03, 0, Math.PI * 2, Math.PI * 0.56, Math.PI * 0.2), main('#212121'), 0, y, 0);
+        N(torus(HEAD_R * 1.02, 0.03), main('#212121'), 0, y + 0.16, 0, null, [Math.PI / 2, 0, 0]);
         break;
       case 'acc_witch': {
-        const c = std('#4a148c');
+        const c = main('#4a148c');
         N(cyl(0.6, 0.6, 0.03, 20), c, 0, top - 0.08, 0);
         N(cone(0.28, 0.6, 14), c, 0, top + 0.24, -0.04, null, [-0.25, 0, 0]);
-        N(cyl(0.285, 0.29, 0.07, 14), std('#ab47bc'), 0, top - 0.03, 0);
+        N(cyl(0.285, 0.29, 0.07, 14), std(shade(mainHex('#4a148c'), 1.8)), 0, top - 0.03, 0);
         break;
       }
       case 'acc_horns':
-        for (const s of [-1, 1]) N(cone(0.07, 0.26, 8), std('#b71c1c'), s * 0.2, top + 0.02, 0.05, null, [0.2, 0, -s * 0.45]);
+        for (const s of [-1, 1]) N(cone(0.07, 0.26, 8), main('#b71c1c'), s * 0.2, top + 0.02, 0.05, null, [0.2, 0, -s * 0.45]);
         break;
       case 'acc_viking':
-        N(shell(HEAD_R * 1.1, 0, Math.PI * 2, 0, Math.PI * 0.44), metal, 0, y, 0);
+        N(shell(HEAD_R * 1.1, 0, Math.PI * 2, 0, Math.PI * 0.44), main('#b0bec5', { metalness: 0.7, roughness: 0.3 }), 0, y, 0);
         N(torus(HEAD_R * 1.08, 0.03), gold, 0, y + 0.07, 0, null, [Math.PI / 2, 0, 0]);
         for (const s of [-1, 1]) N(cone(0.07, 0.3, 8), std('#fff8e1'), s * 0.4, y + 0.24, 0, null, [0, 0, -s * 1.0]);
         break;
       case 'acc_cape': {
         const pivot = new THREE.Group();
         pivot.position.set(0, 1.5, -0.24);
-        pivot.add(mesh(rbox(0.72, 1.1, 0.04, 0.02), std('#c62828', { side: THREE.DoubleSide }), 0, -0.55, 0));
+        pivot.add(mesh(rbox(0.72, 1.1, 0.04, 0.02), main('#c62828', { side: THREE.DoubleSide }), 0, -0.55, 0));
         b.add(pivot);
         this.cape = pivot;
         break;
@@ -670,8 +724,8 @@ export class AvatarModel {
         const g = new THREE.Group();
         g.position.set(0, 1.12, -0.3);
         g.rotation.z = 0.6;
-        g.add(mesh(sphere(0.2, 12, 8), std('#e65100'), 0, -0.2, 0, [1, 1.1, 0.35]));
-        g.add(mesh(sphere(0.15, 12, 8), std('#e65100'), 0, 0.06, 0, [1, 1, 0.35]));
+        g.add(mesh(sphere(0.2, 12, 8), main('#e65100'), 0, -0.2, 0, [1, 1.1, 0.35]));
+        g.add(mesh(sphere(0.15, 12, 8), main('#e65100'), 0, 0.06, 0, [1, 1, 0.35]));
         g.add(mesh(rbox(0.06, 0.5, 0.04, 0.01), std('#4e342e'), 0, 0.42, 0));
         g.add(mesh(cyl(0.05, 0.05, 0.02, 12), dark, 0, -0.12, 0.08, null, [Math.PI / 2, 0, 0]));
         b.add(g);
@@ -681,33 +735,33 @@ export class AvatarModel {
         const g = new THREE.Group();
         g.position.set(0, 1.2, -0.3);
         g.rotation.z = -0.7;
-        g.add(mesh(rbox(0.08, 0.8, 0.02, 0.01), std('#eceff1', { metalness: 0.8, roughness: 0.2 }), 0, 0.2, 0));
+        g.add(mesh(rbox(0.08, 0.8, 0.02, 0.01), main('#eceff1', { metalness: 0.8, roughness: 0.2 }), 0, 0.2, 0));
         g.add(mesh(rbox(0.26, 0.05, 0.05, 0.02), gold, 0, -0.22, 0));
         g.add(mesh(cyl(0.03, 0.03, 0.2, 8), std('#5d4037'), 0, -0.34, 0));
         b.add(g);
         break;
       }
       case 'acc_halo': {
-        const halo = mesh(torus(0.26, 0.035), new THREE.MeshBasicMaterial({ color: '#fff59d' }), 0, top + 0.18, 0, null, [Math.PI / 2, 0, 0]);
+        const halo = mesh(torus(0.26, 0.035), new THREE.MeshBasicMaterial({ color: mainHex('#fff59d') }), 0, top + 0.18, 0, null, [Math.PI / 2, 0, 0]);
         n.add(halo);
         this.halo = halo;
         break;
       }
       case 'acc_pet': {
         const pet = new THREE.Group();
-        pet.add(mesh(sphere(0.16), std('#80deea', { emissive: '#00838f', emissiveIntensity: 0.3 }), 0, 0, 0));
+        pet.add(mesh(sphere(0.16), main('#80deea', { emissive: shade(mainHex('#80deea'), 0.5), emissiveIntensity: 0.3 }), 0, 0, 0));
         for (const s of [-1, 1]) pet.add(mesh(sphere(0.03, 6, 4), dark, s * 0.06, 0.03, 0.14));
-        for (const s of [-1, 1]) pet.add(mesh(cone(0.05, 0.1, 4), std('#80deea'), s * 0.09, 0.15, 0));
+        for (const s of [-1, 1]) pet.add(mesh(cone(0.05, 0.1, 4), main('#80deea'), s * 0.09, 0.15, 0));
         pet.position.set(0.7, 2.1, 0);
         b.add(pet);
         this.pet = pet;
         break;
       }
       case 'acc_crown':
-        N(cyl(0.27, 0.29, 0.14, 16, true), gold, 0, top - 0.02, 0);
+        N(cyl(0.27, 0.29, 0.14, 16, true), main('#ffca28', { metalness: 0.7, roughness: 0.3 }), 0, top - 0.02, 0);
         for (let i = 0; i < 6; i++) {
           const a = (i / 6) * Math.PI * 2;
-          N(cone(0.055, 0.15, 4), gold, Math.cos(a) * 0.27, top + 0.12, Math.sin(a) * 0.27);
+          N(cone(0.055, 0.15, 4), main('#ffca28', { metalness: 0.7, roughness: 0.3 }), Math.cos(a) * 0.27, top + 0.12, Math.sin(a) * 0.27);
           if (i % 2 === 0) N(sphere(0.035, 6, 4), std('#e53935', { metalness: 0.3, roughness: 0.2 }), Math.cos(a) * 0.29, top - 0.01, Math.sin(a) * 0.29);
         }
         break;
@@ -721,7 +775,7 @@ export class AvatarModel {
           shape.moveTo(0, 0); shape.quadraticCurveTo(0.5, 0.6, 1.0, 0.45); shape.quadraticCurveTo(0.8, 0.05, 0.75, -0.2); shape.quadraticCurveTo(0.5, -0.45, 0.2, -0.5); shape.lineTo(0, -0.15);
         }
         const g = geo(`wing|${id}`, () => new THREE.ExtrudeGeometry(shape, { depth: 0.03, bevelEnabled: false }));
-        const m = std(bat ? '#311b92' : '#ffffff', { side: THREE.DoubleSide });
+        const m = main(bat ? '#311b92' : '#ffffff', { side: THREE.DoubleSide });
         this.wings = [-1, 1].map((s) => {
           const piv = new THREE.Group();
           piv.position.set(s * 0.08, 1.35, -0.28);
@@ -737,7 +791,7 @@ export class AvatarModel {
         B(rbox(0.46, 0.5, 0.2, 0.06), metal, 0, 1.12, -0.32);
         const flames = [];
         for (const s of [-1, 1]) {
-          B(cyl(0.09, 0.11, 0.5, 12), std('#ff7043'), s * 0.16, 1.05, -0.48);
+          B(cyl(0.09, 0.11, 0.5, 12), main('#ff7043'), s * 0.16, 1.05, -0.48);
           const f = B(cone(0.08, 0.28, 8), new THREE.MeshBasicMaterial({ color: '#ffab00', transparent: true, opacity: 0.85 }), s * 0.16, 0.66, -0.48, null, [Math.PI, 0, 0]);
           flames.push(f);
         }

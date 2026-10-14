@@ -7,6 +7,7 @@ import { input } from '../engine/input.js';
 import { net } from '../core/net.js';
 import { post } from '../core/api.js';
 import { audio } from '../audio/audio.js';
+import { availableEmotes } from '../core/emotes.js';
 
 function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen?.();
@@ -51,6 +52,8 @@ export class Hud {
     this.el.appendChild(this.crosshair);
     this.playerList = h('div.playerlist.panel.hidden');
     this.el.appendChild(this.playerList);
+    this.emoteMenu = h('div.emote-menu.panel.hidden');
+    this.el.appendChild(this.emoteMenu);
 
     this.buildChat();
     if (input.isTouch) this.buildTouch();
@@ -350,7 +353,7 @@ export class Hud {
     t.append(joy,
       tbtn('Saltar', 'Space', { right: '30px', bottom: '110px', width: '78px', height: '78px' }),
       this.touchAction,
-      tbtn('😀', 'Digit2', { right: '30px', bottom: '24px', width: '54px', height: '54px' }),
+      h('div.tbtn', { style: { right: '30px', bottom: '24px', width: '54px', height: '54px' }, on: { click: () => this.toggleEmoteMenu() } }, '😀'),
       h('div.tbtn', { style: { right: '30px', top: '70px', width: '50px', height: '50px' }, on: { click: () => this.openChat() } }, '💬'),
       document.fullscreenEnabled ? h('div.tbtn', { style: { right: '90px', top: '70px', width: '50px', height: '50px' }, on: { click: () => toggleFullscreen() } }, '⛶') : null,
     );
@@ -406,6 +409,26 @@ export class Hud {
     canvas.addEventListener('touchmove', this.onTouchMove, { passive: true });
     canvas.addEventListener('touchend', this.onTouchEnd);
     canvas.addEventListener('touchcancel', this.onTouchEnd);
+  }
+
+  /** Menú con todos los emotes del jugador (tecla G o botón 😀). */
+  toggleEmoteMenu(show = this.emoteMenu.classList.contains('hidden')) {
+    this.emoteMenu.classList.toggle('hidden', !show);
+    if (!input.isTouch) {
+      // Con el menú abierto se suelta el ratón para poder pulsar los botones
+      if (show && document.pointerLockElement) { this.game.ignoreUnlock = true; input.unlockPointer(); }
+      if (!show && !this.game.paused && !this.chatOpen) this.game.requestLock();
+    }
+    if (!show) return;
+    const list = availableEmotes();
+    const pick = (id) => { this.toggleEmoteMenu(false); this.game.tryEmote(id); };
+    clear(this.emoteMenu).append(
+      h('div.row', h('b.grow', 'Emotes'), button('✕', () => this.toggleEmoteMenu(false), 'small')),
+      h('div.emote-grid',
+        h('button.emote-btn', { on: { click: () => pick('sit') } }, '🪑 Sentarse'),
+        ...list.map((e) => h(`button.emote-btn${e.custom ? '.custom' : ''}`, { on: { click: () => pick(e.id) } }, (e.custom ? '⭐ ' : '') + e.name))),
+      h('p.muted.small', 'Consigue más en Avatar → Tienda.'),
+    );
   }
 
   /** Muestra los botones táctiles propios del vehículo actual. */

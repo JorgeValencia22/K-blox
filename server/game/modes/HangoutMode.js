@@ -2,7 +2,7 @@
 import { BaseMode } from './BaseMode.js';
 import * as users from '../../services/users.js';
 
-const DANCE_ANIMS = new Set(['dance', 'robot', 'spin', 'flip']);
+const DANCE_ANIMS = new Set(['dance', 'robot', 'spin', 'flip', 'floss', 'jacks', 'headbang']);
 
 export class HangoutMode extends BaseMode {
   constructor(room) {

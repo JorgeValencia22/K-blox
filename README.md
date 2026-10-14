@@ -109,6 +109,9 @@ en cápsula, manos y zapatos redondos). Tienda con **109 objetos**: 18 peinados,
 arriba, 10 de abajo (faldas incluidas), 18 caras, 29 accesorios (alas, mochila cohete, mascota
 flotante, orejas, sombreros…), emotes y efectos. Los objetos raros llevan la etiqueta ★ RARO.
 Geometrías y materiales se comparten entre todos los avatares para ahorrar memoria.
+**Color propio para cada accesorio**, 22 tipos de ropa inferior (bermudas, pirata, jogger, ancho, campana, pijama, rayas, estrellas, cuadros, tutú, cuero, lava…), pelo «Despeinado gamer» y **Conjuntos**: guarda hasta 12 avatares con nombre en tu cuenta y cámbiate con un clic.
+**24 emotes** (aplaudir, reverencia, dab, baile del hilo, rockero, saltos de tijera…). En partida, **G** (o 😀 en el móvil) abre el menú con todos.
+**Creador de emotes (admin)**: en Avatar → 🎬 Creador de emotes, Keko_Star200 crea emotes por fotogramas (mueve brazos, piernas, cuerpo y cabeza, añade otro fotograma más adelante y el personaje pasa de una pose a otra con movimiento suave). Los emotes creados los pueden usar todos los jugadores. Como Render gratis borra la base de datos al dormirse, el navegador del admin guarda una copia y los vuelve a subir solo al entrar.
 Personajes originales (cabeza, torso, brazos, piernas, cara, ojos, boca, pelo, ropa,
 accesorios y efectos). Editor con vista previa giratoria, colores personalizados y tienda.
 Animaciones procedurales con máquina de estados: reposo, caminar, correr, saltar, caer,
@@ -269,7 +272,7 @@ kest-worlds/
 
 ## Pruebas
 
-`npm test` ejecuta 39 pruebas (incluye modo desarrollador, Kesty Coins y los 4 modos nuevos): registro/inicio/cierre de sesión, bloqueo por intentos, tienda
+`npm test` ejecuta 47 pruebas (incluye modo desarrollador, Kesty Coins y los 4 modos nuevos): registro/inicio/cierre de sesión, bloqueo por intentos, tienda
 y validación de avatar, amigos y bloqueos, guardado/validación/publicación de mundos,
 multijugador real con dos clientes Socket.IO (visibilidad, movimiento, corrección
 antitrampas, chat filtrado, reportes), validación del obby, salas privadas e invitaciones,

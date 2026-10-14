@@ -2,7 +2,7 @@
 // vehículos y estado compartido. El servidor es la autoridad del estado.
 import { NET, VEHICLES } from '../../shared/constants.js';
 import { worldSpawns } from '../../shared/worldSchema.js';
-import { ANIMS, isVec3, plausibleMove, inBounds, dist3 } from './validation.js';
+import { validAnim, isVec3, plausibleMove, inBounds, dist3 } from './validation.js';
 import { inviteCode } from '../security/passwords.js';
 import { createMode } from './modes/index.js';
 import { NpcManager } from './npcs.js';
@@ -185,7 +185,7 @@ export class Room {
     p.lastPos = msg.p;
     p.lastAccept = now;
     p.ry = typeof msg.ry === 'number' && Number.isFinite(msg.ry) ? msg.ry : p.ry;
-    p.anim = ANIMS.has(msg.a) ? msg.a : 'idle';
+    p.anim = validAnim(msg.a) ? msg.a : 'idle';
     if (veh && msg.v && isVec3(msg.v.p) && isVec3(msg.v.r)) {
       veh.p = msg.v.p;
       veh.r = msg.v.r;

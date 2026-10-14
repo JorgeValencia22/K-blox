@@ -110,6 +110,19 @@ CREATE TABLE IF NOT EXISTS gift_redemptions (
   redeemed_at INTEGER NOT NULL,
   PRIMARY KEY (code, user_id)
 );
+CREATE TABLE IF NOT EXISTS avatar_presets (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  avatar TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, name)
+);
+CREATE TABLE IF NOT EXISTS custom_emotes (
+  id TEXT PRIMARY KEY,
+  data TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS daily_rewards (
   user_id TEXT NOT NULL,
   key TEXT NOT NULL,
