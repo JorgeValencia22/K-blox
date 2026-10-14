@@ -212,6 +212,19 @@ export class FnafClient {
     game.scene.add(this.irLight);
     game.scene.add(this.lamp, this.flash, this.flashTarget, this.musicLight);
     this.flash.target = this.flashTarget;
+    // Ventilador de la mesa (gira de verdad)
+    this.fan = new THREE.Group();
+    const bladeMat = new THREE.MeshStandardMaterial({ color: '#cfd8dc', metalness: 0.5, roughness: 0.4 });
+    for (let i = 0; i < 3; i++) {
+      const bl = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.32, 0.02), bladeMat);
+      bl.position.y = 0.16;
+      const piv = new THREE.Group();
+      piv.rotation.z = (i / 3) * Math.PI * 2;
+      piv.add(bl);
+      this.fan.add(piv);
+    }
+    this.fan.position.set(1.9, 1.6, 17.6);
+    game.scene.add(this.fan);
     this.doors = { L: game.built.objects.get('fdoorL'), R: game.built.objects.get('fdoorR') };
     this.doorY = { L: FNAF.doors.L.p[1], R: FNAF.doors.R.p[1] };
     this.batteryMeshes = new Map();
@@ -303,7 +316,7 @@ export class FnafClient {
     };
     ev['fn:end'] = (res) => this.showResults(res);
     ev['fn:hour'] = ({ h }) => {
-      if (h > 0 && h < 6) { audio.play('chime', null); this.hud.showCenter(HOURS[h], '', 1600); }
+      if (h > 0 && h < 6) this.hud.showCenter('', `🕐 ${HOURS[h]}`, 1600);
     };
     ev['fn:event'] = ({ text }) => {
       toast(text, 'warn', 4500);
@@ -379,7 +392,13 @@ export class FnafClient {
     audio.stopMusic();
     this.startNightAudio();
     const label = n.num === 7 ? 'Noche personalizada' : `Noche ${n.num}`;
-    this.hud.showCenter('12 AM', `${label} · ${FNAF_MODES[n.mode].name}`, 3800);
+    put(this.cardEl, h('div.fn-card-time', '12:00 AM'), h('div.fn-card-night', label), h('div.fn-card-mode', FNAF_MODES[n.mode].name));
+    this.cardEl.classList.remove('hidden');
+    this.cardEl.classList.remove('out');
+    clearTimeout(this.cardT);
+    this.cardT = setTimeout(() => { this.cardEl.classList.add('out'); setTimeout(() => this.cardEl.classList.add('hidden'), 900); }, 3600);
+    audio.play('static', null, { dur: 0.5 });
+    this.playCall(n.num);
     this.lastHour = 0;
     if (this.isAnim || this.isWatcher) {
       if (input.locked) { this.game.ignoreUnlock = true; input.unlockPointer(); }
@@ -388,6 +407,9 @@ export class FnafClient {
   }
 
   onNightEnd() {
+    clearTimeout(this.callT);
+    this.subEl.classList.add('hidden');
+    this.nextHallu = 0;
     if (this.monitor) this.closeMonitor(true);
     this.flashOn = false;
     clearInterval(this.musicLoop);
@@ -453,6 +475,13 @@ export class FnafClient {
     hud.el.appendChild(this.scareEl);
     this.holdEl = h('div.fn-hold.hidden', h('div'));
     hud.el.appendChild(this.holdEl);
+    this.tabletEl = h('div.fn-tablet.hidden');
+    this.cardEl = h('div.fn-card.hidden');
+    this.subEl = h('div.fn-sub.hidden');
+    this.sixEl = h('div.fn-six.hidden');
+    this.overCanvas = h('canvas', { width: 200, height: 112 });
+    this.overEl = h('div.fn-over.hidden', this.overCanvas, h('div.fn-over-text'));
+    hud.el.append(this.tabletEl, this.cardEl, this.subEl, this.sixEl, this.overEl);
   }
 
   renderLobby() {
@@ -528,7 +557,41 @@ export class FnafClient {
     this.renderLobby();
   }
 
+  /** Mensajes grabados del jefe de seguridad (noches 1 y 2), como subtítulos. */
+  playCall(num) {
+    const CALLS = {
+      1: ['📞 ¿Hola? ¿Hola? Ah, bien… Soy el jefe de seguridad. Te dejo unas notas para tu primera noche.',
+        'Los animatrónicos se mueven un poco por la noche. Es… normal. Les gusta pasear por el local.',
+        'Si uno se queda mirando hacia la oficina, enciende la luz de esa puerta y, si está ahí, ciérrala.',
+        'Ojo con la energía: cada puerta, luz y cámara gasta. Si se acaba… bueno, mejor que no se acabe.',
+        'Y vigila la Cala Pirata. A Fito no le gusta que no le miren. Suerte, y ¡a disfrutar!'],
+      2: ['📞 Hola otra vez. Esta noche estarán más activos, sobre todo Rita y Pía.',
+        'Bruno solo se mueve cuando nadie le mira… y le encanta la oscuridad. Si oyes una risa, búscalo.',
+        'Si alguno entra en la oficina, no te quedes quieto: apúntale con la linterna. Odian la luz.',
+        'Ah, y si oyes pasos corriendo por el pasillo izquierdo… cierra la puerta. Rápido.'],
+    };
+    const lines = CALLS[num];
+    clearTimeout(this.callT);
+    if (!lines) return;
+    let i = 0;
+    const next = () => {
+      if (!this.night || i >= lines.length) { this.subEl.classList.add('hidden'); return; }
+      this.subEl.textContent = lines[i++];
+      this.subEl.classList.remove('hidden');
+      audio.play('static', null, { dur: 0.15 });
+      this.callT = setTimeout(next, 6500);
+    };
+    this.callT = setTimeout(next, 4500);
+  }
+
   showResults(res) {
+    if (/6:00/.test(res.title) || (res.reason === 'six' && res.survivors.length)) {
+      put(this.sixEl, h('div.fn-six-roll', h('div', '5'), h('div', '6')), h('span', 'AM'));
+      this.sixEl.classList.remove('hidden');
+      audio.play('chime');
+      setTimeout(() => this.sixEl.classList.add('done'), 600);
+      setTimeout(() => { this.sixEl.classList.add('hidden'); this.sixEl.classList.remove('done'); }, 4200);
+    }
     const el = this.resultsEl;
     el.classList.remove('hidden');
     let left = 9;
@@ -605,6 +668,8 @@ export class FnafClient {
     this.monitorEl.classList.remove('hidden');
     this.renderMap();
     audio.play('camswitch');
+    this.tabletEl.className = 'fn-tablet up';
+    this.staticUntil = performance.now() + 350;
     if (input.locked) { this.game.ignoreUnlock = true; input.unlockPointer(); }
     const r = await this.send('cam', { id: cam });
     if (r.error && this.monitor) this.closeMonitor(true);
@@ -615,6 +680,7 @@ export class FnafClient {
     this.monitor = null;
     this.monitorEl.classList.add('hidden');
     this.setCanvasFilter(null);
+    if (!silent) { this.tabletEl.className = 'fn-tablet down'; clearTimeout(this.tabT); this.tabT = setTimeout(() => this.tabletEl.classList.add('hidden'), 300); }
     if (!silent) net.request('mode', { name: 'cam', data: { id: null } });
     audio.play('camswitch');
     if (!input.isTouch && this.isGuard && !this.game.paused) this.game.requestLock();
@@ -801,16 +867,35 @@ export class FnafClient {
   // --- Susto ------------------------------------------------------------------------
   jumpscare(animId) {
     if (this.monitor) this.closeMonitor(true);
-    this.scareUntil = performance.now() + 1700;
+    const now = performance.now();
+    this.scareStart = now;
+    this.scareUntil = now + 1500;
     this.scareAnim = animId;
-    audio.play('fnafscream');
-    this.scareEl.classList.remove('hidden');
+    audio.play('servo');
+    setTimeout(() => audio.play('fnafscream'), 120);
+    this.scareEl.classList.remove('hidden', 'dark');
     this.scareEl.textContent = '';
+    this.scareEl.classList.add('flash');
+    // Después del grito: televisión con estática y GAME OVER
     setTimeout(() => {
-      this.scareEl.textContent = `${ANIMATRONICS[animId].name} te ha atrapado`;
-      this.scareEl.classList.add('dark');
-    }, 1500);
-    setTimeout(() => { this.scareEl.classList.add('hidden'); this.scareEl.classList.remove('dark'); }, 3600);
+      this.scareEl.classList.add('hidden');
+      this.scareEl.classList.remove('flash');
+      this.overEl.lastChild.innerHTML = '';
+      this.overEl.lastChild.append(h('b', 'GAME OVER'), h('small', `${ANIMATRONICS[animId].name} te ha atrapado`));
+      this.overEl.classList.remove('hidden');
+      this.overUntil = performance.now() + 2600;
+      audio.play('static', null, { dur: 2.4 });
+    }, 1450);
+    setTimeout(() => this.overEl.classList.add('hidden'), 4100);
+  }
+
+  /** Alucinación: un instante, la cara de un animatrónico delante de ti. */
+  hallucinate() {
+    const ids = ANIM_IDS;
+    this.halluAnim = ids[Math.floor(Math.random() * ids.length)];
+    this.halluUntil = performance.now() + 140;
+    audio.play('whisper');
+    audio.play('static', null, { dur: 0.2 });
   }
 
   // --- Bucle --------------------------------------------------------------------------
@@ -913,6 +998,22 @@ export class FnafClient {
     // Pilas del último superviviente
     if (n?.mode === 'last') this.syncBatteries(now);
 
+    // Ventilador y estática del GAME OVER
+    this.fan.rotation.z -= dt * (n && !(n.blackout || (sn && sn.pw <= 0)) ? 28 : 0);
+    if (!this.overEl.classList.contains('hidden')) {
+      const ctx = this.overCanvas.getContext('2d');
+      const img = ctx.createImageData(200, 112);
+      for (let i = 0; i < img.data.length; i += 4) { const v = Math.random() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+      ctx.putImageData(img, 0, 0);
+    }
+    // Alucinaciones a partir de las 3 AM (nunca con el monitor subido)
+    if (n && this.isGuard && !this.monitor && now > (this.nextHallu || 0)) {
+      const hr = Math.floor((this.game.now() - n.start) / FNAF.hourMs);
+      if (!this.nextHallu) this.nextHallu = now + 60000;
+      else if (hr >= 3 && Math.random() < 0.5) { this.hallucinate(); this.nextHallu = now + 50000 + Math.random() * 70000; }
+      else this.nextHallu = now + 30000;
+    }
+
     // Iluminación
     const lit = !n;
     const power = sn ? sn.pw : 100;
@@ -943,19 +1044,33 @@ export class FnafClient {
     this.flashTarget.position.copy(cam.position).addScaledVector(fwd, 8);
 
     // Susto: el animatrónico aparece pegado a la cámara con la boca abierta
-    if (now < this.scareUntil && this.scareAnim) {
-      const a = this.anims[this.scareAnim];
-      const p = cam.position.clone().addScaledVector(fwd, 1.1);
-      a.model.root.position.set(p.x, cam.position.y - 2.15, p.z);
-      a.model.root.rotation.y = Math.atan2(-fwd.x, -fwd.z);
-      a.model.jaw.rotation.x = 0.55 + Math.sin(now / 40) * 0.15;
-      a.model.eyeMat.emissiveIntensity = 3;
-      a.model.head.rotation.z = Math.sin(now / 50) * 0.2;
-      g.cam.shake = 0.18;
-      this.lamp.intensity = 10;
-      this.lamp.position.set(cam.position.x, cam.position.y + 1, cam.position.z);
+    const hallu = now < (this.halluUntil || 0) ? this.halluAnim : null;
+    if ((now < this.scareUntil && this.scareAnim) || hallu) {
+      const a = this.anims[hallu || this.scareAnim];
+      const m = a.model;
+      // Se abalanza desde 4 m hasta tu cara en un cuarto de segundo
+      const k = hallu ? 1 : Math.min(1, (now - this.scareStart) / 250);
+      const dist = 4.2 - k * k * 3.0;
+      const flat = new THREE.Vector3(fwd.x, 0, fwd.z).normalize();
+      const p = cam.position.clone().addScaledVector(flat, dist);
+      const tall = a.id === 'fox' ? 0.95 : 1;
+      m.root.position.set(p.x, cam.position.y - 2.15 * tall + 0.05, p.z);
+      m.root.rotation.set(0, Math.atan2(-flat.x, -flat.z), 0);
+      m.body.rotation.x = -0.1;
+      m.jaw.rotation.x = 0.7 + Math.sin(now / 35) * 0.25;
+      m.eyeMat.emissiveIntensity = 4;
+      m.head.rotation.set(Math.sin(now / 45) * 0.12, Math.sin(now / 53) * 0.15, Math.sin(now / 38) * 0.3);
+      // Brazos abiertos hacia ti, sin taparle la cara
+      m.armL.rotation.set(-1.15, 0, -0.85 - Math.sin(now / 30) * 0.12);
+      m.armR.rotation.set(-1.15, 0, 0.85 + Math.sin(now / 30) * 0.12);
+      g.cam.shake = k < 1 ? 0.04 : 0.2;
+      this.lamp.intensity = Math.random() < 0.25 ? 2 : 14;
+      this.lamp.position.set(cam.position.x, cam.position.y + 0.6, cam.position.z);
+      this.flash.intensity = 0;
+      this.wasScare = true;
       return;
     }
+    if (this.wasScare) { this.wasScare = false; for (const a of Object.values(this.anims)) { a.model.armL.rotation.set(0, 0, 0); a.model.armR.rotation.set(0, 0, 0); a.model.head.rotation.set(0, 0, 0); } }
     this.lamp.position.set(0, 3.6, 21);
     if (g.cam.shake > 0.1) g.cam.shake = 0;
 
@@ -1074,6 +1189,9 @@ export class FnafClient {
     for (const b of this.batteryMeshes.values()) g.scene.remove(b);
     this.hud.lockHint.style.visibility = '';
     g.scene.remove(this.irLight, this.lamp, this.flash, this.flashTarget, this.musicLight, ...Object.values(this.doorLights));
-    for (const el of [this.openLobbyBtn, this.topEl, this.monitorEl, this.animEl, this.lobbyEl, this.resultsEl, this.scareEl, this.holdEl]) el.remove();
+    clearTimeout(this.callT);
+    clearTimeout(this.cardT);
+    g.scene.remove(this.fan);
+    for (const el of [this.tabletEl, this.cardEl, this.subEl, this.sixEl, this.overEl, this.openLobbyBtn, this.topEl, this.monitorEl, this.animEl, this.lobbyEl, this.resultsEl, this.scareEl, this.holdEl]) el.remove();
   }
 }

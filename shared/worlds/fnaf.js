@@ -288,6 +288,29 @@ export function buildFnaf() {
   deco([0, 1.3, 25.5], [0.6, 0.3, 0.06], '#ff6f00', 'neon');
   g.add('light', [0, 4, 21], [0.5, 0.2, 0.5], '#ffe9b0', 'neon', { group: 'office', intensity: 0.9, range: 12 });
 
+  // --- Oficina: más detalle
+  const oc = (p, s, c, m = 'plastic') => g.add('cylinder', p, s, c, m, { nc: true });
+  for (let i = 0; i < 5; i++) deco([-2.2 + i * 0.35, 0.98, 17.8 - (i % 2) * 0.1], [0.3, 0.02, 0.4], ['#fafafa', '#fff9c4', '#ffffff', '#e3f2fd', '#fafafa'][i]); // papeles
+  oc([2.25, 1.05, 17.85], [0.2, 0.2, 0.2], '#ec407a'); oc([2.25, 1.2, 17.85], [0.24, 0.1, 0.24], '#f8bbd0'); // magdalena
+  oc([2.25, 1.32, 17.85], [0.03, 0.14, 0.03], '#fff176');
+  deco([-1.9, 0.98, 17.15], [0.45, 0.06, 0.25], '#212121'); // teléfono
+  deco([-1.9, 1.05, 17.15], [0.35, 0.06, 0.08], '#424242');
+  oc([-2.4, 0.3, 18.6], [0.45, 0.6, 0.45], '#546e7a', 'metal'); // papelera
+  for (const [x, y, c] of [[-3.2, 2.6, '#fff59d'], [-2.6, 2.3, '#b3e5fc'], [3.6, 2.4, '#f8bbd0'], [2.8, 2.1, '#c8e6c9']]) deco([x, y, 16.28], [0.5, 0.6, 0.02], c); // dibujos infantiles
+  oc([0, 3.6, 16.3], [0.6, 0.6, 0.06], '#fafafa'); // reloj
+  deco([0, 3.6, 16.34], [0.04, 0.22, 0.02], '#212121');
+  for (const s of [-1, 1]) { deco([s * 4.9, 1.6, 18.95], [0.12, 3.4, 0.12], '#fdd835', 'metal'); deco([s * 4.9, 1.6, 22.05], [0.12, 3.4, 0.12], '#fdd835', 'metal'); } // marcos de las puertas
+  for (let i = 0; i < 6; i++) deco([-4.6 + i * 0.05, 0.1, 23 + i * 0.4], [0.04, 0.04, 0.6], '#111111'); // cables
+  deco([-4.6, 1.2, 24.5], [0.6, 2.4, 0.9], '#37474f', 'metal'); // taquilla
+  deco([-4.28, 1.8, 24.5], [0.02, 0.5, 0.3], '#eceff1');
+  g.add('sign', [4.85, 2.6, 24], [0.1, 0.8, 2.2], '#eceff1', 'wood', { text: 'NORMAS: 1. NO CORRER' });
+  // Más ambiente en el comedor y los pasillos
+  for (const [x, z] of [[-12.6, -14.8], [12.6, -14.8]]) { oc([x, 1.4, z], [0.5, 2.8, 0.5], '#ffeb3b'); g.add('sphere', [x, 3.1, z], [1, 1, 1], ['#ef5350', '#42a5f5'][x < 0 ? 0 : 1], 'plastic', { nc: true }); } // globos
+  for (let i = 0; i < 6; i++) g.add('sphere', [-6 + i * 2.4, 4.2, -1.5 + (i % 2)], [0.6, 0.75, 0.6], ['#ef5350', '#ffca28', '#42a5f5', '#66bb6a', '#ab47bc', '#ff7043'][i], 'plastic', { nc: true });
+  for (let z = 4; z < 24; z += 5) { deco([-5.2, 0.4, z], [0.2, 0.8, 0.02], '#3e2723'); deco([5.2, 0.4, z], [0.2, 0.8, 0.02], '#3e2723'); } // zócalos rotos
+  g.add('sign', [-8.7, 3.6, 12], [0.1, 0.8, 3], '#fdd835', 'wood', { text: '¡ES LA HORA DEL SHOW!' });
+  g.add('sign', [8.7, 3.6, 12], [0.1, 0.8, 3], '#fdd835', 'wood', { text: 'SONRÍE A LA CÁMARA' });
+
   // --- Escenario
   g.block([0, 0.4, -20], [16, 0.8, 7], '#4a148c', 'wood');
   deco([0, 2.6, -23.6], [18, 4, 0.2], '#311b92', 'plastic'); // telón

@@ -393,3 +393,27 @@ input, textarea, .chat-log { -webkit-user-select: text; user-select: text; }
 .pp-intro-lines .big { font: 900 54px Nunito, sans-serif; color: #ff4081; text-shadow: 3px 0 #2979ff; letter-spacing: 2px; }
 @keyframes ppline { from { opacity: 0; filter: blur(6px); } }
 .pp-intro-skip { position: absolute; bottom: 24px; color: #777; }
+
+/* Turno de Noche: transiciones y sustos */
+.fn-tablet { position: absolute; inset: 0; z-index: 3; pointer-events: none; background: linear-gradient(#20242c, #0e1014); border: 18px solid #2b2f38; border-radius: 26px; }
+.fn-tablet.up { animation: fntabup .3s ease-in forwards; }
+.fn-tablet.down { animation: fntabdown .3s ease-out forwards; }
+@keyframes fntabup { 0% { transform: translateY(100%) perspective(600px) rotateX(35deg); opacity: 1; } 80% { transform: none; opacity: 1; } 100% { transform: none; opacity: 0; } }
+@keyframes fntabdown { 0% { transform: none; opacity: 1; } 100% { transform: translateY(100%) perspective(600px) rotateX(35deg); opacity: 1; } }
+.fn-card { position: absolute; inset: 0; z-index: 7; background: #000; display: grid; place-content: center; text-align: center; color: #fff; font-family: monospace; pointer-events: none; transition: opacity .9s; }
+.fn-card.out { opacity: 0; }
+.fn-card-time { font-size: 64px; font-weight: 900; letter-spacing: 4px; animation: ppline 1s ease; }
+.fn-card-night { font-size: 28px; margin-top: 8px; animation: ppline 1.6s ease; }
+.fn-card-mode { font-size: 14px; color: #888; margin-top: 18px; }
+.fn-sub { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); max-width: min(760px, calc(100vw - 32px)); padding: 8px 14px; background: rgba(0,0,0,.7); border-radius: 8px; font-size: 15px; color: #f5f5f5; pointer-events: none; z-index: 3; text-align: center; }
+.fn-six { position: absolute; inset: 0; z-index: 7; background: #000; display: flex; gap: 14px; align-items: center; justify-content: center; font: 900 96px monospace; color: #fff; pointer-events: none; }
+.fn-six-roll { height: 1.1em; overflow: hidden; line-height: 1.1em; }
+.fn-six-roll > div { transition: transform 1.6s cubic-bezier(.6,0,.3,1); }
+.fn-six.done .fn-six-roll > div { transform: translateY(-100%); }
+.fn-scare.flash { animation: fnflash 1.45s steps(1) forwards; background: transparent; }
+@keyframes fnflash { 0% { background: transparent; } 20% { background: rgba(255,255,255,.25); } 24% { background: transparent; } 60% { background: rgba(120,0,0,.35); } 64% { background: transparent; } 90% { background: rgba(255,255,255,.4); } }
+.fn-over { position: absolute; inset: 0; z-index: 8; background: #000; pointer-events: none; }
+.fn-over canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; opacity: .55; }
+.fn-over-text { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 8px; }
+.fn-over-text b { font: 900 64px monospace; color: #fff; text-shadow: 4px 0 #ff1744, -4px 0 #00e5ff; animation: ppglitch .15s steps(2) infinite; }
+.fn-over-text small { font: 700 18px monospace; color: #ddd; }
