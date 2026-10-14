@@ -12,11 +12,12 @@ import { CastoresMode } from './CastoresMode.js';
 import { PesadillaMode, DesastresMode, HuertoMode, BloquesMode } from './NewModes.js';
 import { AsaltoMode } from './AsaltoMode.js';
 import { CamaleonMode } from './CamaleonMode.js';
+import { FnafMode } from './FnafMode.js';
 
 const MODES = {
   city: CityMode, obby: ObbyMode, racing: RacingMode, survival: SurvivalMode, hangout: HangoutMode, custom: CustomMode,
   keys: KeysMode, onlyup: OnlyUpMode, horror: HorrorMode, royale: RoyaleMode, rocket: RocketMode, castores: CastoresMode,
-  camaleon: CamaleonMode, asalto: AsaltoMode, pesadilla: PesadillaMode, desastres: DesastresMode, huerto: HuertoMode, bloques: BloquesMode,
+  camaleon: CamaleonMode, asalto: AsaltoMode, pesadilla: PesadillaMode, desastres: DesastresMode, huerto: HuertoMode, bloques: BloquesMode, fnaf: FnafMode,
 };
 
 export function createMode(name, room) {

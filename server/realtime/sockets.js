@@ -208,13 +208,12 @@ function adminAction(io, rooms, socket, admin, action, req) {
     }
     case 'kill':
       if (needT()) return needT();
-      t.socket.emit('admin:kill', { by: admin.username });
+      t.socket.emit('admin:kill', {});
       return { ok: true };
     case 'lose': {
       if (needT()) return needT();
       const handled = room.mode.adminLose?.(t);
-      t.socket.emit('admin:lose', { by: admin.username, handled: !!handled });
-      room.systemMessage(`💀 ${t.name} ha perdido`);
+      t.socket.emit('admin:lose', { handled: !!handled });
       return { ok: true };
     }
     case 'freeze':
@@ -228,9 +227,9 @@ function adminAction(io, rooms, socket, admin, action, req) {
       return { ok: true };
     case 'bring': {
       if (needT()) return needT();
-      const mine = rooms.roomOf(admin.id)?.players.get(admin.id);
-      const pos = isVec(req.pos) ? req.pos : mine?.pos;
-      if (!pos) return { error: 'No se sabe dónde estás' };
+      const mine = rooms.roomOf(admin.id) === room ? room.players.get(admin.id) : null;
+      if (!mine && !isVec(req.pos)) return { error: 'Estás en otro servidor: usa 🚀 Ir para entrar en su partida' };
+      const pos = isVec(req.pos) ? req.pos : [mine.pos[0] + 1.5, mine.pos[1] + 0.3, mine.pos[2]];
       room.teleport(t, pos);
       t.socket.emit('admin:tp', { p: pos });
       return { ok: true };
@@ -240,13 +239,13 @@ function adminAction(io, rooms, socket, admin, action, req) {
       if (req.on) {
         if (!room.spectators.has(admin.id)) return { error: 'Primero espectea a este jugador' };
         t.controlledBy = admin.id;
-        t.socket.emit('admin:control', { on: true, by: admin.username });
+        t.socket.emit('admin:control', { on: true });
       } else room.releaseControl(t);
       return { ok: true, controlling: !!t.controlledBy };
     }
     case 'dance':
       if (needT()) return needT();
-      t.socket.emit('admin:dance', { by: admin.username });
+      t.socket.emit('admin:dance', {});
       return { ok: true };
     case 'jumpscare': {
       if (!presence.isOnline(targetId)) return { error: 'Ese jugador no está conectado' };
@@ -290,9 +289,18 @@ function adminAction(io, rooms, socket, admin, action, req) {
     }
     case 'users':
       return { ok: true, users: users.searchUsersAdmin(req.q) };
+    case 'power': {
+      // Poderes dentro de la partida (también para el propio admin)
+      const id = targetId || admin.id;
+      const r2 = rooms.roomOf(id);
+      const tp = r2?.players.get(id);
+      if (!tp) return { error: id === admin.id ? 'Entra en una partida primero' : 'Ese jugador no está en ninguna partida' };
+      log(`poder ${req.power} ${req.on ? 'ON' : 'OFF'} a ${tp.name}`);
+      return r2.setPower(tp, String(req.power || ''), !!req.on);
+    }
     case 'kick':
       if (needT()) return needT();
-      t.socket.emit('kicked', { reason: 'Un administrador te ha expulsado de la partida' });
+      t.socket.emit('kicked', { reason: 'Se ha perdido la conexión con el servidor' });
       rooms.leave(targetId);
       return { ok: true };
     case 'coins': {

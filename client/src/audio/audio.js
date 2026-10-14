@@ -190,6 +190,31 @@ class AudioEngine {
       case 'log': this.tone({ freq: 110 * r(), dur: 0.25, vol: 0.3 * vol, type: 'triangle', pan }); this.noiseBurst({ dur: 0.15, vol: 0.2 * vol, freq: 400, q: 1.2, pan }); break;
       case 'flame': this.noiseBurst({ dur: 0.5, vol: 0.18 * vol, freq: 500, q: 0.5, type: 'lowpass', pan }); break;
       case 'saw': this.tone({ freq: 380 * r(), dur: 0.25, vol: 0.06 * vol, type: 'sawtooth', filter: 1500, pan }); break;
+      // --- Turno de Noche ---
+      case 'metaldoor': this.noiseBurst({ dur: 0.5, vol: 0.4 * vol, freq: 180, q: 1.2, type: 'lowpass', pan }); this.tone({ freq: 70, slide: -30, dur: 0.45, vol: 0.3 * vol, type: 'square', filter: 400, pan }); break;
+      case 'bang': for (let i = 0; i < (opts.big ? 5 : 3); i++) { this.noiseBurst({ dur: 0.18, vol: 0.45 * vol, freq: 140, q: 1, type: 'lowpass', pan, when: i * 0.22 }); this.tone({ freq: 55, dur: 0.15, vol: 0.3 * vol, type: 'square', filter: 300, pan, when: i * 0.22 }); } break;
+      case 'static': this.noiseBurst({ dur: opts.dur || 0.35, vol: 0.12 * vol, freq: 3000, q: 0.3, type: 'highpass' }); break;
+      case 'camswitch': this.tone({ freq: 1800, dur: 0.03, vol: 0.06, type: 'square', filter: 4000 }); this.noiseBurst({ dur: 0.08, vol: 0.06, freq: 2500, q: 0.5, type: 'highpass' }); break;
+      case 'laugh': [0, 0.28, 0.56].forEach((w, i) => this.tone({ freq: (150 - i * 18) * r(), slide: -40, dur: 0.22, vol: (opts.quiet ? 0.07 : 0.2) * vol, type: 'sawtooth', filter: 700, pan, when: w })); break;
+      case 'servo': this.tone({ freq: 90 * r(), slide: 140, dur: 0.18, vol: 0.12 * vol, type: 'sawtooth', filter: 500, pan }); this.noiseBurst({ dur: 0.1, vol: 0.18 * vol, freq: 220, q: 1, type: 'lowpass', pan, when: 0.12 }); break;
+      case 'pots': for (let i = 0; i < 4; i++) this.tone({ freq: 900 + Math.random() * 900, dur: 0.25, vol: 0.06 * vol, type: 'triangle', pan, when: i * 0.13 + Math.random() * 0.05 }); break;
+      case 'breath': this.noiseBurst({ dur: 1.1, vol: 0.07 * vol, freq: 420, q: 0.8, type: 'lowpass', pan }); this.noiseBurst({ dur: 0.9, vol: 0.05 * vol, freq: 380, q: 0.8, type: 'lowpass', pan, when: 1.3 }); break;
+      case 'powerdown': this.tone({ freq: 220, slide: -190, dur: 1.6, vol: 0.25, type: 'sawtooth', filter: 900 }); this.noiseBurst({ dur: 0.4, vol: 0.3, freq: 900, q: 0.5 }); break;
+      case 'pop': this.noiseBurst({ dur: 0.06, vol: 0.35 * vol, freq: 2500, q: 2, pan }); this.noiseBurst({ dur: 0.4, vol: 0.06 * vol, freq: 5000, q: 1, type: 'highpass', pan, when: 0.06 }); break;
+      case 'run': for (let i = 0; i < 10; i++) this.noiseBurst({ dur: 0.07, vol: 0.32 * vol, freq: 200, q: 1.4, type: 'lowpass', pan, when: i * 0.17 }); break;
+      case 'chime': [0, 0.5, 1.0, 1.5, 2.0, 2.5].forEach((w, i) => this.tone({ freq: [523, 659, 784, 523, 659, 1046][i], dur: 1.2, vol: 0.16, type: 'sine', when: w })); break;
+      case 'musicbox': {
+        // Melodía original de caja de música (desafinada a propósito)
+        const mel = [659, 0, 587, 659, 0, 523, 494, 523, 587, 0, 659, 784, 659, 587, 523, 0, 494, 440, 494, 523, 0, 587, 523, 494];
+        mel.forEach((fq, i) => { if (fq) this.tone({ freq: fq * (0.995 + Math.random() * 0.01), dur: 0.32, vol: 0.09, type: 'triangle', when: i * 0.34 }); });
+        break;
+      }
+      case 'fnafscream':
+        this.tone({ freq: 620, slide: -380, dur: 1.3, vol: 0.32, type: 'sawtooth', filter: 2600 });
+        this.tone({ freq: 930, slide: -560, dur: 1.2, vol: 0.22, type: 'square', filter: 2200 });
+        this.tone({ freq: 310, slide: -200, dur: 1.3, vol: 0.2, type: 'sawtooth', filter: 1200 });
+        this.noiseBurst({ dur: 1.3, vol: 0.38, freq: 1600, q: 0.6 });
+        break;
       default: break;
     }
   }

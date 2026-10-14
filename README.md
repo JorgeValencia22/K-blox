@@ -93,6 +93,8 @@ Con la cuenta definida en `OWNER_USERNAME`/`OWNER_PASSWORD`:
   y **expulsar**.
 - **Anuncios** a todos los conectados, **dar o quitar Kesty Coins** y **crear códigos regalo**.
 - Reportes de moderación. En partida, el panel se abre con **F2** o el botón 🛡️.
+- En la barra de Keko_Star200: **📍 Traer** (al jugador hacia ti), **🚀 Ir** (tú hacia él, aunque esté en otro servidor) y **✨ Poderes** para cualquier jugador o para ti: volar, supervelocidad, supersalto, atravesar paredes, invisible, gigante y mini (duran hasta que sale de la partida).
+- Matar, banear, echar, frezear, hacer bailar o controlar **no avisan** al jugador: un baneo o una expulsión parecen una desconexión normal.
 Todas las acciones las comprueba el servidor (rol de administrador leído de la base de datos).
 
 ### Cuentas y progresión
@@ -165,6 +167,15 @@ arrastrar en la mitad derecha mueve la cámara. Sensibilidad e inversión del ej
 13. **Desastres Naturales** – inspirado en los juegos de supervivencia a desastres: inundación, lava, lluvia de meteoritos, tornado, terremoto y lluvia ácida, cada ronda uno distinto. Gana quien siga vivo al final.
 14. **Mi Huerto** – compra semillas, planta, cosecha y vende. Las plantas siguen creciendo aunque te desconectes (el huerto se guarda), la lluvia acelera el crecimiento y hay frutas doradas (×5) y arcoíris (×15).
 15. **Bloques Locos** – suelo de baldosas de colores: se anuncia un color y desaparecen las demás. Cada ronda va más rápido; bots si hay pocos jugadores.
+
+16. **Turno de Noche** – survival horror de guardia nocturno en la Pizzería Kesty (inspirado en los clásicos de animatrónicos, con personajes originales: Bruno el oso, Rita la coneja, Pía la pollita y Fito el zorro pirata). Oficina con dos puertas de acero, luces de pasillo (mantén **Q**), monitor con **11 cámaras que muestran la escena real** (estática, visión nocturna, cocina solo audio), energía limitada (cada puerta, luz y cámara suma uso), apagón con caja de música, 6:00 AM y sustos. Si un animatrónico entra, se le puede ahuyentar con la linterna (**F**) entre todos. Noches 1-6 y **noche personalizada** (IA 0-20 por animatrónico). Lobby propio con 4 modalidades:
+   - **Guardia cooperativo** (1-4): especialidades Cámaras, Puertas, Luces y Energía (generador: modo ahorro y reinicio con **R**). La IA se adapta al número de guardias.
+   - **Supervivencia por equipos**: tareas arriesgadas fuera de la oficina (mantén **E**) que dan energía o premios, y eventos (subidas de tensión, puertas atascadas, cámaras caídas, animatrónicos nerviosos).
+   - **Animatrónico contra guardias**: 1-2 jugadores son animatrónicos con habilidades propias (risa engañosa, estática, fundir bombilla, carrera de Fito); se congelan si un guardia los mira por la cámara.
+   - **Último superviviente**: todos sueltos con linterna (**R** deslumbra, gasta pila), pilas por el mapa que se pueden compartir, aguante al correr y eventos. Gana el último en pie.
+   Récords personales y de grupo, logros y cosméticos que solo se ganan jugando (gorra de guardia, uniforme, orejas de Bruno y pajarita).
+
+   **Probarlo:** inicia sesión, pulsa JUGAR en «Turno de Noche», elige modalidad y noche en el panel (tecla **L**) y pulsa *Empezar*. Para jugar con amigos, que entren en la misma sala (o invítalos desde la lista de amigos).
 
 El Obby oficial ahora tiene 10 etapas (pilares, plataformas rápidas, islas con trampolín, espiral y vigas con vallas de lava).
 
@@ -272,7 +283,7 @@ kest-worlds/
 
 ## Pruebas
 
-`npm test` ejecuta 47 pruebas (incluye modo desarrollador, Kesty Coins y los 4 modos nuevos): registro/inicio/cierre de sesión, bloqueo por intentos, tienda
+`npm test` ejecuta 55 pruebas (incluye modo desarrollador, Kesty Coins y los 4 modos nuevos): registro/inicio/cierre de sesión, bloqueo por intentos, tienda
 y validación de avatar, amigos y bloqueos, guardado/validación/publicación de mundos,
 multijugador real con dos clientes Socket.IO (visibilidad, movimiento, corrección
 antitrampas, chat filtrado, reportes), validación del obby, salas privadas e invitaciones,

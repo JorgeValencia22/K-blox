@@ -111,7 +111,7 @@ export function apiRouter(rooms) {
     const hours = Math.max(0, Math.min(24 * 365, Number(req.body?.hours) || 24));
     getDb().prepare('UPDATE users SET banned_until = ? WHERE id = ?').run(Date.now() + hours * 3600_000, req.params.id);
     getDb().prepare('DELETE FROM sessions WHERE user_id = ?').run(req.params.id);
-    presence.disconnectUser(req.params.id, 'Cuenta suspendida por moderación');
+    presence.disconnectUser(req.params.id, 'Se ha perdido la conexión con el servidor');
     res.json({ ok: true });
   });
   r.post('/admin/users/:id/mute', admin, (req, res) => {

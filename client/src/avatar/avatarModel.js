@@ -276,6 +276,13 @@ function drawShirt(g, style, color) {
       g.fillStyle = '#37474f'; g.beginPath(); g.roundRect(50, 48, 28, 22, 3); g.fill();
       for (const [c, x] of [['#f44336', 55], ['#4caf50', 62], ['#2196f3', 69]]) { g.fillStyle = c; g.fillRect(x, 54, 4, 4); }
       break;
+    case 'shirt_guard':
+      g.fillStyle = '#1f2a44'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#2c3a5c'; g.fillRect(62, 20, 4, 108);
+      g.fillStyle = '#ffd54f'; g.beginPath(); g.moveTo(44, 46); g.lineTo(52, 42); g.lineTo(60, 46); g.lineTo(58, 58); g.lineTo(52, 62); g.lineTo(46, 58); g.fill();
+      g.fillStyle = '#fafafa'; g.font = '900 9px Nunito, sans-serif'; g.textAlign = 'center'; g.fillText('SEGURIDAD', 84, 54);
+      g.fillStyle = '#151d30'; g.fillRect(0, 96, W, 6);
+      break;
     default: // shirt_tee
       g.fillStyle = dark; g.fillRect(52, 22, 24, 4);
   }
@@ -366,7 +373,7 @@ function mulberry(a) {
 // Medidas (en unidades del mundo). La cabeza está centrada en (0, HEAD_Y) relativo al cuello.
 const HEAD_R = 0.37;
 const HEAD_Y = 0.36;
-const LONG_SLEEVES = new Set(['shirt_hoodie', 'shirt_suit', 'shirt_stripes', 'shirt_flannel', 'shirt_sweater', 'shirt_jacket', 'shirt_panda', 'shirt_galaxy', 'shirt_ninja', 'shirt_astronaut', 'shirt_camo']);
+const LONG_SLEEVES = new Set(['shirt_guard', 'shirt_hoodie', 'shirt_suit', 'shirt_stripes', 'shirt_flannel', 'shirt_sweater', 'shirt_jacket', 'shirt_panda', 'shirt_galaxy', 'shirt_ninja', 'shirt_astronaut', 'shirt_camo']);
 
 /**
  * Crea un avatar. Estructura:
@@ -399,7 +406,7 @@ export class AvatarModel {
 
     const skin = std(d.skin);
     const shirtTex = shirtMaterial(d.shirt, d.shirtColor);
-    const plainShirt = d.shirt === 'shirt_ninja' ? std('#212121') : d.shirt === 'shirt_astronaut' ? std('#eceff1') : std(d.shirtColor);
+    const plainShirt = d.shirt === 'shirt_guard' ? std('#1f2a44') : d.shirt === 'shirt_ninja' ? std('#212121') : d.shirt === 'shirt_astronaut' ? std('#eceff1') : std(d.shirtColor);
     const pants = pantsMaterial(d.pants, d.pantsColor, d.skin);
     const shoes = std(d.shoesColor, { roughness: 0.5 });
 
@@ -785,6 +792,29 @@ export class AvatarModel {
           b.add(piv);
           return piv;
         });
+        break;
+      }
+      case 'acc_guardcap': {
+        const c = main('#1f2a44');
+        N(shell(HEAD_R * 1.12, 0, Math.PI * 2, 0, Math.PI * 0.42), c, 0, y + 0.02, 0);
+        N(cyl(0.29, 0.29, 0.03, 16), std('#111111'), 0, y + 0.16, 0.3, [1, 1, 0.7]);
+        N(rbox(0.13, 0.13, 0.03, 0.02), gold, 0, y + 0.3, HEAD_R + 0.02, null, [-0.4, 0, 0]);
+        break;
+      }
+      case 'acc_bearears': {
+        const c = main('#7b4a2a');
+        for (const s of [-1, 1]) {
+          N(sphere(0.13, 10, 8), c, s * 0.27, top - 0.04, -0.02, [1, 1, 0.55]);
+          N(sphere(0.07, 8, 6), std('#d7a47a'), s * 0.27, top - 0.04, 0.04, [1, 1, 0.4]);
+        }
+        N(cyl(0.13, 0.13, 0.22, 14), dark, 0.06, top + 0.08, -0.02, null, [0, 0, -0.12]);
+        N(cyl(0.2, 0.2, 0.025, 16), dark, 0.05, top - 0.02, -0.02, null, [0, 0, -0.12]);
+        break;
+      }
+      case 'acc_bowtie': {
+        const c = main('#111111');
+        for (const s of [-1, 1]) B(cone(0.09, 0.15, 4), c, s * 0.08, 1.49, 0.24, [1, 1, 0.5], [0, 0, s * Math.PI / 2]);
+        B(sphere(0.045, 8, 6), c, 0, 1.49, 0.25);
         break;
       }
       case 'acc_jetpack': {

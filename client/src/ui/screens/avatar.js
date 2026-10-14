@@ -51,19 +51,20 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
   }
 
   function itemTile(item, selected, onSelect) {
-    const owned = item.price === 0 || store.owns(item.id);
+    const owned = (item.price === 0 && !item.unlock) || store.owns(item.id);
     return h(`div.item${selected ? '.on' : ''}${owned ? '' : '.locked'}${item.rare ? '.rare' : ''}`, {
       on: {
         click: async () => {
           audio.ui('click');
           if (!owned) {
+            if (item.unlock) { toast(`🔒 Se gana jugando: ${item.unlock}`, 'info'); return; }
             if (await buy(item)) onSelect();
             return;
           }
           onSelect();
         },
       },
-    }, item.name, owned ? null : h('span.price', `🪙 ${item.price}`));
+    }, item.name, owned ? null : h('span.price', item.unlock ? '🔒 Se gana jugando' : `🪙 ${item.price}`));
   }
 
   async function buy(item) {

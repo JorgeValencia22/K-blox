@@ -3,6 +3,11 @@
 
 export const EXPERIENCES = [
   {
+    id: 'fnaf', name: 'Turno de Noche', category: 'horror', maxPlayers: 8, creator: 'KestWorlds Studio', isNew: true, featured: true,
+    description: 'Eres el guardia nocturno de la Pizzería Kesty. Vigila las cámaras, cierra puertas, enciende luces y ahorra energía hasta las 6:00… mientras Bruno, Rita, Pía y Fito se mueven en la oscuridad. 4 modalidades con amigos: guardia cooperativo, supervivencia por equipos, animatrónico contra guardias y último superviviente.',
+    cover: { a: '#1a0d0d', b: '#6a1b9a', icon: '🐻' },
+  },
+  {
     id: 'camaleon', name: 'Pinta y Escóndete', category: 'party', maxPlayers: 12, creator: 'KestWorlds Studio', isNew: true, featured: true,
     description: 'Escondite de camaleones: píntate el cuerpo con el cuentagotas para confundirte con el escenario y quédate quieto… o sé el buscador y encuéntralos. 7 mapas: Juguetería, Jardín, Cocina, Museo, Biblioteca, Playa y Dormitorio (con bots).',
     cover: { a: '#00bfa5', b: '#ec407a', icon: '🦎' },
@@ -112,6 +117,7 @@ export const SHOP_ITEMS = [
     ['shirt_panda', 'Sudadera panda', 300], ['shirt_jacket', 'Chaqueta de cuero', 320], ['shirt_rainbow', 'Arcoíris', 380],
     ['shirt_suit', 'Traje', 400], ['shirt_flames', 'Llamas', 450], ['shirt_galaxy', 'Galaxia', 500, { rare: true }],
     ['shirt_ninja', 'Traje ninja', 520, { rare: true }], ['shirt_astronaut', 'Traje de astronauta', 600, { rare: true }],
+    ['shirt_guard', 'Uniforme de guardia nocturno', 0, { unlock: 'Turno de Noche (noche 3)' }],
   ]),
   ...I('pants', [
     ['pants_jeans', 'Pantalón', 0], ['pants_shorts', 'Pantalón corto', 80], ['pants_sweat', 'Chándal', 120],
@@ -142,6 +148,8 @@ export const SHOP_ITEMS = [
     ['acc_sword', 'Espada a la espalda', 600], ['acc_halo', 'Halo', 700, { rare: true }], ['acc_pet', 'Mascota flotante', 800, { rare: true }],
     ['acc_crown', 'Corona', 900, { rare: true }], ['acc_batwings', 'Alas de murciélago', 1000, { rare: true }],
     ['acc_wings', 'Alas de ángel', 1200, { rare: true }], ['acc_jetpack', 'Mochila cohete', 1500, { rare: true }],
+    ['acc_guardcap', 'Gorra de guardia', 0, { unlock: 'Turno de Noche (noche 1)' }], ['acc_bearears', 'Orejas de Bruno', 0, { unlock: 'Turno de Noche (noche 5)', rare: true }],
+    ['acc_bowtie', 'Pajarita de animatrónico', 0, { unlock: 'Turno de Noche (gana como animatrónico)', rare: true }],
   ]),
   ...I('emote', [
     ['emote_wave', 'Saludar', 0], ['emote_dance', 'Bailar', 0], ['emote_cheer', 'Celebrar', 0],
@@ -161,7 +169,7 @@ export const SHOP_ITEMS = [
 ];
 
 export const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map((i) => [i.id, i]));
-export const FREE_ITEMS = SHOP_ITEMS.filter((i) => i.price === 0).map((i) => i.id);
+export const FREE_ITEMS = SHOP_ITEMS.filter((i) => i.price === 0 && !i.unlock).map((i) => i.id);
 
 export const ACHIEVEMENTS = [
   { id: 'first_steps', name: 'Primeros pasos', desc: 'Entra en tu primera experiencia', reward: 20 },
@@ -193,6 +201,12 @@ export const ACHIEVEMENTS = [
   { id: 'blocks_win', name: 'Pies rápidos', desc: 'Gana una partida de Bloques Locos', reward: 80 },
   { id: 'camaleon_win', name: 'Invisible', desc: 'Termina una ronda de Pinta y Escóndete sin que te encuentren', reward: 60 },
   { id: 'asalto_win', name: 'Hogar, dulce hogar', desc: 'Sobrevive a las 3 noches de Asalto a la Casa', reward: 150 },
+  { id: 'fnaf_n1', name: 'Primer turno', desc: 'Sobrevive a una noche en Turno de Noche', reward: 60 },
+  { id: 'fnaf_n5', name: 'Empleado del mes', desc: 'Sobrevive a la noche 5 de Turno de Noche', reward: 200 },
+  { id: 'fnaf_n6', name: 'Turno extra', desc: 'Sobrevive a la noche 6 de Turno de Noche', reward: 300 },
+  { id: 'fnaf_team', name: 'Equipo nocturno', desc: 'Sobrevive a una noche con 3 guardias o más', reward: 100 },
+  { id: 'fnaf_anim', name: '¡Es la hora del show!', desc: 'Gana como animatrónico en Turno de Noche', reward: 120 },
+  { id: 'fnaf_last', name: 'Último en pie', desc: 'Gana una partida de Último superviviente', reward: 120 },
   { id: 'heist', name: 'Golpe maestro', desc: 'Completa un atraco en Castores al Ataque', reward: 100 },
 ];
 export const ACH_BY_ID = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));

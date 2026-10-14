@@ -2,6 +2,17 @@
 // El servidor usa estos valores para validar lo que envía el cliente,
 // por lo que cualquier cambio afecta a ambos lados.
 
+/** Poderes que un administrador puede dar a un jugador (duran hasta que sale de la partida). */
+export const ADMIN_POWERS = {
+  fly: { name: 'Volar', icon: '🕊️', hint: 'Espacio sube y C baja' },
+  speed: { name: 'Supervelocidad', icon: '⚡', hint: 'Corres muchísimo más' },
+  jump: { name: 'Supersalto', icon: '🦘', hint: 'Saltas altísimo' },
+  ghost: { name: 'Atravesar paredes', icon: '👻', hint: 'Atraviesas todo. Espacio sube y C baja' },
+  invisible: { name: 'Invisible', icon: '🫥', hint: 'Nadie te ve' },
+  giant: { name: 'Gigante', icon: '🦖', hint: 'Eres enorme' },
+  mini: { name: 'Mini', icon: '🐜', hint: 'Eres diminuto' },
+};
+
 export const PHYSICS = {
   gravity: -30,
   walkSpeed: 8,

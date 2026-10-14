@@ -34,7 +34,7 @@ class Net extends Emitter {
     s.on('connect_error', (e) => {
       this.emit('status', 'offline');
       if (e.message === 'auth') return window.dispatchEvent(new Event('kest:unauthorized'));
-      if (e.message === 'banned') return this.emit('kicked', { reason: 'Cuenta suspendida' });
+      if (e.message === 'banned') return this.emit('kicked', { reason: 'No se puede conectar con el servidor' });
       // Si Socket.IO deja de reintentar (p. ej. el servidor se reinició), se reintenta manualmente.
       clearTimeout(this.retryTimer);
       this.retryTimer = setTimeout(() => {

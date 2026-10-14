@@ -30,7 +30,7 @@ export function sanitizeAvatar(a, owned) {
   const d = DEFAULT_AVATAR;
   const has = (id, type) => {
     const item = SHOP_BY_ID[id];
-    return item && item.type === type && (item.price === 0 || (owned && owned.has(id)));
+    return item && item.type === type && ((item.price === 0 && !item.unlock) || (owned && owned.has(id)));
   };
   const out = {
     skin: color(a.skin, d.skin),

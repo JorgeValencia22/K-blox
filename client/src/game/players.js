@@ -24,6 +24,29 @@ export class LocalPlayer {
     this.lastJump = 0;
     this.landTimer = 0;
     this.oneShot = null;
+    this.powers = new Set();
+  }
+
+  /** Poderes de administrador: volar, velocidad, salto, atravesar paredes, tamaño. */
+  setPowers(list) {
+    this.powers = new Set(list || []);
+    const s = this.powers.has('giant') ? 2 : this.powers.has('mini') ? 0.5 : 1;
+    this.model.root.scale.setScalar(s);
+    // El propio jugador se ve semitransparente si es invisible para los demás
+    this.model.root.traverse((c) => {
+      if (!c.material || c.isSprite) return;
+      const mats = Array.isArray(c.material) ? c.material : [c.material];
+      for (const m of mats) {
+        if (this.powers.has('invisible')) {
+          if (!c.userData.ownMat) { c.material = m.clone(); c.userData.ownMat = true; }
+          c.material.transparent = true;
+          c.material.opacity = 0.35;
+        } else if (c.userData.ownMat) {
+          c.material.opacity = 1;
+          c.material.transparent = false;
+        }
+      }
+    });
   }
 
   get position() {
@@ -90,8 +113,10 @@ export class LocalPlayer {
       return;
     }
 
-    const swimming = b.inWater;
-    const speed = swimming ? PHYSICS.swimSpeed : ctl.run ? PHYSICS.runSpeed : PHYSICS.walkSpeed;
+    const pw = this.powers;
+    const flying = pw.has('fly') || pw.has('ghost');
+    const swimming = b.inWater && !flying;
+    const speed = (swimming ? PHYSICS.swimSpeed : ctl.run ? PHYSICS.runSpeed : PHYSICS.walkSpeed) * (pw.has('speed') ? 2.6 : 1) * (flying && !pw.has('speed') ? 1.4 : 1);
     const accel = b.onGround || swimming ? PHYSICS.accel : PHYSICS.airAccel;
     const tx = wishX * speed, tz = wishZ * speed;
     const dvx = tx - b.vx, dvz = tz - b.vz;
@@ -100,7 +125,12 @@ export class LocalPlayer {
     if (dl > maxDv) { b.vx += (dvx / dl) * maxDv; b.vz += (dvz / dl) * maxDv; }
     else { b.vx = tx; b.vz = tz; }
 
-    if (swimming) {
+    if (flying) {
+      // Vuelo libre: Espacio sube, C baja, si no se queda flotando
+      b.gravity = 0;
+      const want = ctl.jumpHeld ? 11 : ctl.descend ? -11 : 0;
+      b.vy += (want - b.vy) * Math.min(1, dt * 8);
+    } else if (swimming) {
       b.gravity = -6;
       b.vy *= 1 - Math.min(1, dt * 3);
       if (ctl.jumpHeld) b.vy = Math.min(b.vy + 30 * dt, 4.5);
@@ -108,7 +138,7 @@ export class LocalPlayer {
     } else {
       b.gravity = PHYSICS.gravity;
       if (ctl.jump && b.onGround && !this.dead && !this.frozen) {
-        b.vy = PHYSICS.jumpVelocity;
+        b.vy = PHYSICS.jumpVelocity * (pw.has('jump') ? 2 : 1);
         b.onGround = false;
         b.ground = null;
         this.lastJump = performance.now();
@@ -118,7 +148,11 @@ export class LocalPlayer {
       }
     }
     const wasWater = this.wasInWater;
-    physics.move(b, dt);
+    if (pw.has('ghost')) {
+      // Atravesar paredes: sin colisiones
+      b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+      b.onGround = false; b.landSpeed = 0;
+    } else physics.move(b, dt);
     this.wasInWater = b.inWater;
     if (b.inWater && !wasWater) audio.play('splash');
 
@@ -148,6 +182,7 @@ export class LocalPlayer {
     // Selección del estado de animación (prioridades)
     let state;
     if (this.dead) state = 'dead';
+    else if (flying) state = hs > 1.5 ? 'swim' : 'idle';
     else if (swimming) state = 'swim';
     else if (!b.onGround && b.vy > 0 && performance.now() - this.lastJump < 500) state = 'jump';
     else if (!b.onGround && b.vy < -4) state = 'fall';
@@ -201,6 +236,14 @@ export class RemotePlayer {
     this.speed = 0;
     this.muted = false;
     this.model.root.position.copy(this.pos);
+  }
+
+  setPowers(list) {
+    const pw = new Set(list || []);
+    this.powersList = [...pw];
+    this.model.root.scale.setScalar(pw.has('giant') ? 2 : pw.has('mini') ? 0.5 : 1);
+    this.invisible = pw.has('invisible');
+    this.model.root.visible = !this.invisible;
   }
 
   push(t, s) {

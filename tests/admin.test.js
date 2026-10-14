@@ -162,10 +162,13 @@ test('modo admin con contraseña, baneo temporal y permanente, regalos y susto',
     const kicked = once(v, 'kicked');
     r = await emit(a, 'admin', { action: 'ban', userId: victimId, perma: true });
     assert.ok(r.ok && r.perma, JSON.stringify(r));
-    assert.match((await kicked).reason, /para siempre/);
+    // Sin avisar de que es un baneo: parece una desconexión normal
+    const reason = (await kicked).reason;
+    assert.match(reason, /conexión/);
+    assert.doesNotMatch(reason, /ban|suspend|siempre/i);
     r = await srv.api('POST', '/api/auth/login', { username: 'Travieso', password: 'secreto1' });
     assert.equal(r.status, 403);
-    assert.match(r.body.error, /para siempre/);
+    assert.match(r.body.error, /No se puede conectar/);
     // No se puede banear al dueño
     r = await emit(a, 'admin', { action: 'ban', username: 'Jefe', hours: 1 });
     assert.ok(r.error);
@@ -178,7 +181,7 @@ test('modo admin con contraseña, baneo temporal y permanente, regalos y susto',
     r = await emit(a, 'admin', { action: 'ban', username: 'Travieso', hours: 1 });
     assert.ok(r.ok && !r.perma);
     r = await srv.api('POST', '/api/auth/login', { username: 'Travieso', password: 'secreto1' });
-    assert.match(r.body.error, /min más/);
+    assert.match(r.body.error, /No se puede conectar/);
   } finally {
     a.disconnect();
     v.disconnect();

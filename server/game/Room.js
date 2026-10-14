@@ -1,6 +1,6 @@
 // Una sala = una instancia de una experiencia con su lista de jugadores,
 // vehículos y estado compartido. El servidor es la autoridad del estado.
-import { NET, VEHICLES } from '../../shared/constants.js';
+import { NET, VEHICLES, ADMIN_POWERS } from '../../shared/constants.js';
 import { worldSpawns } from '../../shared/worldSchema.js';
 import { validAnim, isVec3, plausibleMove, inBounds, dist3 } from './validation.js';
 import { inviteCode } from '../security/passwords.js';
@@ -78,7 +78,7 @@ export class Room {
   }
 
   playerPublic(p) {
-    return { id: p.id, name: p.name, level: p.level, avatar: p.avatar, p: p.pos, ry: p.ry, a: p.anim, v: p.vehicleId };
+    return { id: p.id, name: p.name, level: p.level, avatar: p.avatar, p: p.pos, ry: p.ry, a: p.anim, v: p.vehicleId, pw: p.powers?.size ? [...p.powers] : undefined };
   }
 
   join(socket, user) {
@@ -89,7 +89,7 @@ export class Room {
       id: user.id, name: user.username, level: user.level, avatar: user.avatar, socket,
       pos: [spawn[0], spawn[1], spawn[2]], ry: 0, anim: 'idle', vehicleId: null,
       lastAccept: Date.now(), lastPos: [spawn[0], spawn[1], spawn[2]], violations: 0, violationWindow: Date.now(),
-      joinedAt: Date.now(), interactAt: 0, data: {}, role: user.role,
+      joinedAt: Date.now(), interactAt: 0, data: {}, role: user.role, powers: new Set(),
       historyId: users.startHistory(user.id, this.key, this.name),
     };
     this.players.set(user.id, p);
@@ -167,6 +167,17 @@ export class Room {
     for (const [uid, sp] of this.spectators) if (sp.target === userId) sp.socket.emit('admin:target-left', { id: userId });
   }
 
+  /** Activa o quita un poder de administrador y lo comunica a toda la sala. */
+  setPower(p, power, on) {
+    if (!ADMIN_POWERS[power]) return { error: 'Poder desconocido' };
+    if (on) p.powers.add(power);
+    else p.powers.delete(power);
+    if (on && power === 'giant') p.powers.delete('mini');
+    if (on && power === 'mini') p.powers.delete('giant');
+    this.io?.to(this.channel).emit('player:powers', { id: p.id, powers: [...p.powers], added: on ? power : null });
+    return { ok: true, powers: [...p.powers] };
+  }
+
   systemMessage(text) {
     this.io?.to(this.channel).emit('chat', { id: `s${Date.now()}${Math.random()}`, kind: 'system', text, ts: Date.now() });
   }
@@ -176,7 +187,9 @@ export class Room {
     if (!msg || !isVec3(msg.p)) return;
     const now = Date.now();
     const veh = p.vehicleId ? this.vehicles.get(p.vehicleId) : null;
-    if (!inBounds(msg.p, this.world.bounds) || !plausibleMove(p.lastPos, msg.p, now - p.lastAccept, veh?.type)) {
+    // Con poderes de administrador (volar, supervelocidad…) no se aplica el límite de velocidad
+    const free = p.powers?.size > 0;
+    if ((!free && !inBounds(msg.p, this.world.bounds)) || (!free && !plausibleMove(p.lastPos, msg.p, now - p.lastAccept, veh?.type))) {
       this.flag(p, 'movement');
       p.socket.emit('correction', { p: p.lastPos });
       return;

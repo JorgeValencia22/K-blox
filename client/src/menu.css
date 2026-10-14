@@ -139,3 +139,6 @@
 .cur-color { width: 30px; height: 30px; border-radius: 8px; border: 2px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.4); }
 .cam-palette .swatch.on { outline: 3px solid #fff; outline-offset: 1px; }
 .brush-hint { position: absolute; top: 120px; left: 50%; transform: translateX(-50%); padding: 8px 14px; border-radius: 12px; background: rgba(0,0,0,.6); font-weight: 800; font-size: 13px; z-index: 3; pointer-events: none; }
+
+.admin-powers { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); }
+.admin-row.self { border-color: #ffca28; }

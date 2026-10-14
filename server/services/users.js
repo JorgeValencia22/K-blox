@@ -161,6 +161,7 @@ export function saveAvatar(userId, avatar) {
 export function buyItem(userId, itemId) {
   const item = SHOP_BY_ID[itemId];
   if (!item) return { error: 'Objeto desconocido' };
+  if (item.unlock) return { error: `Este objeto no se compra: se gana en ${item.unlock}` };
   const result = tx((db) => {
     const u = db.prepare('SELECT coins FROM users WHERE id = ?').get(userId);
     if (!u) return { error: 'Usuario no encontrado' };
@@ -413,9 +414,8 @@ export function lockAdmin(userId) {
 }
 
 export function banMessage(u) {
-  if (u.banned_until >= PERMA_BAN) return 'Esta cuenta ha sido bloqueada para siempre';
-  const mins = Math.ceil((u.banned_until - Date.now()) / 60000);
-  return mins > 120 ? `Cuenta suspendida (${Math.ceil(mins / 60)} h más)` : `Cuenta suspendida (${mins} min más)`;
+  // Mensaje genérico a propósito: el jugador no sabe que está baneado
+  return u ? 'No se puede conectar con el servidor. Inténtalo más tarde.' : '';
 }
 
 /** Banea una cuenta: temporal (horas) o permanente. Cierra sus sesiones. */
@@ -427,7 +427,7 @@ export function banUser(userId, { hours = 24, perma = false } = {}) {
   const db = getDb();
   db.prepare('UPDATE users SET banned_until = ? WHERE id = ?').run(until, userId);
   db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
-  presence.disconnectUser(userId, perma ? '⛔ Has sido baneado para siempre' : '⛔ Has sido baneado temporalmente');
+  presence.disconnectUser(userId, 'Se ha perdido la conexión con el servidor'); // sin avisar de que es un baneo
   return { ok: true, until, perma };
 }
 
@@ -448,6 +448,17 @@ export function grantItem(userId, itemId) {
   presence.emit(userId, 'toast', { text: `🎁 ¡Un administrador te ha regalado ${name}!`, kind: 'reward' });
   presence.emit(userId, 'inventory', {});
   return { ok: true, added };
+}
+
+/** Desbloquea un objeto ganado jugando (no se compra). Devuelve true si es nuevo. */
+export function unlockItem(userId, itemId, source) {
+  const item = SHOP_BY_ID[itemId];
+  if (!item) return false;
+  const r = getDb().prepare('INSERT OR IGNORE INTO inventory (user_id, item_id, acquired_at) VALUES (?,?,?)').run(userId, itemId, Date.now());
+  if (!r.changes) return false;
+  presence.emit(userId, 'toast', { text: `🎁 ¡Has desbloqueado ${item.name}${source ? ` en ${source}` : ''}! Póntelo en Avatar.`, kind: 'reward' });
+  presence.emit(userId, 'inventory', {});
+  return true;
 }
 
 export function searchUsersAdmin(q) {

@@ -123,6 +123,15 @@ CREATE TABLE IF NOT EXISTS custom_emotes (
   created_by TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS fnaf_records (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  mode TEXT NOT NULL,
+  night INTEGER NOT NULL,
+  team TEXT NOT NULL,
+  players INTEGER NOT NULL,
+  result TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS daily_rewards (
   user_id TEXT NOT NULL,
   key TEXT NOT NULL,

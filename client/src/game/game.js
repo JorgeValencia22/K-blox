@@ -2,7 +2,7 @@
 // red, modo de juego, HUD y audio. Funciona en línea (sala del servidor) o en local
 // (modo de prueba del editor).
 import * as THREE from 'three';
-import { NET } from '../../../shared/constants.js';
+import { NET, ADMIN_POWERS } from '../../../shared/constants.js';
 import { getBuiltinWorld } from '../../../shared/worlds/index.js';
 import { insideObject, cycleToSkyTime } from '../../../shared/geometry.js';
 import { engine } from '../engine/renderer.js';
@@ -94,6 +94,8 @@ export class Game {
     for (const name of this.built.groupMeshes.keys()) setGroupState(this.built, name, this.groupState[name] !== false);
 
     this.hud = new Hud(this);
+    // Depuración local (solo en el propio PC del desarrollador)
+    if (['localhost', '127.0.0.1'].includes(location.hostname)) window.__kestGame = this;
     if (!this.offline) loadCustomEmotes();
     if (this.spectator) this.player.model.root.visible = false;
     this.pause = new PauseMenu(this);
@@ -225,15 +227,15 @@ export class Game {
       if (this.controlling === id) this.controlling = null;
     });
     // --- Acciones de un administrador sobre este jugador ---
-    on('admin:kill', ({ by }) => { this.player.dead = false; this.die(`💀 ${by} (admin) te ha eliminado`); });
-    on('admin:lose', ({ by, handled }) => {
-      this.hud.showCenter('❌ HAS PERDIDO', `Decisión de ${by} (admin)`, 3000);
+    // Sin avisos: el jugador no sabe que ha sido un administrador
+    on('admin:kill', () => { this.player.dead = false; this.die(''); });
+    on('admin:lose', ({ handled }) => {
+      this.hud.showCenter('❌ HAS PERDIDO', '', 3000);
       audio.play('death');
       if (!handled) { this.player.dead = false; this.die('Has perdido'); }
     });
     on('admin:freeze', ({ on: v }) => {
       this.adminFrozen = v;
-      this.hud.showCenter(v ? '🧊' : '🔥', v ? 'Un administrador te ha congelado' : 'Ya puedes moverte', 2000);
     });
     on('admin:launch', ({ power }) => {
       const b = this.player.body;
@@ -247,12 +249,18 @@ export class Game {
     on('admin:dance', ({ by }) => {
       this.danceUntil = performance.now() + 5000;
       this.player.playEmote('dance');
-      this.hud.showCenter('💃', `${by} (admin) te ha hecho bailar`, 2500);
     });
-    on('admin:control', ({ on: v, by }) => {
-      this.controlledBy = v ? by : null;
+    on('admin:control', ({ on: v }) => {
+      this.controlledBy = v ? 'admin' : null;
       this.remoteCtl = null;
-      this.hud.showCenter('🎮', v ? `${by} (admin) te está controlando` : 'Vuelves a tener el control', 2500);
+    });
+    on('player:powers', ({ id, powers, added }) => {
+      if (id === store.user.id) {
+        this.player.setPowers(powers);
+        // Los regalos sí se notan: un aviso corto de cómo se usan
+        if (added && ADMIN_POWERS[added]) this.hud.showCenter(ADMIN_POWERS[added].icon, `${ADMIN_POWERS[added].name}: ${ADMIN_POWERS[added].hint}`, 2600);
+      } else this.remotes.get(id)?.setPowers(powers);
+      this.adminPanel?.render();
     });
     on('admin:ctl', (c) => { this.remoteCtl = { ...c, at: performance.now() }; });
     on('admin:target-left', ({ id }) => { if (this.specTarget === id) this.cycleSpectate(1); });
@@ -312,6 +320,7 @@ export class Game {
     if (this.remotes.has(p.id)) return;
     const r = new RemotePlayer(this.scene, p);
     this.remotes.set(p.id, r);
+    if (p.pw) r.setPowers(p.pw);
     this.mode?.decorateRemote?.(r);
     return r;
   }
@@ -451,7 +460,7 @@ export class Game {
     const veh = p.vehicle;
     if (veh && !this.paused) this.driveVehicle(veh, dt, move);
     else if (veh) veh.applyPose();
-    let ctl = { move, run: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.pressed('Space'), jumpHeld: input.down('Space'), crouch: false };
+    let ctl = { move, run: input.down('ShiftLeft') || input.down('ShiftRight'), jump: input.pressed('Space'), jumpHeld: input.down('Space'), crouch: false, descend: input.down('KeyC') || input.down('ControlLeft') };
     let camFwd = this.cam.forward();
     // Un administrador controla a este jugador: sus mandos sustituyen a los nuestros
     const rc = this.controlledBy && this.remoteCtl && performance.now() - this.remoteCtl.at < 600 ? this.remoteCtl : null;

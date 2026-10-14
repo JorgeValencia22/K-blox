@@ -7,6 +7,7 @@ import { SHOP_ITEMS } from '../../../shared/catalog.js';
 import { net } from '../core/net.js';
 import { store } from '../core/store.js';
 import { input } from '../engine/input.js';
+import { ADMIN_POWERS } from '../../../shared/constants.js';
 
 export async function adminRequest(action, data = {}) {
   const r = await net.request('admin', { action, ...data });
@@ -40,8 +41,16 @@ export class AdminPanel {
 
   players() {
     const list = [];
-    for (const r of this.game.remotes.values()) if (!r.npc && !r.bot) list.push({ id: r.id, name: r.name });
+    for (const r of this.game.remotes.values()) if (!r.npc && !r.bot) list.push({ id: r.id, name: r.name, powers: r.powersList || [] });
     return list;
+  }
+
+  /** Botones de poderes (se activan y desactivan) para un jugador o para uno mismo. */
+  powerButtons(id, current) {
+    return h('div.admin-powers', Object.entries(ADMIN_POWERS).map(([k, pw]) => {
+      const on = current.includes(k);
+      return button(`${pw.icon} ${pw.name}`, () => adminRequest('power', { userId: id, power: k, on: !on }), `small${on ? ' primary' : ''}`);
+    }));
   }
 
   async act(action, userId, extra = {}) {
@@ -50,13 +59,21 @@ export class AdminPanel {
     return r;
   }
 
-  /** Barra sencilla: un jugador por fila con sus 6 botones. */
+  /** Barra sencilla: un jugador por fila con sus botones. Las sanciones no avisan al jugador. */
   render() {
     const g = this.game;
     const frozen = (this.frozen ??= new Set());
+    const openPw = (this.openPw ??= new Set());
+    const togglePw = (id) => { openPw.has(id) ? openPw.delete(id) : openPw.add(id); this.render(); };
+    const self = g.spectator ? null : h('div.admin-row.self',
+      h('div.row', h('b.admin-name.grow', `🛡️ Tú (${store.user.username})`), button(openPw.has('me') ? '✨ Ocultar poderes' : '✨ Mis poderes', () => togglePw('me'), 'small')),
+      openPw.has('me') ? this.powerButtons(store.user.id, [...(g.player?.powers || [])]) : null);
     const rows = this.players().map((p) => h(`div.admin-row${p.id === g.specTarget ? '.on' : ''}`,
       h('b.admin-name', p.name),
       h('div.admin-actions',
+        button('📍 Traer', () => this.act('bring', p.id), 'small'),
+        button('🚀 Ir', () => this.goto(p.id), 'small'),
+        button(openPw.has(p.id) ? '✨ Ocultar' : '✨ Poderes', () => togglePw(p.id), 'small'),
         button('💀 Matar', () => this.act('kill', p.id), 'small danger'),
         button('⛔ Banear', async () => {
           if (!confirm(`¿Banear a ${p.name} para siempre? (se puede quitar en Desarrollador → Jugadores)`)) return;
@@ -70,10 +87,12 @@ export class AdminPanel {
         button('💃 Hacer bailar', () => this.act('dance', p.id), 'small'),
         button('😱 Jumpscare', () => this.act('jumpscare', p.id), 'small'),
       ),
+      openPw.has(p.id) ? this.powerButtons(p.id, p.powers) : null,
     ));
     clear(this.el).append(
       h('div.row', h('b', { style: { flex: 1 } }, '🛡️ Jugadores'), button('✕', () => this.toggle(false), 'small')),
-      h('div.admin-rows', rows.length ? rows : h('p.muted.small', 'No hay más jugadores aquí.')),
+      h('p.muted.small', 'Matar, banear, echar, frezear o hacer bailar no avisan al jugador.'),
+      h('div.admin-rows', self, rows.length ? rows : h('p.muted.small', 'No hay más jugadores aquí.')),
       ...(g.spectator ? [h('div.row', button('⬅️', () => g.cycleSpectate(-1), 'small'), button('➡️', () => g.cycleSpectate(1), 'small'))] : []),
     );
   }
