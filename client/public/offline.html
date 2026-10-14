@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KestWorlds</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #111214; color: #fff; font-family: system-ui, sans-serif; }
+    body { display: grid; place-content: center; justify-items: center; gap: 14px; text-align: center; padding: 24px; }
+    svg { width: 84px; height: 84px; animation: spin 1.6s ease-in-out infinite; }
+    @keyframes spin { 50% { transform: rotate(180deg) scale(.88); } 100% { transform: rotate(360deg); } }
+    h1 { margin: 0; font-size: 26px; }
+    p { margin: 0; color: #a7a9ad; max-width: 340px; line-height: 1.5; }
+    button { margin-top: 6px; padding: 14px 30px; border: 0; border-radius: 10px; background: #00b06f; color: #fff; font-size: 17px; font-weight: 800; }
+  </style>
+</head>
+<body>
+  <svg viewBox="0 0 64 64"><path d="M32 4 58 18v28L32 60 6 46V18z" fill="#00d1b2"/><path d="M32 4 58 18 32 32 6 18z" fill="#7cf5df"/><path d="M32 32v28L6 46V18z" fill="#009e88"/></svg>
+  <h1>No hay conexión</h1>
+  <p>KestWorlds se juega online. Comprueba tu internet. Si es la primera vez en un rato, el servidor puede tardar un minuto en despertar.</p>
+  <button onclick="location.href='https://kest-worlds.onrender.com'">Reintentar</button>
+  <script>setTimeout(() => { location.href = 'https://kest-worlds.onrender.com'; }, 20000);</script>
+</body>
+</html>

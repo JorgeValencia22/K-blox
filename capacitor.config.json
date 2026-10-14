@@ -1,0 +1,13 @@
+{
+  "appId": "com.jorge.kestworlds",
+  "appName": "KestWorlds",
+  "webDir": "dist",
+  "server": {
+    "url": "https://kest-worlds.onrender.com",
+    "errorPath": "offline.html",
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#111214"
+  }
+}
