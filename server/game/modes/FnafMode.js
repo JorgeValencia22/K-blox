@@ -198,6 +198,10 @@ export class FnafMode extends BaseMode {
       if (data.custom && typeof data.custom === 'object') {
         this.cfg.custom = Object.fromEntries(ANIM_IDS.map((a) => [a, clampAi(data.custom[a] ?? 5)]));
       }
+    } else if (name === 'host') {
+      // Cualquiera puede tomar el mando del lobby (por si el anfitrión está ausente)
+      this.host = p.id;
+      this.room.systemMessage(`👑 ${p.name} es ahora el anfitrión de la noche`);
     } else if (name === 'start') {
       if (p.id !== this.host) return { error: 'Solo el anfitrión puede empezar la noche' };
       const mode = this.cfg.mode;

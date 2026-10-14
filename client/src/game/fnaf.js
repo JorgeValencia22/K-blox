@@ -256,7 +256,7 @@ export class FnafClient {
     return !!this.monitor || this.isAnim || this.isWatcher || performance.now() < this.scareUntil || this.s.phase === 'result';
   }
   get hint() {
-    if (this.s.phase !== 'night') return ['[L] panel del lobby'];
+    if (this.s.phase !== 'night') return ['[L] abrir/cerrar el panel para empezar la noche'];
     if (this.isAnim) return ['Muévete con los botones del panel. ¡Si te miran por la cámara, te congelas!'];
     if (this.night?.mode === 'last') return ['[F] linterna  [R] deslumbrar animatrónico  [Shift] correr (cansa)', '[E] puertas, pilas, compartir pila  [Q] luz de pasillo'];
     return ['[E] usar (monitor, puertas, generador)  [Q] mantén para la luz', '[F] linterna (ahuyenta si alguien entra)  [Espacio] cerrar cámaras'];
@@ -443,6 +443,9 @@ export class FnafClient {
     // Lobby y resultados
     this.lobbyEl = h('div.fn-lobby.panel');
     hud.el.appendChild(this.lobbyEl);
+    this.openLobbyBtn = button('🌙 Empezar la noche (panel) [L]', () => this.toggleLobby(true), 'primary fn-open-lobby');
+    this.openLobbyBtn.classList.add('hidden');
+    hud.el.appendChild(this.openLobbyBtn);
     this.resultsEl = h('div.fn-results.panel.hidden');
     hud.el.appendChild(this.resultsEl);
     // Susto
@@ -455,6 +458,7 @@ export class FnafClient {
   renderLobby() {
     const s = this.s;
     const el = this.lobbyEl;
+    this.openLobbyBtn.classList.toggle('hidden', s.phase !== 'lobby' || this.lobbyOpen);
     if (s.phase !== 'lobby' || !this.lobbyOpen) {
       el.classList.add('hidden');
       return;
@@ -467,7 +471,9 @@ export class FnafClient {
     const stats = store.user?.stats || {};
     put(el, 
       h('div.row', h('h3.grow', '🐻 Turno de Noche'), h('button.btn.small', { on: { click: () => this.toggleLobby(false) } }, 'Ocultar [L]')),
-      h('p.muted.small', isHost ? 'Eres el anfitrión: elige la modalidad y la noche y pulsa Empezar.' : `Anfitrión: ${s.players.find((p) => p.id === s.host)?.name || '—'}. Elige tu especialidad mientras tanto.`),
+      isHost ? h('p.small', '👑 Eres el anfitrión: elige la modalidad y la noche y pulsa ▶ Empezar (abajo).')
+        : h('div.row', { style: { gap: '8px' } }, h('p.muted.small.grow', `Anfitrión: ${s.players.find((p) => p.id === s.host)?.name || '—'}. Él elige y empieza la noche.`), button('👑 Ser anfitrión', () => this.send('host'), 'small')),
+      isHost ? button(`▶ Empezar ${cfg.night === 7 ? 'noche personalizada' : `noche ${cfg.night}`} · ${FNAF_MODES[cfg.mode].name}`, () => this.send('start'), 'primary') : null,
       sec('Modalidad'),
       h('div.fn-modes', Object.entries(FNAF_MODES).map(([id, m]) => h(`button.fn-mode${cfg.mode === id ? '.on' : ''}`, {
         disabled: !isHost, title: m.desc, on: { click: () => this.send('cfg', { mode: id }) },
@@ -490,7 +496,7 @@ export class FnafClient {
       }, `${r.icon} ${r.name}`))), h('p.muted.small', ROLES[me.role || 'free']?.desc || '')] : null,
       sec(`Jugadores (${s.players.length})`),
       h('div.fn-players', s.players.map((p) => h('div.fn-player', h('span', `${p.id === s.host ? '👑 ' : ''}${p.name}`), h('small.muted', cfg.mode === 'versus' && p.wantAnim ? `🎭 ${ANIMATRONICS[p.wantAnim].name}` : cfg.mode === 'last' ? '🔦' : `${ROLES[p.role]?.icon || ''} ${ROLES[p.role]?.name || ''}`)))),
-      isHost ? button(`▶ Empezar ${cfg.night === 7 ? 'noche personalizada' : `noche ${cfg.night}`}`, () => this.send('start'), 'primary') : h('p.muted.small', 'Esperando a que el anfitrión empiece…'),
+      isHost ? button(`▶ Empezar ${cfg.night === 7 ? 'noche personalizada' : `noche ${cfg.night}`}`, () => this.send('start'), 'primary') : h('p.muted.small', 'Esperando a que el anfitrión empiece… (o pulsa 👑 Ser anfitrión arriba)'),
       sec('Récords'),
       h('div.small', `Tu mejor noche: ${stats.fnafBest || 0} · Noches superadas: ${stats.fnafWins || 0} · Partidas: ${stats.fnafNights || 0}`),
       h('div.small', `Victorias como animatrónico: ${stats.fnafAnimWins || 0} · Último superviviente: ${stats.fnafLastWins || 0}`),
@@ -1068,6 +1074,6 @@ export class FnafClient {
     for (const b of this.batteryMeshes.values()) g.scene.remove(b);
     this.hud.lockHint.style.visibility = '';
     g.scene.remove(this.irLight, this.lamp, this.flash, this.flashTarget, this.musicLight, ...Object.values(this.doorLights));
-    for (const el of [this.topEl, this.monitorEl, this.animEl, this.lobbyEl, this.resultsEl, this.scareEl, this.holdEl]) el.remove();
+    for (const el of [this.openLobbyBtn, this.topEl, this.monitorEl, this.animEl, this.lobbyEl, this.resultsEl, this.scareEl, this.holdEl]) el.remove();
   }
 }

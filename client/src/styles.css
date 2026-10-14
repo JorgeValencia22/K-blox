@@ -350,7 +350,7 @@ input, textarea, .chat-log { -webkit-user-select: text; user-select: text; }
 .fn-close { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); pointer-events: auto; padding: 10px 22px; border-radius: 10px; background: rgba(0,0,0,.7); color: #fff; border: 1px solid #888; font-weight: 900; cursor: pointer; }
 .fn-anim { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(620px, calc(100vw - 32px)); max-height: 46vh; overflow: auto; padding: 12px; z-index: 4; }
 .fn-watched { color: #ff5252; font-weight: 900; animation: fnblink 0.6s steps(2) infinite; }
-.fn-lobby { position: absolute; left: 12px; top: 150px; width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 170px); overflow: auto; padding: 14px; z-index: 4; }
+.fn-lobby { position: absolute; right: 12px; top: 64px; width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 120px); overflow: auto; padding: 14px; z-index: 4; }
 .fn-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .fn-mode { text-align: left; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); color: inherit; font: inherit; cursor: pointer; }
 .fn-mode small { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
@@ -364,4 +364,6 @@ input, textarea, .chat-log { -webkit-user-select: text; user-select: text; }
 .fn-scare.dark { background: #000; }
 .fn-hold { position: absolute; left: 50%; top: 60%; transform: translateX(-50%); width: 220px; height: 12px; border-radius: 8px; background: rgba(0,0,0,.6); overflow: hidden; }
 .fn-hold > div { height: 100%; width: 0; background: #66bb6a; }
-@media (max-width: 760px) { .fn-modes { grid-template-columns: 1fr; } .fn-lobby { top: 120px; } .fn-top { top: 60px; } }
+.fn-open-lobby { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 5; padding: 12px 22px; font-size: 17px; box-shadow: 0 0 0 3px rgba(255,255,255,.25), 0 8px 24px rgba(0,0,0,.5); animation: fnpulse 1.6s ease-in-out infinite; }
+@keyframes fnpulse { 50% { transform: translateX(-50%) scale(1.06); } }
+@media (max-width: 760px) { .fn-modes { grid-template-columns: 1fr; } .fn-lobby { top: 64px; left: 16px; right: 16px; width: auto; } .fn-top { top: 60px; } }

@@ -56,6 +56,12 @@ test('lobby: solo el anfitrión configura y la noche empieza en la oficina', asy
     assert.ok(r.ok);
     r = await mode(sb, 'start');
     assert.ok(r.error);
+    // Cualquiera puede hacerse anfitrión (y devolverlo)
+    r = await mode(sb, 'host');
+    assert.ok(r.ok);
+    assert.equal(m.host, bId);
+    await mode(sa, 'host');
+    assert.equal(m.host, aId);
     const started = once(sa, 'fnaf', (s) => s.phase === 'night');
     r = await mode(sa, 'start');
     assert.ok(r.ok, JSON.stringify(r));
