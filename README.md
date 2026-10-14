@@ -177,6 +177,8 @@ arrastrar en la mitad derecha mueve la cámara. Sensibilidad e inversión del ej
 
    **Probarlo:** inicia sesión, pulsa JUGAR en «Turno de Noche», elige modalidad y noche en el panel (tecla **L**) y pulsa *Empezar*. Para jugar con amigos, que entren en la misma sala (o invítalos desde la lista de amigos).
 
+17. **Fábrica Feliz** – terror de puzles en una fábrica de juguetes abandonada (inspirado en los juegos de fábricas de juguetes, con personajes originales). Cada jugador lleva una **mochila con dos manos extensibles**: **clic izquierdo / Z** = mano azul y **clic derecho / X** = mano roja (en el móvil, botones 🔵 y 🔴). Agarran a 13 m: escáneres, palancas, enchufes y engranajes. Puzles cooperativos por salas: escáner azul, cargar la mano roja en el generador y dispararla al receptor en 7 s, 3 engranajes (uno en lo alto y otro tras una valla) y azul + rojo casi a la vez. Al entrar en la vitrina despierta **Tito Larguirucho** y empieza la persecución hasta la salida, donde hay que tirarle una caja con la mano roja. 4 cintas VHS secretas con la historia, sustos en los que Tito se asoma, logros y la mochila de manos como premio.
+
 El Obby oficial ahora tiene 10 etapas (pilares, plataformas rápidas, islas con trampolín, espiral y vigas con vallas de lava).
 
 ### Editor de mundos (CREAR)
@@ -283,7 +285,7 @@ kest-worlds/
 
 ## Pruebas
 
-`npm test` ejecuta 55 pruebas (incluye modo desarrollador, Kesty Coins y los 4 modos nuevos): registro/inicio/cierre de sesión, bloqueo por intentos, tienda
+`npm test` ejecuta 57 pruebas (incluye modo desarrollador, Kesty Coins y los 4 modos nuevos): registro/inicio/cierre de sesión, bloqueo por intentos, tienda
 y validación de avatar, amigos y bloqueos, guardado/validación/publicación de mundos,
 multijugador real con dos clientes Socket.IO (visibilidad, movimiento, corrección
 antitrampas, chat filtrado, reportes), validación del obby, salas privadas e invitaciones,

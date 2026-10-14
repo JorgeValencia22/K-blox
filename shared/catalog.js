@@ -3,6 +3,11 @@
 
 export const EXPERIENCES = [
   {
+    id: 'poppy', name: 'Fábrica Feliz', category: 'horror', maxPlayers: 8, creator: 'KestWorlds Studio', isNew: true, featured: true,
+    description: 'Una fábrica de juguetes abandonada. Con tu mochila de manos extensibles (azul y roja) agarra escáneres, enchufes, palancas y engranajes para abrir cada sala… hasta que Tito Larguirucho despierta y toca CORRER. Cooperativo, con cintas VHS secretas.',
+    cover: { a: '#1a237e', b: '#d81b60', icon: '🧸' },
+  },
+  {
     id: 'fnaf', name: 'Turno de Noche', category: 'horror', maxPlayers: 8, creator: 'KestWorlds Studio', isNew: true, featured: true,
     description: 'Eres el guardia nocturno de la Pizzería Kesty. Vigila las cámaras, cierra puertas, enciende luces y ahorra energía hasta las 6:00… mientras Bruno, Rita, Pía y Fito se mueven en la oscuridad. 4 modalidades con amigos: guardia cooperativo, supervivencia por equipos, animatrónico contra guardias y último superviviente.',
     cover: { a: '#1a0d0d', b: '#6a1b9a', icon: '🐻' },
@@ -150,6 +155,7 @@ export const SHOP_ITEMS = [
     ['acc_wings', 'Alas de ángel', 1200, { rare: true }], ['acc_jetpack', 'Mochila cohete', 1500, { rare: true }],
     ['acc_guardcap', 'Gorra de guardia', 0, { unlock: 'Turno de Noche (noche 1)' }], ['acc_bearears', 'Orejas de Bruno', 0, { unlock: 'Turno de Noche (noche 5)', rare: true }],
     ['acc_bowtie', 'Pajarita de animatrónico', 0, { unlock: 'Turno de Noche (gana como animatrónico)', rare: true }],
+    ['acc_grabpack', 'Mochila de manos extensibles', 0, { unlock: 'Fábrica Feliz (escapa de la fábrica)', rare: true }],
   ]),
   ...I('emote', [
     ['emote_wave', 'Saludar', 0], ['emote_dance', 'Bailar', 0], ['emote_cheer', 'Celebrar', 0],
@@ -207,6 +213,8 @@ export const ACHIEVEMENTS = [
   { id: 'fnaf_team', name: 'Equipo nocturno', desc: 'Sobrevive a una noche con 3 guardias o más', reward: 100 },
   { id: 'fnaf_anim', name: '¡Es la hora del show!', desc: 'Gana como animatrónico en Turno de Noche', reward: 120 },
   { id: 'fnaf_last', name: 'Último en pie', desc: 'Gana una partida de Último superviviente', reward: 120 },
+  { id: 'poppy_escape', name: 'Fuera de la fábrica', desc: 'Escapa de Tito Larguirucho en Fábrica Feliz', reward: 150 },
+  { id: 'poppy_tapes', name: 'Videoteca', desc: 'Encuentra las 4 cintas VHS de Fábrica Feliz', reward: 100 },
   { id: 'heist', name: 'Golpe maestro', desc: 'Completa un atraco en Castores al Ataque', reward: 100 },
 ];
 export const ACH_BY_ID = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));

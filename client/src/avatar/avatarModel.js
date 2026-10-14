@@ -817,6 +817,15 @@ export class AvatarModel {
         B(sphere(0.045, 8, 6), c, 0, 1.49, 0.25);
         break;
       }
+      case 'acc_grabpack': {
+        B(rbox(0.5, 0.56, 0.24, 0.07), main('#37474f'), 0, 1.15, -0.34);
+        B(rbox(0.3, 0.16, 0.06, 0.03), std('#ffca28'), 0, 1.28, -0.47);
+        for (const [s, c] of [[-1, '#2979ff'], [1, '#ff1744']]) {
+          B(cyl(0.05, 0.05, 0.5, 8), dark, s * 0.2, 1.0, -0.42, null, [0.4, 0, 0]);
+          B(sphere(0.12, 10, 8), std(c), s * 0.22, 0.78, -0.52, [1, 0.8, 1.2]);
+        }
+        break;
+      }
       case 'acc_jetpack': {
         B(rbox(0.46, 0.5, 0.2, 0.06), metal, 0, 1.12, -0.32);
         const flames = [];

@@ -13,6 +13,7 @@ import { PesadillaClient, DesastresClient, HuertoClient, BloquesClient } from '.
 import { AsaltoClient } from './asalto.js';
 import { CamaleonClient } from './camaleon.js';
 import { FnafClient } from './fnaf.js';
+import { PoppyClient } from './poppy.js';
 
 class BaseClient {
   constructor(game, state) {
@@ -583,6 +584,7 @@ class KeysClient extends ObbyClient {
 export function createClientMode(name, game, state) {
   switch (name) {
     case 'fnaf': return new FnafClient(game, state);
+    case 'poppy': return new PoppyClient(game, state);
     case 'camaleon': return new CamaleonClient(game, state);
     case 'asalto': return new AsaltoClient(game, state);
     case 'pesadilla': return new PesadillaClient(game, state);
