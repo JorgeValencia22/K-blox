@@ -303,7 +303,9 @@ rampas, plataformas móviles, techos) y herramientas de moderación.
 3. En **Environment** añade `OWNER_USERNAME` y `OWNER_PASSWORD` para tener el modo desarrollador (no los escribas en ningún archivo del repositorio).
 4. Al terminar te da una dirección `https://kest-worlds-xxxx.onrender.com` para compartir.
 
-Limitaciones del plan gratuito: el servidor se duerme tras 15 minutos sin jugadores (tarda ~1 minuto en despertar) y **su disco se borra al dormirse**, así que las cuentas se pierden. Por eso existe el botón **Jugar como invitado**: si el servidor se reinició, se crea un invitado nuevo automáticamente. Para conservar cuentas usa un plan con disco persistente (`DB_FILE` en el disco) o un VPS.
+**Datos que no se pierden y servidor siempre despierto (gratis):** crea una base de datos en [Turso](https://turso.tech) (plan gratuito, sin tarjeta) y pon `TURSO_DATABASE_URL` y `TURSO_AUTH_TOKEN` en *Environment* de Render. El servidor restaura los datos al arrancar y sube una copia comprimida cada 20 s si hay cambios (y al apagarse). Además, en Render el servidor se visita a sí mismo cada 10 min para no dormirse (`KEEP_AWAKE=0` lo desactiva); un solo servicio encendido todo el mes cabe en las 750 h gratuitas.
+
+Limitaciones del plan gratuito (sin Turso): el servidor se duerme tras 15 minutos sin jugadores (tarda ~1 minuto en despertar) y **su disco se borra al dormirse**, así que las cuentas se pierden. Por eso existe el botón **Jugar como invitado**: si el servidor se reinició, se crea un invitado nuevo automáticamente. Para conservar cuentas usa un plan con disco persistente (`DB_FILE` en el disco) o un VPS.
 
 ## Publicar en un servidor
 

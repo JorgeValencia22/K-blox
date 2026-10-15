@@ -3,12 +3,16 @@ import { config } from './config.js';
 import { createApp } from './app.js';
 import { getBuiltinWorld } from '../shared/worlds/index.js';
 import { EXPERIENCES } from '../shared/catalog.js';
-import { closeDb } from './db/database.js';
+import { closeDb, getDb } from './db/database.js';
+import { restoreBackup, startBackups, saveBackup, stopBackups } from './db/backup.js';
 
 // Pre-genera los mundos oficiales para que la primera entrada sea rápida.
 for (const e of EXPERIENCES) getBuiltinWorld(e.id);
 
+// Si hay copia en la nube (Turso), se restaura antes de abrir la base de datos
+await restoreBackup(config.dbFile);
 const { server, io } = createApp();
+startBackups(getDb(), config.dbFile);
 
 server.on('error', (e) => {
   if (e.code === 'EADDRINUSE') {
@@ -21,10 +25,31 @@ server.on('error', (e) => {
 server.listen(config.port, config.host, () => {
   console.log(`\n  KestWorlds - servidor "${config.serverName}" escuchando en http://localhost:${config.port}`);
   console.log(`  Base de datos: ${config.dbFile}\n`);
+  keepAwake();
 });
 
-function shutdown() {
+/**
+ * En el plan gratuito de Render el servidor se duerme tras 15 min sin visitas.
+ * Se visita a sí mismo cada 10 min por su dirección pública para seguir despierto
+ * (un solo servicio encendido todo el mes cabe en las 750 h gratuitas).
+ * Se desactiva con KEEP_AWAKE=0.
+ */
+function keepAwake() {
+  const url = process.env.KEEP_AWAKE_URL || process.env.RENDER_EXTERNAL_URL;
+  if (!url || process.env.KEEP_AWAKE === '0') return;
+  setInterval(() => { fetch(`${url}/api/health`).catch(() => {}); }, 10 * 60_000).unref();
+  console.log(`  Manteniendo despierto: ${url}`);
+}
+
+let closing = false;
+async function shutdown() {
+  if (closing) return;
+  closing = true;
   console.log('\nCerrando servidor...');
+  stopBackups();
+  setTimeout(() => process.exit(0), 15_000).unref();
+  // Última copia en la nube antes de apagar
+  try { await saveBackup(getDb(), config.dbFile, { force: true }); } catch { /* sin copia */ }
   io.close();
   server.close(() => {
     closeDb();

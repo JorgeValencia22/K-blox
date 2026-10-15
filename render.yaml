@@ -21,3 +21,8 @@ services:
         sync: false
       - key: OWNER_PASSWORD
         sync: false
+      # Copia continua de los datos en Turso (gratis): las cuentas no se pierden al reiniciar
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false

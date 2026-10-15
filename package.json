@@ -23,6 +23,7 @@
     "@capacitor/android": "^8.5.2",
     "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^8.5.2",
+    "@libsql/client": "^0.18.0",
     "express": "^4.21.2",
     "socket.io": "^4.8.1"
   },
@@ -46,8 +47,17 @@
     "files": [
       "electron-main.cjs",
       "package.json",
+      "Logo-azul-juego.ico",
+      "Logo-rojo-instalación.ico",
       "!android/**",
       "!ios/**"
-    ]
+    ],
+    "win": {
+      "icon": "Logo-azul-juego.ico"
+    },
+    "nsis": {
+      "installerIcon": "Logo-rojo-instalación.ico",
+      "uninstallerIcon": "Logo-rojo-instalación.ico"
+    }
   }
 }
