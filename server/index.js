@@ -3,16 +3,17 @@ import { config } from './config.js';
 import { createApp } from './app.js';
 import { getBuiltinWorld } from '../shared/worlds/index.js';
 import { EXPERIENCES } from '../shared/catalog.js';
-import { closeDb, getDb } from './db/database.js';
+import { closeDb, getDb, openDb } from './db/database.js';
 import { restoreBackup, startBackups, saveBackup, stopBackups } from './db/backup.js';
 
 // Pre-genera los mundos oficiales para que la primera entrada sea rápida.
 for (const e of EXPERIENCES) getBuiltinWorld(e.id);
 
-// Si hay copia en la nube (Turso), se restaura antes de abrir la base de datos
-await restoreBackup(config.dbFile);
+// Si la base de datos está vacía (el hosting gratuito borra el disco), se recupera la última copia guardada
+openDb(config.dbFile);
+await restoreBackup(getDb());
 const { server, io } = createApp();
-startBackups(getDb(), config.dbFile);
+startBackups(getDb());
 
 server.on('error', (e) => {
   if (e.code === 'EADDRINUSE') {
@@ -49,7 +50,7 @@ async function shutdown() {
   stopBackups();
   setTimeout(() => process.exit(0), 15_000).unref();
   // Última copia en la nube antes de apagar
-  try { await saveBackup(getDb(), config.dbFile, { force: true }); } catch { /* sin copia */ }
+  try { await saveBackup(getDb(), { force: true }); } catch { /* sin copia */ }
   io.close();
   server.close(() => {
     closeDb();

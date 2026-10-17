@@ -1,0 +1,196 @@
+<!doctype html>
+<!--
+  Visor de datos de KestWorlds (herramienta aparte, solo para el administrador).
+  Lee la copia cifrada que el servidor guarda en GitHub (kestworlds.dat) y la descifra
+  EN ESTE NAVEGADOR con la clave KEST_DATA_KEY. La clave y el token no se envían a
+  ningún sitio salvo el token, que solo se usa para descargar el archivo desde GitHub.
+-->
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>KestWorlds · Visor de datos</title>
+  <style>
+    :root { --bg: #111214; --panel: #1c1e22; --line: rgba(255,255,255,.09); --muted: #a7a9ad; --blue: #335fff; --green: #00b06f; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: #fff; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+    header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: #17181b; border-bottom: 1px solid var(--line); }
+    header svg { width: 34px; height: 34px; }
+    header h1 { margin: 0; font-size: 20px; }
+    header small { color: var(--muted); }
+    main { max-width: 1200px; margin: 0 auto; padding: 20px; display: grid; gap: 16px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+    h2 { margin: 0 0 10px; font-size: 17px; }
+    label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+    input, select { background: #0c0d0f; color: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font: inherit; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+    .row > label { flex: 1 1 220px; }
+    button { border: 0; border-radius: 8px; padding: 10px 18px; font: inherit; font-weight: 700; color: #fff; background: var(--blue); cursor: pointer; }
+    button.green { background: var(--green); }
+    button.ghost { background: #2a2c31; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .err { color: #ff8a98; font-weight: 600; min-height: 20px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+    .stat { background: #23252a; border-radius: 10px; padding: 12px; }
+    .stat b { display: block; font-size: 24px; }
+    .stat span { color: var(--muted); font-size: 12px; }
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .tabs button { background: #2a2c31; padding: 7px 12px; font-size: 13px; }
+    .tabs button.on { background: #fff; color: #111; }
+    .tablewrap { overflow: auto; max-height: 60vh; border: 1px solid var(--line); border-radius: 8px; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
+    th { position: sticky; top: 0; background: #23252a; z-index: 1; }
+    tr:hover td { background: rgba(255,255,255,.03); }
+    .hidden { display: none !important; }
+    .pill { display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; background: #2a2c31; }
+    .pill.red { background: #5a1d26; color: #ffb3bd; }
+    .pill.gold { background: #5a4a10; color: #ffe082; }
+  </style>
+</head>
+<body>
+<header>
+  <svg viewBox="0 0 64 64"><path d="M32 4 58 18v28L32 60 6 46V18z" fill="#00d1b2"/><path d="M32 4 58 18 32 32 6 18z" fill="#7cf5df"/><path d="M32 32v28L6 46V18z" fill="#009e88"/></svg>
+  <div><h1>Visor de datos</h1><small>KestWorlds · solo para el administrador</small></div>
+</header>
+<main>
+  <section class="card" id="load">
+    <h2>🔐 Abrir la copia guardada</h2>
+    <p class="muted">Todo se descifra aquí, en tu navegador. Sin la clave, el archivo es solo ruido.</p>
+    <div class="row">
+      <label>Repositorio de GitHub <input id="repo" placeholder="usuario/kestworlds-datos" autocomplete="off" /></label>
+      <label>Token de GitHub (solo para descargar) <input id="token" type="password" autocomplete="off" placeholder="github_pat_…" /></label>
+    </div>
+    <p class="muted" style="margin:8px 0">…o elige el archivo <code>kestworlds.dat</code> descargado de tu repositorio:</p>
+    <div class="row">
+      <label>Archivo <input id="file" type="file" accept=".dat" /></label>
+      <label>Clave de los datos (KEST_DATA_KEY) <input id="key" type="password" autocomplete="off" /></label>
+      <button class="green" id="open">Abrir</button>
+    </div>
+    <div class="err" id="err"></div>
+  </section>
+
+  <section class="card hidden" id="view">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <h2 id="when">Copia</h2>
+      <div class="row"><button class="ghost" id="json">⬇️ Descargar JSON</button><button class="ghost" id="close">🔒 Cerrar</button></div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div style="height:14px"></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="row" style="margin-bottom:10px"><label>Buscar <input id="q" placeholder="Nombre, id, texto…" /></label></div>
+    <div class="tablewrap"><table id="table"></table></div>
+    <p class="muted" id="count"></p>
+  </section>
+</main>
+<script>
+// Columnas que nunca se muestran (huellas de contraseñas y sesiones)
+const HIDE = new Set(['pass_hash', 'token_hash']);
+const NICE = { users: '👤 Usuarios', inventory: '🎒 Inventario', achievements: '🏆 Logros', worlds: '🌍 Mundos', friendships: '👥 Amistades', history: '🕑 Historial', reports: '⚠️ Reportes', gift_codes: '🎟️ Códigos', fnaf_records: '🐻 Récords Turno de Noche', avatar_presets: '💾 Conjuntos', custom_emotes: '🎭 Emotes', blocks: '🚫 Bloqueos', favorites: '⭐ Favoritos', daily_rewards: '🎁 Recompensas', gift_redemptions: '🎟️ Canjes', sessions: '🔑 Sesiones' };
+let data = null, current = 'users';
+const $ = (id) => document.getElementById(id);
+const fmtDate = (v) => (typeof v === 'number' && v > 1e12 ? new Date(v).toLocaleString('es') : v);
+
+async function getBytes() {
+  const f = $('file').files[0];
+  if (f) return new Uint8Array(await f.arrayBuffer());
+  const repo = $('repo').value.trim(), token = $('token').value.trim();
+  if (!repo || !token) throw new Error('Elige el archivo o escribe el repositorio y el token');
+  const res = await fetch(`https://api.github.com/repos/${repo}/contents/kestworlds.dat`, {
+    headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github.raw', 'x-github-api-version': '2022-11-28' },
+  });
+  if (res.status === 404) throw new Error('No hay copia en ese repositorio todavía (o el token no tiene acceso)');
+  if (!res.ok) throw new Error(`GitHub respondió ${res.status}`);
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+async function gunzip(bytes) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return await new Response(stream).text();
+}
+
+async function decrypt(bytes, pass) {
+  const magic = new TextDecoder().decode(bytes.slice(0, 4));
+  if (magic === 'KWD0') return gunzip(bytes.slice(4));
+  if (magic !== 'KWD1') throw new Error('No es una copia de KestWorlds');
+  if (!pass) throw new Error('Escribe la clave de los datos');
+  const salt = bytes.slice(4, 20), iv = bytes.slice(20, 32), tag = bytes.slice(32, 48), enc = bytes.slice(48);
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  const joined = new Uint8Array(enc.length + tag.length);
+  joined.set(enc); joined.set(tag, enc.length);
+  let plain;
+  try { plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, joined); }
+  catch { throw new Error('Clave incorrecta'); }
+  return gunzip(new Uint8Array(plain));
+}
+
+function render() {
+  const t = data.tables;
+  const users = t.users || [];
+  const coins = users.reduce((s, u) => s + (u.coins || 0), 0);
+  const banned = users.filter((u) => u.banned_until > Date.now()).length;
+  const guests = users.filter((u) => /^Invitado_/.test(u.username)).length;
+  $('when').textContent = `Copia del ${new Date(data.at).toLocaleString('es')}`;
+  $('stats').innerHTML = [
+    [users.length, 'Usuarios'], [users.length - guests, 'Con cuenta propia'], [guests, 'Invitados'], [(t.worlds || []).length, 'Mundos creados'],
+    [coins.toLocaleString('es'), 'Kesty Coins en total'], [banned, 'Baneados ahora'], [(t.reports || []).filter((r) => r.status === 'open').length, 'Reportes abiertos'],
+  ].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
+  $('tabs').innerHTML = '';
+  for (const name of Object.keys(t).filter((n) => t[n].length)) {
+    const b = document.createElement('button');
+    b.textContent = `${NICE[name] || name} (${t[name].length})`;
+    b.className = name === current ? 'on' : '';
+    b.onclick = () => { current = name; render(); };
+    $('tabs').append(b);
+  }
+  renderTable();
+}
+
+function cell(col, v) {
+  if (v == null) return '';
+  if (col === 'role' && v === 'admin') return '<span class="pill gold">admin</span>';
+  if (col === 'banned_until' && v > Date.now()) return `<span class="pill red">hasta ${v > 2.5e14 ? 'siempre' : new Date(v).toLocaleString('es')}</span>`;
+  if (col === 'banned_until' || col === 'chat_muted_until') return v ? fmtDate(v) : '—';
+  if (/(_at|at|last_seen|day)$/.test(col)) return fmtDate(v);
+  const s = typeof v === 'string' ? v : JSON.stringify(v);
+  return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+function renderTable() {
+  const rows = data.tables[current] || [];
+  const q = $('q').value.trim().toLowerCase();
+  const list = q ? rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q)) : rows;
+  const cols = [...new Set(rows.flatMap((r) => Object.keys(r)))].filter((c) => !HIDE.has(c) && !(current === 'worlds' && /data|cover/.test(c)));
+  $('table').innerHTML = `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${
+    list.slice(0, 1000).map((r) => `<tr>${cols.map((c) => `<td title="${cell(c, r[c]).replace(/"/g, '&quot;')}">${cell(c, r[c])}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  $('count').textContent = `${list.length} filas${list.length > 1000 ? ' (se muestran 1000)' : ''}`;
+}
+
+$('open').onclick = async () => {
+  $('err').textContent = '';
+  $('open').disabled = true;
+  try {
+    const text = await decrypt(await getBytes(), $('key').value);
+    data = JSON.parse(text);
+    $('view').classList.remove('hidden');
+    current = 'users';
+    render();
+  } catch (e) {
+    $('err').textContent = '❌ ' + e.message;
+  } finally {
+    $('open').disabled = false;
+  }
+};
+$('q').oninput = () => data && renderTable();
+$('close').onclick = () => { data = null; $('view').classList.add('hidden'); $('key').value = ''; $('token').value = ''; $('table').innerHTML = ''; };
+$('json').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  a.download = `kestworlds-datos-${new Date(data.at).toISOString().slice(0, 10)}.json`;
+  a.click();
+};
+</script>
+</body>
+</html>

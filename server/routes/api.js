@@ -5,6 +5,7 @@ import * as users from '../services/users.js';
 import * as social from '../services/social.js';
 import * as worlds from '../services/worlds.js';
 import * as emotes from '../services/emotes.js';
+import { status as backupStatus } from '../db/backup.js';
 import { getDb } from '../db/database.js';
 import { presence } from '../realtime/presence.js';
 import { SHOP_ITEMS, ACHIEVEMENTS, EXPERIENCES } from '../../shared/catalog.js';
@@ -100,6 +101,12 @@ export function apiRouter(rooms) {
       FROM reports r LEFT JOIN users ru ON ru.id = r.reporter_id LEFT JOIN users tu ON tu.id = r.target_user_id LEFT JOIN worlds w ON w.id = r.world_id
       WHERE r.status = 'open' ORDER BY r.created_at DESC LIMIT 100`).all();
     res.json({ reports: rows });
+  });
+  // Estado del guardado de datos (solo el administrador)
+  r.get('/admin/data-status', admin, (req, res) => {
+    const db = getDb();
+    const count = (t) => db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n;
+    res.json({ ...backupStatus, users: count('users'), worlds: count('worlds'), repo: process.env.GITHUB_DATA_REPO || null });
   });
   r.post('/admin/emotes', admin, express.json({ limit: '200kb' }), (req, res) => send(res, emotes.saveEmote(req.user.id, req.body?.emote)));
   r.delete('/admin/emotes/:id', admin, (req, res) => send(res, emotes.deleteEmote(req.params.id)));

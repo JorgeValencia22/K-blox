@@ -13,7 +13,7 @@ export function adminScreen(app) {
   const body = h('div');
   let timer = null;
 
-  const renderTabs = () => clear(tabs).append(...[['live', '🖥️ Servidores'], ['people', '👤 Jugadores'], ['global', '⛔ Control global'], ['coins', '🪙 Monedas y códigos'], ['reports', '🚩 Reportes']].map(([id, label]) =>
+  const renderTabs = () => clear(tabs).append(...[['live', '🖥️ Servidores'], ['people', '👤 Jugadores'], ['global', '⛔ Control global'], ['coins', '🪙 Monedas y códigos'], ['reports', '🚩 Reportes'], ['data', '💾 Datos guardados']].map(([id, label]) =>
     h(`button.pill${tab === id ? '.on' : ''}`, { on: { click: () => { tab = id; renderTabs(); load(); } } }, label)));
 
   async function live() {
@@ -169,12 +169,38 @@ export function adminScreen(app) {
     search();
   }
 
+  /** Estado del guardado de datos fuera del servidor (GitHub cifrado o Turso). */
+  async function data() {
+    let st;
+    try { st = await get('/admin/data-status'); } catch (e) { toast(e.message, 'err'); return; }
+    const ago = (t) => (t ? `hace ${Math.max(0, Math.round((Date.now() - t) / 1000))} s` : 'todavía no');
+    const where = st.provider === 'github' ? `GitHub (${st.repo})` : st.provider === 'turso' ? 'Turso' : null;
+    clear(body).append(
+      h('div.row.wrap', { style: { marginBottom: '10px', gap: '10px' } },
+        h('div.stat-tile', h('b', where ? '✅ Activo' : '⚠️ Apagado'), h('span', where || 'sin configurar')),
+        h('div.stat-tile', h('b', st.encrypted ? '🔐 Sí' : 'No'), h('span', 'cifrado')),
+        h('div.stat-tile', h('b', ago(st.lastSave)), h('span', 'última copia')),
+        h('div.stat-tile', h('b', st.lastSize ? `${Math.max(1, Math.round(st.lastSize / 1024))} KB` : '—'), h('span', 'tamaño')),
+        h('div.stat-tile', h('b', st.users), h('span', 'usuarios')),
+        h('div.stat-tile', h('b', st.worlds), h('span', 'mundos')),
+      ),
+      st.lastError ? h('p.err', `Último error: ${st.lastError}`) : null,
+      st.restoredAt ? h('p.muted.small', `Al arrancar se recuperaron ${st.restoredUsers} usuarios de la copia.`) : null,
+      where ? h('p.muted', 'El servidor guarda una copia cada minuto si algo cambia, y otra al apagarse. Si el hosting se reinicia y borra el disco, al arrancar lo recupera todo.')
+        : h('p.muted', 'Sin guardado: si el servidor gratuito se reinicia, se pierden las cuentas. Configura GITHUB_DATA_REPO, GITHUB_DATA_TOKEN y KEST_DATA_KEY en el panel del hosting.'),
+      h('div.row.wrap', { style: { gap: '8px' } },
+        button('🔍 Abrir el Visor de datos', () => window.open('/visor-datos.html', '_blank'), 'primary'),
+      ),
+    );
+  }
+
   function load() {
     clearInterval(timer);
     if (tab === 'live') { live(); timer = setInterval(live, 4000); }
     else if (tab === 'people') people();
     else if (tab === 'global') global();
     else if (tab === 'coins') coins();
+    else if (tab === 'data') data();
     else reports();
   }
 
