@@ -132,6 +132,26 @@ h1, h2, h3 { margin: 0 0 12px; }
 
 /* Avatar */
 .avatar-layout { display: grid; grid-template-columns: 1fr 420px; height: 100%; }
+/* Tienda: vista 3D a la izquierda y catálogo con imágenes a la derecha */
+.shop-layout { display: grid; grid-template-columns: 1fr minmax(520px, 52%); height: 100%; }
+.shop-side { overflow: auto; padding: 14px 16px; border-left: 1px solid var(--line); background: rgba(18,20,43,.94); }
+.shop-cats { flex-wrap: wrap; }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.shop-card { position: relative; padding: 8px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); cursor: pointer; text-align: center; transition: transform .12s, border-color .2s; }
+.shop-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,.25); }
+.shop-card.on { border-color: var(--brand); box-shadow: 0 0 0 2px rgba(0,209,178,.35); }
+.shop-card.rare { border-color: rgba(224,64,251,.55); }
+.shop-thumb { position: relative; aspect-ratio: 220 / 260; border-radius: 10px; background: radial-gradient(circle at 50% 40%, #3a3f7a, #1a1d3f); overflow: hidden; display: grid; place-items: center; }
+.shop-thumb .thumb-img { width: 100%; height: 100%; object-fit: cover; }
+.shop-thumb .thumb-icon { font-size: 46px; }
+.shop-new { position: absolute; top: 6px; left: 6px; font-size: 10px; font-weight: 900; padding: 1px 6px; border-radius: 99px; background: #ff5470; color: #fff; }
+.shop-name { font-weight: 800; font-size: 13px; margin-top: 6px; line-height: 1.2; }
+.shop-price { font-weight: 800; font-size: 13px; color: var(--accent); margin-top: 3px; }
+.shop-price .owned, .shop-info .owned { color: var(--brand); }
+.coin.sm { display: inline-grid; place-content: center; width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff4b0, var(--accent) 50%, #c98a00); font-size: 10px; color: #6b4500; font-weight: 900; vertical-align: -3px; }
+.shop-info { position: absolute; left: 16px; right: 16px; bottom: 44px; max-width: 520px; padding: 14px 16px; background: rgba(18,20,43,.92); }
+.shop-info h3 { margin: 2px 0; }
+.rare-tag { margin-left: 8px; font-size: 11px; padding: 1px 7px; border-radius: 99px; background: #e040fb; color: #fff; vertical-align: 3px; }
 .avatar-preview { position: relative; }
 .avatar-preview .hint { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; color: var(--muted); font-size: 13px; }
 .avatar-side { overflow: auto; padding: 16px; border-left: 1px solid var(--line); background: rgba(18,20,43,.92); }
@@ -263,6 +283,9 @@ h1, h2, h3 { margin: 0 0 12px; }
 
 @media (max-width: 860px) {
   .avatar-layout { grid-template-columns: 1fr; grid-template-rows: 45% 55%; }
+  .shop-layout { grid-template-columns: 1fr; grid-template-rows: 42% 58%; }
+  .shop-side { border-left: 0; border-top: 1px solid var(--line); }
+  .shop-info { bottom: 8px; }
   .avatar-side { border-left: 0; border-top: 1px solid var(--line); }
   .menu-main { padding: 0 16px; align-items: flex-end; padding-bottom: 20px; }
   .menu-btn { padding: 10px 14px; font-size: 16px; }

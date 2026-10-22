@@ -144,7 +144,7 @@ export function coinsScreen(app) {
   const el = shell(app, 'coins',
     h('div.page-body.coins-page',
       h('div.coins-hero.panel', h('span.coin.xl', 'K'), h('div', h('div.muted.small', 'Tu saldo'), balance, h('div.muted.small', 'Kesty Coins')),
-        h('div.grow'), button('🛒 Gastar en la tienda', () => app.go('avatar', { tab: 'shop' }), 'violet')),
+        h('div.grow'), button('🛒 Ir a la tienda', () => app.go('shop'), 'violet')),
       h('div.panel.box', h('h3', '🛒 Comprar Kesty Coins'), shop),
       h('div.coins-grid',
         h('div.panel.box', h('h3', '🎡 Ruleta diaria'), wheelWrap, h('div', { style: { textAlign: 'center', marginTop: '14px' } }, spinBtn)),

@@ -10,7 +10,7 @@ import { worldCard, gameDetail } from './discover.js';
 import { icon } from '../icons.js';
 
 const NAV = [
-  ['menu', '🏠', 'Inicio'], ['discover', '🧭', 'Descubrir'], ['avatar', '🧍', 'Avatar'], ['coins', '🪙', 'Kesty Coins'],
+  ['menu', '🏠', 'Inicio'], ['discover', '🧭', 'Descubrir'], ['avatar', '🧍', 'Avatar'], ['shop', '🛒', 'Tienda'], ['coins', '🪙', 'Kesty Coins'],
   ['create', '🛠️', 'Crear'], ['friends', '👥', 'Amigos'], ['profile', '⭐', 'Perfil'],
 ];
 

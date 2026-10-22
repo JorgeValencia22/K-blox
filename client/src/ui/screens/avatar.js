@@ -113,7 +113,7 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
     const tabs = [['skins', '🦖 Trajes'], ['body', 'Cuerpo'], ['hair', 'Pelo'], ['clothes', 'Ropa'], ['face', 'Cara'], ['acc', 'Accesorios'], ['emotes', 'Emotes'], ['fx', 'Efectos'], ['sets', '💾 Conjuntos'], ['shop', '🛒 Tienda']];
     if (isAdmin) tabs.push(['creator', '🎬 Creador de emotes'], ['skinmaker', '🧪 Creador de skins']);
     clear(tabsEl).append(...tabs.map(([id, label]) =>
-      h(`button.pill${current === id ? '.on' : ''}`, { on: { click: () => { current = id; render(); } } }, label)));
+      h(`button.pill${current === id ? '.on' : ''}`, { on: { click: () => { if (id === 'shop') { app.go('shop'); return; } current = id; render(); } } }, label)));
     if (current !== 'creator' && creator) { creator.cleanup(); creator = null; }
     if (current !== 'skinmaker' && skinMaker) { skinMaker.cleanup(); skinMaker = null; }
     clear(content);
