@@ -1,6 +1,6 @@
 {
   "name": "kest-worlds",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "KestWorlds - plataforma de mundos 3D multijugador (Three.js + Socket.IO + SQLite)",
   "type": "module",
@@ -42,10 +42,12 @@
     "appId": "com.jorge.kestworlds",
     "productName": "Kest Worlds",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "electron-main.cjs",
+      "electron-preload.cjs",
       "package.json",
       "Logo-azul-juego.ico",
       "Logo-rojo-instalación.ico",
@@ -58,6 +60,23 @@
     "nsis": {
       "installerIcon": "Logo-rojo-instalación.ico",
       "uninstallerIcon": "Logo-rojo-instalación.ico"
-    }
+    },
+    "appx": {
+      "identityName": "Kest.KestWorlds",
+      "publisher": "CN=B7D76082-E41B-44C8-95EF-38768EAF6ADF",
+      "publisherDisplayName": "Kest",
+      "applicationId": "KestWorlds",
+      "displayName": "KestWorlds",
+      "backgroundColor": "#101014",
+      "languages": [
+        "es-ES"
+      ]
+    },
+    "extraResources": [
+      {
+        "from": "native/kest-store/KestStore.exe",
+        "to": "KestStore.exe"
+      }
+    ]
   }
 }

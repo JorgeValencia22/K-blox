@@ -5,11 +5,18 @@ import { hashPassword, verifyPassword, newToken, hashToken, newId } from '../sec
 import { DEFAULT_AVATAR, sanitizeAvatar } from '../../shared/avatar.js';
 import { ACH_BY_ID, FREE_ITEMS, SHOP_BY_ID, levelFromXp, xpForLevel, LEVEL_REWARD_COINS } from '../../shared/catalog.js';
 import { LIMITS } from '../../shared/constants.js';
+import { outfitPieces } from '../../shared/skins.js';
 import { presence } from '../realtime/presence.js';
 
 const USERNAME_RE = /^[A-Za-z0-9_]+$/;
-/** Fracción de las monedas de recompensa que se concede realmente (economía escasa). */
-export const COIN_RATE = 0.5;
+/**
+ * Fracción de las monedas de recompensa de las partidas que se concede realmente. Economía como
+ * Roblox: jugando no se ganan Kesty Coins (solo XP); llegan con la recompensa diaria, la ruleta,
+ * algunos logros, los códigos regalo y comprándolas en Microsoft Store.
+ */
+export const COIN_RATE = 0;
+/** Los logros dan una pequeña parte de su premio en monedas. */
+export const ACHIEVEMENT_COIN_RATE = 0.1;
 const DAY = 86_400_000;
 
 export function validateCredentials(username, password) {
@@ -162,13 +169,17 @@ export function buyItem(userId, itemId) {
   const item = SHOP_BY_ID[itemId];
   if (!item) return { error: 'Objeto desconocido' };
   if (item.unlock) return { error: `Este objeto no se compra: se gana en ${item.unlock}` };
+  if (item.retired) return { error: 'Esta skin ya no está a la venta' };
   const result = tx((db) => {
     const u = db.prepare('SELECT coins FROM users WHERE id = ?').get(userId);
     if (!u) return { error: 'Usuario no encontrado' };
     if (db.prepare('SELECT 1 FROM inventory WHERE user_id = ? AND item_id = ?').get(userId, itemId)) return { error: 'Ya tienes este objeto' };
     if (u.coins < item.price) return { error: 'No tienes suficientes Kesty Coins' };
     db.prepare('UPDATE users SET coins = coins - ? WHERE id = ?').run(item.price, userId);
-    db.prepare('INSERT INTO inventory (user_id, item_id, acquired_at) VALUES (?,?,?)').run(userId, itemId, Date.now());
+    const ins = db.prepare('INSERT OR IGNORE INTO inventory (user_id, item_id, acquired_at) VALUES (?,?,?)');
+    ins.run(userId, itemId, Date.now());
+    // Un conjunto trae todas sus prendas (se pueden combinar después por separado)
+    if (item.type === 'outfit') for (const piece of outfitPieces(item.outfit)) if (SHOP_BY_ID[piece]) ins.run(userId, piece, Date.now());
     return { ok: true, coins: u.coins - item.price };
   });
   if (result.ok) {
@@ -222,7 +233,7 @@ export function unlockAchievement(userId, achId) {
   const r = getDb().prepare('INSERT OR IGNORE INTO achievements (user_id, ach_id, unlocked_at) VALUES (?,?,?)').run(userId, achId, Date.now());
   if (r.changes === 0) return false;
   presence.emit(userId, 'achievement', { id: ach.id, name: ach.name, desc: ach.desc, reward: ach.reward });
-  award(userId, { xp: 50, coins: ach.reward, reason: `Logro: ${ach.name}` });
+  award(userId, { xp: 50, coins: Math.floor(ach.reward * ACHIEVEMENT_COIN_RATE), raw: true, reason: `Logro: ${ach.name}` });
   return true;
 }
 
@@ -289,10 +300,10 @@ export function isOwnerName(name) {
 // --- Recompensa diaria, ruleta y códigos regalo --------------------------------
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => new Date(Date.now() - DAY).toISOString().slice(0, 10);
-export const DAILY_REWARDS = [10, 15, 20, 25, 30, 40, 75]; // racha de 7 días
+export const DAILY_REWARDS = [1, 2, 2, 3, 3, 4, 10]; // racha de 7 días (pocas monedas: son escasas)
 export const SPIN_PRIZES = [
-  { coins: 5, w: 30 }, { coins: 10, w: 26 }, { coins: 15, w: 18 }, { coins: 25, w: 12 },
-  { coins: 40, w: 8 }, { coins: 75, w: 4 }, { coins: 150, w: 1.5 }, { coins: 300, w: 0.5 },
+  { coins: 1, w: 34 }, { coins: 2, w: 26 }, { coins: 3, w: 16 }, { coins: 5, w: 12 },
+  { coins: 8, w: 7 }, { coins: 12, w: 3.5 }, { coins: 25, w: 1.2 }, { coins: 50, w: 0.3 },
 ];
 
 export function rewardsStatus(u) {

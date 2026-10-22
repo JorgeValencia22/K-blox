@@ -68,8 +68,8 @@ test('tienda y avatar: no se puede equipar lo que no se tiene', async () => {
   r = await srv.api('PUT', '/api/avatar', { avatar: { hair: 'hair_buzz' } }, tokens.alice);
   assert.equal(r.body.avatar.hair, 'hair_buzz');
   r = await srv.api('GET', '/api/profile', null, tokens.alice);
-  // 100 iniciales - 60 + 10 (logro "De compras": 20 × COIN_RATE)
-  assert.equal(r.body.user.coins, 50);
+  // 100 iniciales - 60 + 2 (logro "De compras": 20 × ACHIEVEMENT_COIN_RATE)
+  assert.equal(r.body.user.coins, 42);
   assert.ok(r.body.user.achievements.some((a) => a.id === 'shopper'));
 });
 
@@ -263,7 +263,8 @@ test('progresión persistente: experiencia, nivel y logros', async () => {
   users.award(p.id, { xp: 1000, coins: 5 });
   const after = (await srv.api('GET', '/api/profile', null, tokens.carol)).body.user;
   assert.ok(after.level > p.level);
-  assert.ok(after.coins > p.coins + 5, 'recompensa por subir de nivel');
+  // Economía escasa: jugar y subir de nivel no dan monedas (solo la parte pequeña de los logros)
+  assert.ok(after.coins - p.coins <= 10, `${p.coins} -> ${after.coins}`);
   assert.ok(after.achievements.some((a) => a.id === 'first_steps'));
   assert.ok(after.history.length >= 1);
 });

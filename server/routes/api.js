@@ -5,10 +5,12 @@ import * as users from '../services/users.js';
 import * as social from '../services/social.js';
 import * as worlds from '../services/worlds.js';
 import * as emotes from '../services/emotes.js';
+import * as shopItems from '../services/shopItems.js';
+import * as msStore from '../services/msStore.js';
 import { status as backupStatus } from '../db/backup.js';
 import { getDb } from '../db/database.js';
 import { presence } from '../realtime/presence.js';
-import { SHOP_ITEMS, ACHIEVEMENTS, EXPERIENCES } from '../../shared/catalog.js';
+import { SHOP_ITEMS, ACHIEVEMENTS, EXPERIENCES, COIN_PACKS } from '../../shared/catalog.js';
 import { CATEGORIES } from '../../shared/constants.js';
 import { httpLimit, LoginGuard } from '../security/rateLimit.js';
 
@@ -44,6 +46,22 @@ export function apiRouter(rooms) {
 
   // --- Tienda ---------------------------------------------------------------
   r.post('/shop/buy', (req, res) => send(res, users.buyItem(req.user.id, String(req.body?.itemId || ''))));
+  // Skins creadas por el desarrollador (trajes y conjuntos); los de KestWorlds Studio van en el catálogo
+  r.get('/shop/custom', (req, res) => res.json({ items: shopItems.listCustomItems() }));
+
+  // --- Comprar Kesty Coins con dinero real (Microsoft Store) ---------------------
+  r.get('/store/packs', (req, res) => res.json({ packs: COIN_PACKS, enabled: msStore.msStoreEnabled() }));
+  const storeCall = (fn) => async (req, res) => {
+    try {
+      send(res, await fn(req));
+    } catch (e) {
+      console.warn('[tienda]', e.message);
+      res.status(502).json({ error: 'No se ha podido hablar con Microsoft Store. Inténtalo de nuevo en un momento.' });
+    }
+  };
+  r.post('/store/ms/ticket', httpLimit(20, 60_000), storeCall((req) => msStore.purchaseTicket(req.user.id)));
+  r.post('/store/ms/redeem', httpLimit(20, 60_000), express.json({ limit: '16kb' }), storeCall((req) => msStore.redeemPurchases(req.user.id, req.body?.key)));
+  r.get('/store/purchases', (req, res) => res.json({ purchases: msStore.listPurchases(req.user.id) }));
 
   // --- Kesty Coins: recompensa diaria, ruleta y códigos regalo ---------------
   r.post('/rewards/daily', (req, res) => send(res, users.claimDaily(req.user.id)));
@@ -108,6 +126,8 @@ export function apiRouter(rooms) {
     const count = (t) => db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n;
     res.json({ ...backupStatus, users: count('users'), worlds: count('worlds'), repo: process.env.GITHUB_DATA_REPO || null });
   });
+  r.post('/admin/items', admin, express.json({ limit: '64kb' }), (req, res) => send(res, shopItems.saveCustomItem(req.user.id, req.user.username, req.body?.item)));
+  r.post('/admin/items/:id/retire', admin, (req, res) => send(res, shopItems.retireCustomItem(req.params.id, req.body?.retired !== false)));
   r.post('/admin/emotes', admin, express.json({ limit: '200kb' }), (req, res) => send(res, emotes.saveEmote(req.user.id, req.body?.emote)));
   r.delete('/admin/emotes/:id', admin, (req, res) => send(res, emotes.deleteEmote(req.params.id)));
   r.post('/admin/reports/:id/resolve', admin, (req, res) => {

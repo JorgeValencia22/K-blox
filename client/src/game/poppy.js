@@ -18,7 +18,7 @@ const put = (el, ...kids) => {
   return el;
 };
 
-function handMesh(color) {
+export function handMesh(color) {
   const g = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, emissive: color, emissiveIntensity: 0.15 });
   const palm = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), mat);

@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { DEFAULT_AVATAR } from '../../../shared/avatar.js';
+import { SHOP_BY_ID } from '../../../shared/catalog.js';
 import { settings } from '../core/settings.js';
 
 // --- Cachés compartidas ------------------------------------------------------------
@@ -404,6 +405,15 @@ export class AvatarModel {
     this.body = body;
     this.root.add(body);
 
+    // Traje completo (skin): sustituye cuerpo, ropa, pelo y accesorios
+    const costume = d.costume && SHOP_BY_ID[d.costume]?.costume;
+    if (costume) {
+      this.buildCostume(body, costume);
+      this.buildEffect(d.effect);
+      if (!this.shadows) body.traverse((c) => { c.castShadow = false; });
+      return;
+    }
+
     const skin = std(d.skin);
     const shirtTex = shirtMaterial(d.shirt, d.shirtColor);
     const plainShirt = d.shirt === 'shirt_guard' ? std('#1f2a44') : d.shirt === 'shirt_ninja' ? std('#212121') : d.shirt === 'shirt_astronaut' ? std('#eceff1') : std(d.shirtColor);
@@ -485,6 +495,179 @@ export class AvatarModel {
     for (const acc of d.accessories || []) this.buildAccessory(acc, d);
     this.buildEffect(d.effect);
     if (!this.shadows) body.traverse((c) => { c.castShadow = false; });
+  }
+
+  /**
+   * Traje completo (shared/skins.js): el mismo esqueleto que el avatar normal (torso, cuello con
+   * cabeza, brazos y piernas que mueve el animador) con sus colores, cara y piezas propias.
+   * El frente del personaje mira hacia +z.
+   */
+  buildCostume(body, c) {
+    const k = c.colors;
+    const surf = c.metal ? { metalness: 0.55, roughness: 0.35 } : null;
+    const M = (color) => std(color, surf);
+    const glow = (color) => std(color, { emissive: color, emissiveIntensity: 1.6 });
+    const dark = std('#111318', { roughness: 0.15, metalness: 0.3 });
+
+    const torso = mesh(capsule(0.3, 0.3), M(k.body), 0, 1.13, 0, [1.22, 1, 0.8]);
+    body.add(torso);
+    this.torso = torso;
+    body.add(mesh(sphere(0.3), M(k.legs), 0, 0.76, 0, [1.12, 0.55, 0.78]));
+
+    // Cabeza
+    const neck = new THREE.Group();
+    neck.position.y = 1.52;
+    body.add(neck);
+    this.neck = neck;
+    neck.add(mesh(cyl(0.11, 0.12, 0.16, 10), M(k.head), 0, 0.02, 0));
+    const drawnFace = /^face_/.test(c.face) && c.head !== 'box';
+    let head;
+    if (c.head === 'box') head = mesh(rbox(0.72, 0.64, 0.66, 0.12), M(k.head), 0, HEAD_Y, 0);
+    else if (c.head === 'tall') head = mesh(sphere(HEAD_R, 22, 16), drawnFace ? faceMaterial(c.face, k.head) : M(k.head), 0, HEAD_Y + 0.08, 0, [0.92, 1.32, 0.95]);
+    else head = mesh(sphere(HEAD_R, 22, 16), drawnFace ? faceMaterial(c.face, k.head) : M(k.head), 0, HEAD_Y, 0);
+    neck.add(head);
+    this.head = head;
+    const fz = c.head === 'box' ? 0.34 : HEAD_R * 0.93; // superficie delantera de la cabeza
+    const fy = HEAD_Y + (c.head === 'tall' ? 0.06 : 0);
+    if (c.head === 'dome') {
+      // Casco de cristal grande alrededor de la cabeza
+      neck.add(mesh(sphere(HEAD_R * 1.42, 24, 18), std('#bbdefb', { transparent: true, opacity: 0.28, roughness: 0.05, metalness: 0.2, depthWrite: false }), 0, HEAD_Y + 0.02, 0));
+      neck.add(mesh(torus(0.4, 0.06), M(k.body), 0, HEAD_Y - 0.4, 0, null, [Math.PI / 2, 0, 0]));
+    }
+    switch (c.face) {
+      case 'robot':
+        for (const s of [-1, 1]) neck.add(mesh(sphere(0.07, 10, 8), glow(c.glow), s * 0.14, fy + 0.04, fz, [1, 1, 0.5]));
+        neck.add(mesh(rbox(0.3, 0.06, 0.04, 0.02), dark, 0, fy - 0.14, fz));
+        break;
+      case 'visor':
+        neck.add(mesh(rbox(0.6, 0.15, 0.1, 0.05), dark, 0, fy + 0.04, fz - 0.02));
+        neck.add(mesh(rbox(0.5, 0.03, 0.04, 0.01), glow(c.glow), 0, fy + 0.04, fz + 0.04));
+        break;
+      case 'mask':
+        neck.add(mesh(rbox(0.58, 0.16, 0.12, 0.05), std('#f1c27d'), 0, fy + 0.03, fz - 0.03));
+        for (const s of [-1, 1]) neck.add(mesh(sphere(0.04, 8, 6), std('#212121'), s * 0.12, fy + 0.04, fz + 0.03, [1, 1.2, 0.5]));
+        break;
+      case 'alien':
+        for (const s of [-1, 1]) neck.add(mesh(sphere(0.11, 12, 10), dark, s * 0.15, fy + 0.04, fz - 0.03, [0.8, 1.25, 0.45], [0, 0, s * -0.5]));
+        break;
+      case 'skull':
+        for (const s of [-1, 1]) neck.add(mesh(sphere(0.08, 10, 8), std('#212121'), s * 0.14, fy + 0.04, fz - 0.02, [1, 1.1, 0.5]));
+        neck.add(mesh(cone(0.04, 0.08, 3), std('#212121'), 0, fy - 0.07, fz, null, [Math.PI, 0, 0]));
+        for (let i = -2; i <= 2; i++) neck.add(mesh(rbox(0.04, 0.06, 0.03, 0.01), std('#212121'), i * 0.06, fy - 0.17, fz - 0.01));
+        break;
+      default:
+        // Caras normales en una cabeza cuadrada: ojos y sonrisa sencillos
+        if (/^face_/.test(c.face) && c.head === 'box') {
+          for (const s of [-1, 1]) neck.add(mesh(sphere(0.05, 10, 8), std('#212121'), s * 0.13, fy + 0.04, fz, [1, 1.2, 0.5]));
+          neck.add(mesh(torus(0.09, 0.02, Math.PI), std('#212121'), 0, fy - 0.08, fz, null, [0, 0, Math.PI]));
+        }
+    }
+
+    // Brazos y piernas (mismos pivotes que el avatar normal)
+    const arm = (side) => {
+      const pivot = new THREE.Group();
+      pivot.position.set(side * 0.46, 1.47, 0);
+      pivot.add(mesh(sphere(0.13), M(k.arms), 0, -0.02, 0));
+      pivot.add(mesh(capsule(0.105, 0.42), M(k.arms), 0, -0.3, 0));
+      pivot.add(mesh(sphere(0.115), M(k.hands), 0, -0.62, 0.01));
+      body.add(pivot);
+      return pivot;
+    };
+    this.lArm = arm(-1);
+    this.rArm = arm(1);
+    const leg = (side) => {
+      const pivot = new THREE.Group();
+      pivot.position.set(side * 0.16, 0.74, 0);
+      pivot.add(mesh(capsule(0.135, 0.38), M(k.legs), 0, -0.3, 0));
+      pivot.add(mesh(sphere(0.15), M(k.feet), 0, -0.65, 0.06, [1, 0.62, 1.45]));
+      body.add(pivot);
+      return pivot;
+    };
+    this.lLeg = leg(-1);
+    this.rLeg = leg(1);
+
+    // Piezas
+    const top = HEAD_Y + (c.head === 'tall' ? 0.45 : c.head === 'box' ? 0.32 : 0.34);
+    for (const p of c.parts) {
+      const m = M(p.c);
+      switch (p.k) {
+        case 'ears_cat':
+          for (const s of [-1, 1]) neck.add(mesh(cone(0.11, 0.22, 4), m, s * 0.2, top - 0.02, 0, null, [0, 0, s * -0.35]));
+          break;
+        case 'ears_bunny':
+          for (const s of [-1, 1]) neck.add(mesh(capsule(0.06, 0.38), m, s * 0.13, top + 0.2, -0.02, [1, 1, 0.6], [0, 0, s * -0.15]));
+          break;
+        case 'ears_bear':
+          for (const s of [-1, 1]) neck.add(mesh(sphere(0.1, 10, 8), m, s * 0.25, top - 0.04, -0.02, [1, 1, 0.6]));
+          break;
+        case 'horns':
+          for (const s of [-1, 1]) neck.add(mesh(cone(0.07, 0.3, 8), m, s * 0.2, top + 0.02, 0.02, null, [0.3, 0, s * -0.5]));
+          break;
+        case 'antenna':
+          for (const s of [-1, 1]) {
+            neck.add(mesh(cyl(0.012, 0.012, 0.28, 6), std('#455a64'), s * 0.12, top + 0.1, 0, null, [0, 0, s * -0.25]));
+            neck.add(mesh(sphere(0.05, 8, 6), glow(p.c), s * 0.155, top + 0.25, 0));
+          }
+          break;
+        case 'crest':
+          for (let i = 0; i < 5; i++) neck.add(mesh(cone(0.05, 0.18, 6), m, 0, top + 0.02 - Math.abs(i - 2) * 0.025, 0.18 - i * 0.09, null, [-0.2 + i * 0.1, 0, 0]));
+          break;
+        case 'spikes':
+          for (let i = 0; i < 5; i++) body.add(mesh(cone(0.07, 0.2, 6), m, 0, 1.45 - i * 0.18, -0.27 + i * 0.01, null, [-1.2, 0, 0]));
+          break;
+        case 'tail_dino':
+          for (let i = 0; i < 5; i++) body.add(mesh(sphere(0.16 - i * 0.025, 10, 8), m, 0, 0.78 - i * 0.06, -0.32 - i * 0.16));
+          break;
+        case 'tail_cat':
+          body.add(mesh(torus(0.22, 0.045, Math.PI * 1.2), m, 0, 0.98, -0.32, null, [0, Math.PI / 2, 0.4]));
+          break;
+        case 'snout':
+          neck.add(mesh(sphere(0.15, 12, 10), m, 0, fy - 0.1, fz - 0.02, [1.1, 0.75, 0.8]));
+          neck.add(mesh(sphere(0.04, 8, 6), std('#212121'), 0, fy - 0.05, fz + 0.1));
+          break;
+        case 'beak':
+          neck.add(mesh(cone(0.08, 0.2, 8), m, 0, fy - 0.08, fz + 0.06, null, [Math.PI / 2, 0, 0]));
+          break;
+        case 'fin':
+          neck.add(mesh(cone(0.12, 0.34, 3), m, 0, top + 0.08, -0.08, [0.4, 1, 1.4]));
+          break;
+        case 'wings_bat':
+        case 'wings_angel':
+          for (const s of [-1, 1]) body.add(mesh(sphere(0.32, 12, 8), p.k === 'wings_angel' ? std(p.c, { roughness: 0.9 }) : m, s * 0.42, 1.35, -0.32, [1.25, 0.8, 0.12], [0, s * 0.35, s * -0.5]));
+          break;
+        case 'cape':
+          body.add(mesh(rbox(0.72, 1.0, 0.04, 0.02), m, 0, 1.0, -0.3, null, [0.12, 0, 0]));
+          break;
+        case 'halo':
+          neck.add(mesh(torus(0.22, 0.03), glow(p.c), 0, top + 0.2, 0, null, [Math.PI / 2, 0, 0]));
+          break;
+        case 'crown':
+          neck.add(mesh(cyl(0.2, 0.18, 0.14, 10, true), std(p.c, { metalness: 0.8, roughness: 0.25 }), 0, top + 0.02, 0));
+          for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; neck.add(mesh(cone(0.04, 0.1, 4), std(p.c, { metalness: 0.8, roughness: 0.25 }), Math.sin(a) * 0.19, top + 0.13, Math.cos(a) * 0.19)); }
+          break;
+        case 'pads':
+          for (const s of [-1, 1]) body.add(mesh(sphere(0.17, 12, 8), m, s * 0.47, 1.52, 0, [1, 0.6, 1]));
+          break;
+        case 'belt':
+          body.add(mesh(cyl(0.37, 0.37, 0.09, 18, true), m, 0, 0.86, 0, [1, 1, 0.75]));
+          break;
+        case 'chest_light':
+          body.add(mesh(cyl(0.09, 0.09, 0.04, 16), glow(p.c), 0, 1.22, 0.25, null, [Math.PI / 2, 0, 0]));
+          break;
+        case 'jetpack':
+          for (const s of [-1, 1]) body.add(mesh(capsule(0.1, 0.3), m, s * 0.13, 1.18, -0.34));
+          for (const s of [-1, 1]) body.add(mesh(cone(0.08, 0.14, 10), glow('#ff9100'), s * 0.13, 0.86, -0.34, null, [Math.PI, 0, 0]));
+          break;
+        case 'mane':
+          for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; neck.add(mesh(sphere(0.13, 8, 6), m, Math.sin(a) * 0.36, fy + Math.cos(a) * 0.36, -0.06)); }
+          break;
+        case 'belly':
+          body.add(mesh(sphere(0.24, 14, 10), std(p.c), 0, 1.06, 0.13, [1, 1.15, 0.5]));
+          break;
+        default:
+          break;
+      }
+    }
   }
 
   buildHair(n, d) {

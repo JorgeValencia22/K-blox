@@ -1,5 +1,6 @@
 // Catálogo estático: experiencias oficiales, tienda, logros y niveles.
 // El servidor es la fuente de verdad de precios y recompensas.
+import { STUDIO_COSTUMES, STUDIO_OUTFITS, outfitPieces } from './skins.js';
 
 export const EXPERIENCES = [
   {
@@ -101,7 +102,7 @@ export const EXPERIENCES = [
 
 export const BUILTIN_IDS = EXPERIENCES.map((e) => e.id);
 
-// type: hair | shirt | pants | face | accessory | emote | effect | decoration
+// type: hair | shirt | pants | face | accessory | emote | effect | decoration | costume | outfit
 // Precios en Kesty Coins (KC). Las monedas son escasas: lo bueno cuesta conseguirlo.
 const I = (type, list) => list.map(([id, name, price, extra]) => ({ id, type, name, price, ...(extra || {}) }));
 export const SHOP_ITEMS = [
@@ -177,6 +178,44 @@ export const SHOP_ITEMS = [
 export const SHOP_BY_ID = Object.fromEntries(SHOP_ITEMS.map((i) => [i.id, i]));
 export const FREE_ITEMS = SHOP_ITEMS.filter((i) => i.price === 0 && !i.unlock).map((i) => i.id);
 
+/**
+ * Paquetes de Kesty Coins que se compran con dinero real en Microsoft Store. Cada uno es un
+ * complemento consumible en Partner Center con este id como "Id. de producto"; storeId es el
+ * Store ID que Partner Center le asigna (9N…). El precio real lo pone Microsoft según el país.
+ */
+export const COIN_PACKS = [
+  { id: 'kc_100', coins: 100, usd: '0,99', storeId: null },
+  { id: 'kc_500', coins: 500, usd: '4,99', storeId: null },
+  { id: 'kc_1100', coins: 1100, usd: '9,99', storeId: null, bonus: '+10 %' },
+  { id: 'kc_2400', coins: 2400, usd: '19,99', storeId: null, bonus: '+20 %' },
+  { id: 'kc_6500', coins: 6500, usd: '49,99', storeId: null, bonus: '+30 %', best: true },
+];
+
+/** Precio de pack de un conjunto: la mitad de lo que costarían sus piezas de pago por separado. */
+export const outfitPrice = (outfit) => Math.max(50, Math.round((outfitPieces(outfit).reduce((a, id) => a + (SHOP_BY_ID[id]?.unlock ? 0 : SHOP_BY_ID[id]?.price || 0), 0) * 0.5) / 10) * 10);
+
+// Skins de KestWorlds Studio: trajes completos y conjuntos (shared/skins.js)
+for (const c of STUDIO_COSTUMES) SHOP_ITEMS.push({ type: 'costume', ...c });
+for (const o of STUDIO_OUTFITS) SHOP_ITEMS.push({ type: 'outfit', price: outfitPrice(o.outfit), ...o });
+for (const i of SHOP_ITEMS) SHOP_BY_ID[i.id] = i;
+
+/**
+ * Skins creadas por el desarrollador desde el juego (se guardan en la base de datos). Se añaden
+ * al catálogo en el servidor al arrancar y en el cliente al cargar la tienda; al volver a llamar
+ * se sustituyen las anteriores.
+ */
+export function registerCustomItems(list) {
+  for (let i = SHOP_ITEMS.length - 1; i >= 0; i--) {
+    if (SHOP_ITEMS[i].custom) { delete SHOP_BY_ID[SHOP_ITEMS[i].id]; SHOP_ITEMS.splice(i, 1); }
+  }
+  for (const it of list || []) {
+    if (SHOP_BY_ID[it.id] || !['costume', 'outfit'].includes(it.type)) continue;
+    const item = { ...it, custom: true };
+    SHOP_ITEMS.push(item);
+    SHOP_BY_ID[item.id] = item;
+  }
+}
+
 export const ACHIEVEMENTS = [
   { id: 'first_steps', name: 'Primeros pasos', desc: 'Entra en tu primera experiencia', reward: 20 },
   { id: 'explorer', name: 'Explorador', desc: 'Visita las 5 experiencias oficiales', reward: 100 },
@@ -230,4 +269,5 @@ export function levelFromXp(xp) {
   return lvl;
 }
 
-export const LEVEL_REWARD_COINS = (level) => 10 + level * 5;
+// Subir de nivel ya no da monedas: las Kesty Coins son escasas (como en Roblox)
+export const LEVEL_REWARD_COINS = () => 0;

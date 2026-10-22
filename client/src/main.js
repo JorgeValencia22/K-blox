@@ -21,6 +21,7 @@ import { showJumpscare } from './ui/adminPanel.js';
 import { Game } from './game/game.js';
 import { loginAsGuest } from './core/guest.js';
 import { loadCustomEmotes } from './core/emotes.js';
+import { loadCustomItems } from './core/shopItems.js';
 import { EXPERIENCES } from '../../shared/catalog.js';
 
 const SCREENS = { menu: menuScreen, discover: discoverScreen, avatar: avatarScreen, friends: friendsScreen, create: createScreen, profile: profileScreen, admin: adminScreen, coins: coinsScreen };
@@ -136,6 +137,7 @@ class App {
     try { localStorage.removeItem('kest.loggedOut'); } catch { /* sin almacenamiento */ }
     store.setUser(user);
     loadCustomEmotes();
+    loadCustomItems();
     net.connect();
     this.bindNet();
     engine.setView(this.menuScene);

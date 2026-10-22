@@ -132,6 +132,27 @@ CREATE TABLE IF NOT EXISTS fnaf_records (
   result TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS custom_items (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  data TEXT NOT NULL,
+  created_by TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS coin_purchases (
+  tracking_id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  store TEXT NOT NULL,
+  product_id TEXT NOT NULL,
+  pack_id TEXT NOT NULL,
+  coins INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS meta (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
 CREATE TABLE IF NOT EXISTS daily_rewards (
   user_id TEXT NOT NULL,
   key TEXT NOT NULL,

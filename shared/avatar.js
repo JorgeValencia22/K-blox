@@ -16,6 +16,7 @@ export const DEFAULT_AVATAR = {
   accessories: [],
   accColors: {},
   effect: null,
+  costume: null, // traje completo (skin) puesto encima de todo
 };
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -45,6 +46,7 @@ export function sanitizeAvatar(a, owned) {
     accessories: [],
     accColors: {},
     effect: a.effect && has(a.effect, 'effect') ? a.effect : null,
+    costume: a.costume && has(a.costume, 'costume') ? a.costume : null,
   };
   if (Array.isArray(a.accessories)) {
     for (const id of a.accessories) {

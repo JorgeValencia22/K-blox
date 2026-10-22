@@ -10,10 +10,11 @@ import { SHOP_ITEMS, SHOP_BY_ID } from '../../../../shared/catalog.js';
 import { SKIN_TONES } from '../../../../shared/avatar.js';
 import { EMOTES, CUSTOM_EMOTES } from '../../avatar/avatarAnimator.js';
 import { emoteCreator } from './emoteCreator.js';
+import { skinCreator } from './skinCreator.js';
 
 const COLORS = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722', '#795548', '#9e9e9e', '#607d8b', '#212121', '#fafafa'];
 const HAIR_COLORS = ['#212121', '#4e342e', '#8d6e63', '#d84315', '#fdd835', '#f5f5f5', '#7e57c2', '#26c6da', '#ec407a'];
-const TYPE_NAMES = { hair: 'Pelo', shirt: 'Ropa superior', pants: 'Ropa inferior', face: 'Caras', accessory: 'Accesorios', emote: 'Animaciones', effect: 'Efectos', decoration: 'Decoración (editor)' };
+const TYPE_NAMES = { costume: 'Trajes completos', outfit: 'Conjuntos de ropa', hair: 'Pelo', shirt: 'Ropa superior', pants: 'Ropa inferior', face: 'Caras', accessory: 'Accesorios', emote: 'Animaciones', effect: 'Efectos', decoration: 'Decoración (editor)' };
 
 export function avatarScreen(app, { tab = 'body' } = {}) {
   const draft = JSON.parse(JSON.stringify(store.user.avatar));
@@ -21,6 +22,7 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
   const isAdmin = store.user.role === 'admin';
   let presets = null; // se cargan al abrir la pestaña
   let creator = null;
+  let skinMaker = null;
   const preview = new AvatarPreview(draft);
   const prevView = engine.view;
   engine.setView(preview);
@@ -86,17 +88,50 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
     }
   }
 
-  const items = (type) => SHOP_ITEMS.filter((i) => i.type === type);
+  // Lo retirado de la tienda solo lo ve quien ya lo tiene
+  const items = (type) => SHOP_ITEMS.filter((i) => i.type === type && (!i.retired || store.owns(i.id)));
+  /** Se pone un conjunto: sus prendas y colores sustituyen a las actuales (y se quita el traje). */
+  const wearOutfit = (o) => {
+    Object.assign(draft, JSON.parse(JSON.stringify(o.outfit)));
+    draft.accColors = { ...(o.outfit.accColors || {}) };
+    draft.costume = null;
+    update();
+    toast(`Te has puesto "${o.name}". Pulsa Guardar cambios para usarlo en las partidas.`, 'info', 4000);
+  };
+  const skinTile = (i, selected, onSelect) => {
+    const t = itemTile(i, selected, onSelect);
+    const k = i.costume?.colors;
+    if (k) t.prepend(h('div.preset-dots', [k.head, k.body, k.legs, k.detail].map((c) => h('i', { style: { background: c } }))));
+    if (i.by && i.by !== 'KestWorlds Studio') t.append(h('span.small.muted', `por ${i.by}`));
+    return t;
+  };
+  const costumeNote = () => (draft.costume ? h('div.panel.box.small', { style: { marginBottom: '8px' } },
+    `Llevas el traje "${SHOP_BY_ID[draft.costume]?.name || ''}": tapa la ropa, el pelo y los accesorios. `,
+    button('Quitar traje', () => { draft.costume = null; update(); render(); }, 'small')) : null);
 
   function render() {
-    const tabs = [['body', 'Cuerpo'], ['hair', 'Pelo'], ['clothes', 'Ropa'], ['face', 'Cara'], ['acc', 'Accesorios'], ['emotes', 'Emotes'], ['fx', 'Efectos'], ['sets', '💾 Conjuntos'], ['shop', '🛒 Tienda']];
-    if (isAdmin) tabs.push(['creator', '🎬 Creador de emotes']);
+    const tabs = [['skins', '🦖 Trajes'], ['body', 'Cuerpo'], ['hair', 'Pelo'], ['clothes', 'Ropa'], ['face', 'Cara'], ['acc', 'Accesorios'], ['emotes', 'Emotes'], ['fx', 'Efectos'], ['sets', '💾 Conjuntos'], ['shop', '🛒 Tienda']];
+    if (isAdmin) tabs.push(['creator', '🎬 Creador de emotes'], ['skinmaker', '🧪 Creador de skins']);
     clear(tabsEl).append(...tabs.map(([id, label]) =>
       h(`button.pill${current === id ? '.on' : ''}`, { on: { click: () => { current = id; render(); } } }, label)));
     if (current !== 'creator' && creator) { creator.cleanup(); creator = null; }
+    if (current !== 'skinmaker' && skinMaker) { skinMaker.cleanup(); skinMaker = null; }
     clear(content);
+    if (['hair', 'clothes', 'face', 'acc'].includes(current) && draft.costume) content.append(costumeNote());
     const sec = (t) => h('div.section-title', t);
     switch (current) {
+      case 'skins':
+        content.append(sec('Trajes completos (cambian todo tu personaje)'), h('div.items',
+          h(`div.item${!draft.costume ? '.on' : ''}`, { on: { click: () => { draft.costume = null; update(); render(); } } }, 'Sin traje'),
+          ...items('costume').map((i) => skinTile(i, draft.costume === i.id, () => { draft.costume = i.id; update(); render(); }))));
+        content.append(sec('Conjuntos de ropa (pack con todas las prendas)'), h('div.items',
+          items('outfit').map((i) => skinTile(i, false, () => { wearOutfit(i); render(); }))));
+        content.append(h('p.muted.small', 'Los trajes y conjuntos se compran con Kesty Coins. ¿Te faltan? Consíguelas en la pestaña Kesty Coins.'));
+        break;
+      case 'skinmaker':
+        if (!skinMaker) skinMaker = skinCreator(preview, draft);
+        content.append(skinMaker);
+        break;
       case 'body':
         content.append(sec('Color de piel'), swatches(SKIN_TONES, 'skin'), sec('Zapatos'), swatches(COLORS, 'shoesColor'));
         break;
@@ -162,13 +197,14 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
           ...items('effect').map((i) => itemTile(i, draft.effect === i.id, () => { draft.effect = i.id; update(); render(); }))));
         break;
       case 'shop': {
-        content.append(h('p.muted.small', `Tienes 🪙 ${store.user.coins} Kesty Coins. Consigue más con la recompensa diaria, la ruleta, los logros y ganando partidas.`));
+        content.append(h('div.row', { style: { gap: '8px', alignItems: 'center', marginBottom: '6px' } }, h('p.muted.small.grow', `Tienes 🪙 ${store.user.coins} Kesty Coins.`), button('🪙 Conseguir Kesty Coins', () => app.go('coins'), 'small violet')));
         for (const type of Object.keys(TYPE_NAMES)) {
-          const list = items(type).filter((i) => i.price > 0);
+          const list = items(type).filter((i) => i.price > 0 && !i.retired);
           if (!list.length) continue;
           content.append(sec(TYPE_NAMES[type]), h('div.items', list.map((i) => {
             const owned = store.owns(i.id);
-            return h(`div.item${owned ? '.on' : ''}${i.rare ? '.rare' : ''}`, { on: { click: async () => { if (!owned && (await buy(i))) render(); } } }, i.name, h('span.price', owned ? '✓ En tu inventario' : `🪙 ${i.price}`));
+            const wear = () => { if (i.type === 'outfit') wearOutfit(i); else if (i.type === 'costume') { draft.costume = i.id; update(); } };
+            return h(`div.item${owned ? '.on' : ''}${i.rare ? '.rare' : ''}`, { on: { click: async () => { if (owned) { wear(); render(); } else if (await buy(i)) { wear(); render(); } } } }, i.name, h('span.price', owned ? (i.type === 'outfit' || i.type === 'costume' ? '✓ Pulsa para ponértelo' : '✓ En tu inventario') : `🪙 ${i.price}`));
           })));
         }
         break;
@@ -265,6 +301,7 @@ export function avatarScreen(app, { tab = 'body' } = {}) {
   el.cleanup = () => {
     unsub();
     creator?.cleanup();
+    skinMaker?.cleanup();
     preview.dispose();
     engine.setView(prevView);
   };

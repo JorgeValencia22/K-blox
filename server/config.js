@@ -21,7 +21,8 @@ export const config = {
   newAccountMinutes: int(process.env.NEW_ACCOUNT_MINUTES, 30),
   adminUsernames: (process.env.ADMIN_USERNAMES || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
   filterWordsFile: path.resolve(ROOT, process.env.FILTER_WORDS_FILE || 'server/security/filter-words.json'),
-  startingCoins: int(process.env.STARTING_COINS, 100),
+  // Las cuentas nuevas empiezan sin Kesty Coins (son escasas; se compran en Microsoft Store)
+  startingCoins: int(process.env.STARTING_COINS, 0),
   // Cuenta del dueño (modo desarrollador). Se define en .env o en el panel del hosting, nunca en el código.
   ownerUsername: (process.env.OWNER_USERNAME || '').trim(),
   ownerPassword: process.env.OWNER_PASSWORD || '',

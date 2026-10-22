@@ -5,6 +5,8 @@ import { getBuiltinWorld } from '../shared/worlds/index.js';
 import { EXPERIENCES } from '../shared/catalog.js';
 import { closeDb, getDb, openDb } from './db/database.js';
 import { restoreBackup, startBackups, saveBackup, stopBackups } from './db/backup.js';
+import { runMigrations } from './db/migrations.js';
+import { loadCustomItems } from './services/shopItems.js';
 
 // Pre-genera los mundos oficiales para que la primera entrada sea rápida.
 for (const e of EXPERIENCES) getBuiltinWorld(e.id);
@@ -12,6 +14,9 @@ for (const e of EXPERIENCES) getBuiltinWorld(e.id);
 // Si la base de datos está vacía (el hosting gratuito borra el disco), se recupera la última copia guardada
 openDb(config.dbFile);
 await restoreBackup(getDb());
+// Skins creadas por el desarrollador (base de datos) y cambios de datos pendientes
+loadCustomItems();
+runMigrations();
 const { server, io } = createApp();
 startBackups(getDb());
 

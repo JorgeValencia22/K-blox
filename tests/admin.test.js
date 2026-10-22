@@ -107,7 +107,7 @@ test('admin: mantenimiento bloquea la entrada y los anuncios llegan a todos', as
 test('Kesty Coins: recompensa diaria, ruleta, códigos regalo y regalos del admin', async () => {
   const before = (await srv.api('GET', '/api/profile', null, player)).body.user.coins;
   let r = await srv.api('POST', '/api/rewards/daily', {}, player);
-  assert.equal(r.body.coins, 10);
+  assert.equal(r.body.coins, 1, 'la recompensa diaria da pocas monedas (economía escasa)');
   r = await srv.api('POST', '/api/rewards/daily', {}, player);
   assert.equal(r.status, 400, 'solo una vez al día');
   r = await srv.api('POST', '/api/rewards/spin', {}, player);
@@ -130,7 +130,7 @@ test('Kesty Coins: recompensa diaria, ruleta, códigos regalo y regalos del admi
   r = await srv.api('POST', '/api/codes/redeem', { code: 'FIESTA-1' }, player);
   assert.equal(r.status, 400);
   const after = (await srv.api('GET', '/api/profile', null, player)).body.user.coins;
-  assert.ok(after >= before + 10 + spun + 250 + 40, `${before} -> ${after}`);
+  assert.ok(after >= before + 1 + spun + 250 + 40, `${before} -> ${after}`);
   await sleep(10);
 });
 
