@@ -184,11 +184,11 @@ export const FREE_ITEMS = SHOP_ITEMS.filter((i) => i.price === 0 && !i.unlock).m
  * Store ID que Partner Center le asigna (9N…). El precio real lo pone Microsoft según el país.
  */
 export const COIN_PACKS = [
-  { id: 'kc_100', coins: 100, usd: '0,99', storeId: null },
-  { id: 'kc_500', coins: 500, usd: '4,99', storeId: null },
-  { id: 'kc_1100', coins: 1100, usd: '9,99', storeId: null, bonus: '+10 %' },
-  { id: 'kc_2400', coins: 2400, usd: '19,99', storeId: null, bonus: '+20 %' },
-  { id: 'kc_6500', coins: 6500, usd: '49,99', storeId: null, bonus: '+30 %', best: true },
+  { id: 'kc_100', coins: 100, usd: '0,99', storeId: '9PBDD2QCGPJ5' },
+  { id: 'kc_500', coins: 500, usd: '4,99', storeId: '9PBF1F6XT5SF' },
+  { id: 'kc_1100', coins: 1100, usd: '9,99', storeId: '9P27MLKK1XWK', bonus: '+10 %' },
+  { id: 'kc_2400', coins: 2400, usd: '19,99', storeId: '9PMFMTXR1TT5', bonus: '+20 %' },
+  { id: 'kc_6500', coins: 6500, usd: '49,99', storeId: '9P6M0B5KJRX4', bonus: '+30 %', best: true },
 ];
 
 /** Precio de pack de un conjunto: la mitad de lo que costarían sus piezas de pago por separado. */
