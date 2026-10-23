@@ -215,16 +215,27 @@ export function banModal(target, onDone) {
   ), { actions: [{ label: 'Cancelar' }] });
 }
 
-/** Susto a pantalla completa (lo manda un administrador). */
+const JUMPSCARE_SRC = '/jumpscare.mp4';
+// Se descarga antes (es pequeño) para que el susto salga al instante y no tras cargar
+let jumpscareUrl = JUMPSCARE_SRC;
+fetch(JUMPSCARE_SRC).then((r) => (r.ok ? r.blob() : null)).then((b) => { if (b) jumpscareUrl = URL.createObjectURL(b); }).catch(() => {});
+
+/** Susto a pantalla completa con el vídeo del monstruo (lo manda un administrador). */
 export function showJumpscare() {
-  audio.play('scream');
-  const face = h('div.jumpscare', { html: `<svg viewBox="0 0 200 200"><defs><radialGradient id="js1"><stop offset="0" stop-color="#3a0000"/><stop offset="1" stop-color="#000"/></radialGradient></defs>
-    <rect width="200" height="200" fill="url(#js1)"/><ellipse cx="100" cy="105" rx="78" ry="88" fill="#d8d0c4"/>
-    <ellipse cx="68" cy="82" rx="20" ry="26" fill="#000"/><ellipse cx="132" cy="82" rx="20" ry="26" fill="#000"/>
-    <circle cx="70" cy="86" r="5" fill="#ff1744"/><circle cx="130" cy="86" r="5" fill="#ff1744"/>
-    <path d="M45 140 Q100 205 155 140 Q100 168 45 140Z" fill="#200"/>
-    <path d="M55 146 l8 14 l8 -12 l8 14 l8 -13 l8 14 l8 -13 l8 14 l8 -13 l8 12" stroke="#fff8e1" stroke-width="4" fill="none"/></svg>` });
-  document.body.appendChild(face);
-  setTimeout(() => face.classList.add('out'), 1300);
-  setTimeout(() => face.remove(), 1800);
+  const video = h('video', { src: jumpscareUrl, playsInline: true, preload: 'auto' });
+  const el = h('div.jumpscare', video);
+  document.body.appendChild(el);
+  let done = false;
+  const end = () => {
+    if (done) return;
+    done = true;
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 500);
+  };
+  // Al acabar se queda un momento en el último fotograma y se desvanece
+  video.addEventListener('ended', () => setTimeout(end, 400));
+  video.addEventListener('error', end);
+  // Si el navegador no deja reproducir con sonido, sale sin sonido y con el grito del juego
+  video.play().catch(() => { video.muted = true; audio.play('scream'); video.play().catch(end); });
+  setTimeout(end, 4000);
 }
