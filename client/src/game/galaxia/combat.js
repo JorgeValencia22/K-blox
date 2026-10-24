@@ -385,6 +385,9 @@ export class Hero {
 }
 
 // ========================================================================================= Enemigos =====
+// Dificultad: el doble de vida para los enemigos y el doble de daño que reciben los héroes
+export const DIFF = 2;
+
 const KINDS = {
   droid: { name: 'Droide', hp: 45, speed: 4.3, costume: 'skin_droid', ai: 'gun', rate: [1.8, 2.8], dmg: 6, acc: 0.45, range: [10, 17], radius: 0.6 },
   staff: { name: 'Droide de vara', hp: 60, speed: 6.4, costume: 'skin_droid', ai: 'melee', dmg: 12, reach: 2.4, windup: 0.5, saber: '#ffab00', len: 0.9, radius: 0.6 },
@@ -406,7 +409,7 @@ export class Foe {
     arena.scene.add(this.model.root);
     this.pos = pos.clone();
     this.yaw = 0;
-    this.max = this.hp = K.hp * (arena.hpScale || 1);
+    this.max = this.hp = K.hp * DIFF * (arena.hpScale || 1);
     this.dead = false;
     this.t = rand(0, 4);
     this.stun = 0;
@@ -490,7 +493,7 @@ export class Foe {
     const lead = H.pos.clone().add(V(0, 1.1, 0)).addScaledVector(H.vel, 0.25);
     const err = (1 - this.K.acc) * 2.4 * spread * clamp(this.dist() / 15, 0.4, 2);
     lead.add(V(rand(-err, err), rand(-err * 0.5, err * 0.5), rand(-err, err)));
-    A.spawnBolt({ pos: o, vel: lead.sub(o).normalize().multiplyScalar(34), owner: 'foe', dmg: this.K.dmg, color: '#ff1744', src: this, life: 3.5 });
+    A.spawnBolt({ pos: o, vel: lead.sub(o).normalize().multiplyScalar(34), owner: 'foe', dmg: this.K.dmg * DIFF, color: '#ff1744', src: this, life: 3.5 });
     sfx.foeShot(clamp(0.12 - this.dist() * 0.002, 0.02, 0.12));
     A.fx.flash(o, '#ff5252', 2);
     this.recoil = 1;
@@ -556,7 +559,7 @@ export class Foe {
     } else if (K.ai === 'melee') {
       if (this.atk) {
         this.atk.t += dt;
-        if (!this.atk.done && this.atk.t >= K.windup) { this.atk.done = true; sfx.swing(); this.strike(K.dmg, K.reach + 0.5); }
+        if (!this.atk.done && this.atk.t >= K.windup) { this.atk.done = true; sfx.swing(); this.strike(K.dmg * DIFF, K.reach + 0.5); }
         if (this.atk.t >= K.windup + 0.55) this.atk = null;
       } else {
         if (dist > K.reach) move.add(dir);
@@ -643,7 +646,7 @@ export class Foe {
         if (this.atk) {
           this.atk.t += dt;
           if (this.atk.t < this.atk.w && dist > 2.6) move.addScaledVector(dir, 0.6);
-          if (!this.atk.done && this.atk.t >= this.atk.w) { this.atk.done = true; sfx.swing(); this.strike(this.K.dmg, this.K.reach + 0.6); }
+          if (!this.atk.done && this.atk.t >= this.atk.w) { this.atk.done = true; sfx.swing(); this.strike(this.K.dmg * DIFF, this.K.reach + 0.6); }
           if (this.atk.t >= this.atk.w + 0.26) {
             this.comboN--;
             if (this.comboN > 0) this.startStrike(); else { this.atk = null; this.setMode('recover', enraged ? 0.9 : 1.4); }
@@ -660,7 +663,7 @@ export class Foe {
           A.fx.ring(this.pos.clone().add(V(0, 0.2, 0)), V(0, 1, 0), '#b71c1c', 1.2, 0.7, 9);
           sfx.push();
           A.camp.shake(0.5);
-          if (H.pos.distanceTo(this.pos) < 11 && H.invuln <= 0 && !H.dead) { H.knock.copy(H.pos).sub(this.pos).setY(0).normalize().multiplyScalar(9); H.hurt(9, this.pos); }
+          if (H.pos.distanceTo(this.pos) < 11 && H.invuln <= 0 && !H.dead) { H.knock.copy(H.pos).sub(this.pos).setY(0).normalize().multiplyScalar(9); H.hurt(9 * DIFF, this.pos); }
           this.mode = 'idle';
           this.modeT = 0.6;
         }
@@ -683,7 +686,7 @@ export class Foe {
           A.fx.ring(this.pos.clone().add(V(0, 0.2, 0)), V(0, 1, 0), '#ff7043', 1.5, 0.6, 6);
           sfx.boom(0.4, 0.8);
           A.camp.shake(0.7);
-          if (H.pos.distanceTo(this.pos) < 4.4 && H.invuln <= 0) H.hurt(18, this.pos);
+          if (H.pos.distanceTo(this.pos) < 4.4 && H.invuln <= 0) H.hurt(18 * DIFF, this.pos);
           this.setMode('recover', 1.6);
         }
         break;

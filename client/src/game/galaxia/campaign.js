@@ -406,7 +406,7 @@ class Dogfight extends Chapter {
       b.m.position.addScaledVector(b.v, dt);
       b.life -= dt;
       const hit = this.state === 'fly' && b.m.position.distanceTo(sp0) < 3.6;
-      if (hit) this.hurt(9);
+      if (hit) this.hurt(14);
       if (hit || b.life <= 0) { this.sp.scene.remove(b.m); b.m.geometry.dispose(); this.eb.splice(i, 1); }
     }
     for (const e of ctl.boost ? this.ship.userData.engines : this.ship.userData.engines) e.material.color.set(ctl.boost ? '#ffffff' : '#ff8a65');
@@ -585,10 +585,20 @@ class Hangar extends Chapter {
       c.hud.title('OLEADA 1', 'Droides de combate', 2800, '#ffe81f');
       c.hud.caption('¡Droides de seguridad! Usa el sable y desvía sus disparos con el clic derecho.', 4200);
     } else {
-      for (let k = 0; k < 5; k++) A.spawn('trooper', at(i++));
-      c.hud.title('OLEADA 2', 'Soldados imperiales', 2800, '#ffe81f');
-      c.hud.caption('¡Soldados imperiales! Si el sable se sobrecalienta, saca el bláster [2].', 4200);
-      this.reinf = 11;
+      if (this.wave === 1) {
+        for (let k = 0; k < 5; k++) A.spawn('trooper', at(i++));
+        c.hud.title('OLEADA 2', 'Soldados imperiales', 2800, '#ffe81f');
+        c.hud.caption('¡Soldados imperiales! Si el sable se sobrecalienta, saca el bláster [2].', 4200);
+        this.reinf = 11;
+      } else {
+        // Oleada 3: el capitán imperial llega con su escolta de droides pesados
+        for (let k = 0; k < 4; k++) A.spawn('droid', at(i++));
+        for (let k = 0; k < 3; k++) A.spawn('staff', at(i++));
+        for (let k = 0; k < 4; k++) A.spawn('trooper', at(i++));
+        c.hud.title('OLEADA 3', 'Escolta del capitán imperial', 2800, '#ff5252');
+        c.hud.caption('¡Refuerzos de la Estación Oscura! Mantén la guardia y no te separes.', 4200);
+        this.reinf = 0;
+      }
     }
     if (this.wave === 0) this.reinf = 0;
     sfx.alarm();
@@ -635,7 +645,7 @@ class Hangar extends Chapter {
       c.hud.objective(`Enemigos: ${left}`);
       if (left === 0 && this.reinf <= 0) {
         this.wave++;
-        if (this.wave === 1) { this.state = 'start'; this.timer = 3.5; H.hp = Math.min(H.max, H.hp + 45); c.hud.caption('Oleada superada. ¡Cuidado, vienen más!', 3000); }
+        if (this.wave < 2) { this.state = 'start'; this.timer = 3.5; H.hp = Math.min(H.max, H.hp + 45); c.hud.caption('Oleada superada. ¡Cuidado, vienen más!', 3000); }
         else {
           this.state = 'clear';
           this.built.state.doorOpen = true;
