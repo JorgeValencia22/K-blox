@@ -117,7 +117,7 @@ export class Hero {
   }
 
   hurt(dmg, from) {
-    if (this.dead || this.invuln > 0) return false;
+    if (this.dead || this.invuln > 0 || this.arena.net) return false; // cooperativo: el servidor lleva la vida
     this.hp -= dmg;
     this.lastHit = performance.now();
     sfx.hurt();
@@ -275,6 +275,7 @@ export class Hero {
     this.swing = { kind: this.combo, ...k, t: 0, u: 0, hit: new Set(), face: t ? Math.atan2(t.pos.x - this.pos.x, t.pos.z - this.pos.z) : null, played: false };
     this.queued = false;
     sfx.swing();
+    if (A.net) { const f = this.forward(); A.net.act('swing', { d: [f.x, 0, f.z] }); }
   }
 
   updateSwing(dt, now) {
@@ -283,7 +284,7 @@ export class Hero {
     s.t += dt;
     s.u = s.t / s.dur;
     // Ventana de golpe
-    if (s.u > 0.22 && s.u < 0.72) {
+    if (s.u > 0.22 && s.u < 0.72 && !this.arena.net) {
       const A = this.arena;
       const f = this.forward();
       for (const foe of A.foes) {
@@ -315,8 +316,9 @@ export class Hero {
     sfx.blaster(0.18);
     this.arena.fx.flash(m, '#40c4ff', 3);
     this.recoil = 1;
-    if (hit.foe) { hit.foe.hit(hit.foe.kind === 'vex' ? 3 : 12, this.pos, 'blaster'); A.fx.spark(aim, '#fff59d', 6, 6); }
-    else if (hit.target) hit.target.onHit(aim, 3.2);
+    if (A.net) A.net.act('shoot', { d: [d.x, d.y, d.z] });
+    else if (hit.foe) { hit.foe.hit(hit.foe.kind === 'vex' ? 3 : 12, this.pos, 'blaster'); A.fx.spark(aim, '#fff59d', 6, 6); }
+    else if (hit.target && !A.net) hit.target.onHit(aim, 3.2);
     else if (hit.t < 89) A.fx.spark(aim, '#ffd180', 6, 5);
     A.camp.hud.crossHit?.();
   }
@@ -393,6 +395,7 @@ const KINDS = {
   staff: { name: 'Droide de vara', hp: 60, speed: 6.4, costume: 'skin_droid', ai: 'melee', dmg: 12, reach: 2.4, windup: 0.5, saber: '#ffab00', len: 0.9, radius: 0.6 },
   trooper: { name: 'Soldado imperial', hp: 35, speed: 4.8, costume: 'skin_trooper', ai: 'burst', rate: [2.8, 4.0], dmg: 7, acc: 0.5, range: [13, 21], radius: 0.6 },
   vex: { name: 'Lord Vex', hp: 360, speed: 5.6, costume: 'skin_darklord', ai: 'vex', dmg: 15, reach: 2.9, saber: '#ff1744', len: 1.5, scale: 1.22, radius: 0.9 },
+  kray: { name: 'Capitán Kray', hp: 150, speed: 4.6, costume: 'skin_trooper', ai: 'melee', dmg: 14, reach: 2.6, windup: 0.55, saber: '#ffab00', len: 1.2, scale: 1.15, radius: 0.7 },
 };
 
 export class Foe {
@@ -731,6 +734,7 @@ export class Arena {
     this.kills = 0;
     this.enemiesFire = true;
     this.hpScale = 1;
+    this.net = null; // cooperativo: NetPlay (el servidor decide los golpes)
     this.hero = new Hero(this, pos, yaw);
     this.active = true;
     this.cameraEnabled = true;
@@ -848,9 +852,13 @@ export class Arena {
     const now = performance.now();
     const ctl = this.controls();
     this.hero.update(dt, ctl);
-    for (const f of this.foes) f.update(dt, now);
-    this.foes = this.foes.filter((f) => !(f.dead && f.kind !== 'vex' && f.deathT > 1.8) || (f.dispose(), false));
-    this.updateBolts(dt);
+    if (this.net) {
+      this.net.frame(this, dt);
+    } else {
+      for (const f of this.foes) f.update(dt, now);
+      this.foes = this.foes.filter((f) => !(f.dead && f.kind !== 'vex' && f.deathT > 1.8) || (f.dispose(), false));
+      this.updateBolts(dt);
+    }
     this.hero.trail.update(dt);
     for (const f of this.foes) f.trail?.update(dt);
     this.camp.hud.setHp(this.hero.hp, this.hero.max);

@@ -226,6 +226,7 @@ export class RemotePlayer {
     this.bot = !!data.bot;
     this.title = data.title || null;
     this.model = new AvatarModel(data.avatar, { name: data.name, level: data.level, title: this.title });
+    this.avatar = data.avatar;
     scene.add(this.model.root);
     this.anim = new AvatarAnimator(this.model);
     this.buffer = [];

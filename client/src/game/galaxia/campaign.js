@@ -11,6 +11,7 @@ import { toast } from '../../ui/dom.js';
 import { CHud, Fx, Score, sfx, glowMat, glowSprite, addFlashLights, canvasTex, clamp, lerp, ease, rand } from './kit.js';
 import { buildSpace, buildFighter, buildEnemy, buildFalcon, buildHangar, buildCore, buildLava, buildHome, addSpaceBackdrop, buildStation } from './scenes.js';
 import { Arena } from './combat.js';
+import { NetPlay } from './netplay.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const UP = V(0, 1, 0);
@@ -61,7 +62,23 @@ export class Campaign {
     this.game.hud.el.style.visibility = 'hidden';
     this.game.cam.yaw = 0;
     this.game.cam.pitch = 0.3;
-    this.go('intro');
+    // Cooperativo: el servidor decide los capítulos; aquí solo se pide empezar (o seguir la partida)
+    this.netplay = new NetPlay((n, d) => net.send('mode', { name: n, data: d }));
+  }
+
+  /** Se une a la misión: si ya ha empezado, sigue el capítulo actual; si no, la empieza. */
+  start(state) {
+    if (state?.started && state.chapter) this.follow(state.chapter);
+    else this.send('start').then((r) => { if (r?.error) toast(r.error, 'warn'); });
+  }
+
+  /** Mensajes del servidor: estado del combate y eventos. */
+  onSnap(snap) { this.netplay.onSnap(snap); }
+
+  onEnc(ev) {
+    const A = this.ch?.A;
+    if (A?.net) this.netplay.onEvent(A, ev);
+    this.ch?.onEnc?.(ev);
   }
 
   shake(a) { this.shakeAmt = Math.max(this.shakeAmt, a); }
@@ -79,8 +96,25 @@ export class Campaign {
     this.shakeAmt = 0;
   }
 
-  go(name, arg) {
+  /** Pide ir a un capítulo: el servidor lo cambia cuando todos están listos. */
+  go(name) {
+    this.send('goto', { chapter: name }).then((r) => { if (r?.error) toast(r.error, 'warn', 1800); });
+  }
+
+  /** Entra en el capítulo que ha decidido el servidor. */
+  follow(name, arg) {
+    this.started = true;
+    this.hud.fade(1, 300);
+    setTimeout(() => {
+      if (this.over) return;
+      this.enter(name, arg);
+      this.hud.fade(0, 400);
+    }, 320);
+  }
+
+  enter(name, arg) {
     this.ch?.leave();
+    if (this.ch?.A?.net) { this.netplay.dispose(this.ch.A); this.ch.A.net = null; }
     const h = this.hud;
     h.crossOn(false); h.crossPos(null); h.showStats(false); h.showShip(false); h.boss(null); h.timer(null); h.skip(null); h.buttons(null);
     h.bars(false); h.title(''); h.caption(''); h.helpText(''); h.objective(''); h.hideMarks(); h.count(null);
@@ -92,17 +126,8 @@ export class Campaign {
   }
 
   /** Fundido a negro, cambio de capítulo y fundido de vuelta. */
-  change(name, ms = 700, arg) {
-    if (this.changing) return;
-    this.changing = true;
-    this.frozen = true;
-    this.hud.fade(1, ms);
-    setTimeout(() => {
-      if (this.over) return;
-      this.changing = false;
-      this.go(name, arg);
-      this.hud.fade(0, ms);
-    }, ms + 60);
+  change(name) {
+    this.go(name);
   }
 
   update(dt) {
@@ -550,8 +575,26 @@ class Dock extends Chapter {
 
 // ================================================================= 3 · Hangar (oleadas) =====
 class Hangar extends Chapter {
+  onEnc(ev) {
+    if (ev.t === 'cleared') {
+      this.state = 'clear';
+      this.built.state.doorOpen = true;
+      sfx.beep(990);
+      this.c.hud.title('¡HANGAR DESPEJADO!', 'La compuerta norte se abre', 3200, '#76ff03');
+      this.c.hud.objective('Avanza por el pasillo hasta el núcleo →');
+    } else if (ev.t === 'fail') this.lost('hangar');
+  }
+
+  lost(chapter) {
+    this.c.hud.title('HAS CAÍDO', 'Tus compañeros siguen luchando… o no', 0, '#ff5252');
+    this.c.hud.buttons([['🔁 Reintentar', () => this.c.go(chapter)]]);
+    if (input.locked) { this.c.game.ignoreUnlock = true; input.unlockPointer(); }
+  }
+
   enter() {
     const c = this.c;
+    // Quien se une a media misión no ha pasado por la entrada: se prepara el hangar aquí
+    if (!c.cache.hangar || !c.cache.arena) new Dock(c).setupInside();
     this.built = c.cache.hangar;
     this.A = c.cache.arena;
     c.setScene(this.built);
@@ -564,11 +607,13 @@ class Hangar extends Chapter {
     c.hud.showStats(true);
     c.hud.setHp(this.A.hero.hp, this.A.hero.max);
     this.wave = 0;
-    this.state = 'start';
+    this.state = 'net';
+    this.A.net = this.c.netplay;
     this.timer = 2.5;
     this.needsLock = true;
     this.reinf = 0;
     this.A.onHeroDead = () => this.heroDead();
+    this.A.net = this.c.netplay;
     c.score.set('tense');
     c.hud.helpText('[WASD] mover · [Clic] sable · [Clic der.] desviar disparos (máx. 6) · [2] bláster · [1] sable · [Espacio] esquivar');
     c.hud.objective('Sobrevive a las oleadas imperiales');
@@ -666,6 +711,20 @@ class Hangar extends Chapter {
 
 // ============================================================ 4 · Núcleo y huida =====
 class Core extends Chapter {
+  onEnc(ev) {
+    if (ev.t === 'gen') {
+      this.built.state.hp = ev.hp;
+      this.c.hud.boss('⚡ ESTABILIDAD DEL NÚCLEO', ev.hp, 100);
+    } else if (ev.t === 'overload') this.overload();
+    else if (ev.t === 'fail') this.lost('core');
+  }
+
+  lost(chapter) {
+    this.c.hud.title('HAS CAÍDO', 'El núcleo sigue en pie', 0, '#ff5252');
+    this.c.hud.buttons([['🔁 Reintentar', () => this.c.go(chapter)]]);
+    if (input.locked) { this.c.game.ignoreUnlock = true; input.unlockPointer(); }
+  }
+
   enter() {
     const c = this.c;
     this.built = buildCore();
@@ -683,6 +742,7 @@ class Core extends Chapter {
     this.A.hero.bladeGoal = 0;
     old?.dispose();
     c.cache.arena = this.A;
+    this.A.net = c.netplay;
     this.A.onHeroDead = () => this.heroDead();
     const st = this.built.state;
     const C = this.built.center;
@@ -761,7 +821,7 @@ class Core extends Chapter {
     A.update(dt);
     if (this.phase === 'shoot') {
       this.reinf -= dt;
-      if (this.reinf <= 0) {
+      if (this.reinf <= 0 && !A.net) {
         this.reinf = 11;
         if (A.alive().length < 3) {
           const sp = this.built.spawns;
@@ -1139,6 +1199,15 @@ function scene_bg(scene, k) { scene.background.lerpColors(new THREE.Color('#0203
 
 // ========================================================== 8 · Lord Vex y el mundo de lava =====
 class Boss extends Chapter {
+  onEnc(ev) {
+    if (ev.t === 'bossDead' && this.phase !== 'down' && this.phase !== 'lava') this.bossDead();
+    else if (ev.t === 'fail') {
+      this.c.hud.title('HAS CAÍDO', 'Lord Vex sigue en pie', 0, '#ff5252');
+      this.c.hud.buttons([['🔁 Reintentar duelo', () => this.c.go('boss')]]);
+      if (input.locked) { this.c.game.ignoreUnlock = true; input.unlockPointer(); }
+    }
+  }
+
   enter() {
     const c = this.c;
     this.built = buildLava();
@@ -1178,6 +1247,7 @@ class Boss extends Chapter {
 
   spawnVex() {
     const A = this.A;
+    if (A.net) return; // cooperativo: Lord Vex lo crea el servidor
     const v = A.spawn('vex', V(46, 0, -22));
     v.frozen = true;
     v.forcedSpeed = 3;
@@ -1236,7 +1306,7 @@ class Boss extends Chapter {
       c.cam.position.copy(k.p); c.cam.lookAt(k.l); c.cam.fov = k.fov; c.cam.updateProjectionMatrix();
       if (t >= this.cinEnd) { this.phase = 'intro'; this.t = 0; this.cinEnd = 8; this.spawnVex(); c.score.set('boss'); c.hud.caption('Has destruido mi estación… ahora destruiré tu esperanza.', 4200); }
     } else if (this.phase === 'intro') {
-      const v = this.vex;
+      const v = this.vex || this.dummyVex || (this.dummyVex = { pos: V(), forcedSpeed: 0, yaw: 0, bladeGoal: 0 });
       // Lord Vex avanza entre el humo y enciende su sable
       const u = clamp(t / 6, 0, 1);
       v.pos.set(lerp(46, 15, ease(u)), 0, lerp(-22, -5, ease(u)));
@@ -1254,8 +1324,8 @@ class Boss extends Chapter {
       if (t >= this.cinEnd) this.beginFight();
     } else if (this.phase === 'fight') {
       A.update(dt);
-      const v = this.vex;
-      c.hud.boss('LORD VEX', v.hp, v.max);
+      const v = this.vex || A.foes.find((f) => f.kind === 'vex');
+      if (v) { this.vex = v; c.hud.boss('LORD VEX', v.hp, v.max); }
     } else if (this.phase === 'down') this.downUpdate(dt);
     else if (this.phase === 'lava') this.lavaUpdate(dt);
   }
@@ -1270,11 +1340,13 @@ class Boss extends Chapter {
     A.cameraEnabled = true;
     A.hero.ignite();
     A.hero.want = 'saber';
-    this.vex.frozen = false;
-    this.vex.bladeGoal = 1;
-    this.vex.rig.setLen(1);
-    this.vex.mode = 'idle';
-    this.vex.modeT = 0.6;
+    if (!A.net && this.vex) {
+      this.vex.frozen = false;
+      this.vex.bladeGoal = 1;
+      this.vex.rig.setLen(1);
+      this.vex.mode = 'idle';
+      this.vex.modeT = 0.6;
+    }
     c.game.cam.yaw = -Math.PI / 2 + 0.2;
     c.game.cam.pitch = 0.28;
     c.hud.title('¡DERROTA A LORD VEX!', '', 2400, '#ffe81f');

@@ -4,8 +4,8 @@ import { STUDIO_COSTUMES, STUDIO_OUTFITS, outfitPieces } from './skins.js';
 
 export const EXPERIENCES = [
   {
-    id: 'galaxia', name: 'Guerra Galáctica', category: 'battle', maxPlayers: 1, creator: 'KestWorlds Studio', isNew: true, featured: true,
-    description: 'Una campaña épica de un jugador: combate espacial, entra en la Estación Oscura, pelea con sables de plasma y blásters contra droides y soldados imperiales, destruye su núcleo magnético, escapa en el Halcón entre explosiones y bate a Lord Vex en un mundo de lava. ¡Dura unos 10 minutos!',
+    id: 'galaxia', name: 'Guerra Galáctica', category: 'battle', maxPlayers: 4, creator: 'KestWorlds Studio', isNew: true, featured: true,
+    description: 'Campaña épica para hasta 4 jugadores: combate espacial, entra en la Estación Oscura, pelea con sables de plasma y blásters contra droides, soldados imperiales y su capitán, destruye el núcleo magnético, escapa en el Halcón y bate a Lord Vex en un mundo de lava. Todos luchan juntos. ¡Dura unos 15 minutos!',
     cover: { a: '#0d0221', b: '#ff1744', icon: '⚔️' },
   },
   {
