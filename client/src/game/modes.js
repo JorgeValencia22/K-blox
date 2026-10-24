@@ -171,6 +171,7 @@ class RacingClient extends BaseClient {
       const prev = this.race.state;
       this.race = r;
       if (r.state === 'results' && prev !== 'results') this.showResults();
+      if (r.state === 'countdown' && prev !== 'countdown' && r.track) this.hud.showCenter(r.track.name, 'Preparados…', 2500);
       if (r.state === 'racing' && prev === 'countdown') {
         audio.play('countdown', null, { go: true });
         this.hud.showCenter('¡YA!', '', 900);

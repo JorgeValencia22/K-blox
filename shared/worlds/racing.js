@@ -1,7 +1,5 @@
-// Fórmula Turbo: 4 circuitos para monoplazas (F1) con parrilla, puntos de control y turbos.
-// El circuito se traza con una curva suave que pasa por puntos de control; cada circuito tiene
-// su propia forma (clásico, tipo Monza con rectas largas, tipo Mónaco con curvas cerradas y
-// tipo Silverstone con curvas rápidas).
+// Fórmula Turbo: un solo mapa con 4 circuitos para monoplazas (F1). Cada carrera usa uno distinto
+// (el servidor los va rotando): cada circuito tiene su parrilla, sus 8 puntos de control y sus turbos.
 import { WorldGen } from './builder.js';
 import { mulberry32 } from '../terrain.js';
 
@@ -28,32 +26,33 @@ function smoothLoop(ctrl, n) {
   return out;
 }
 
-const TRACKS = {
-  classic: { name: 'Circuito Turbo', pts: () => Array.from({ length: N }, (_, i) => trackPoint(i / N)), turbos: [0.15, 0.4, 0.6, 0.85], scenery: 'lake' },
-  monza: {
-    name: 'Autódromo Turbo (rectas largas)',
+/** Circuitos. `at` es el centro de cada uno dentro del mapa común (se separan para que no se toquen). */
+const TRACKS = [
+  { key: 'classic', name: 'Circuito Turbo', at: [-430, 0], pts: () => Array.from({ length: N }, (_, i) => trackPoint(i / N)), turbos: [0.15, 0.4, 0.6, 0.85], scenery: 'lake' },
+  {
+    key: 'monza', name: 'Autódromo Turbo', at: [0, 0],
     ctrl: [[0, -185], [120, -185], [175, -125], [175, -45], [125, -15], [60, 15], [120, 60], [175, 115], [120, 175], [0, 185], [-120, 175], [-175, 115], [-120, 60], [-60, 15], [-125, -15], [-175, -45], [-175, -125], [-120, -185]],
     turbos: [0.05, 0.3, 0.55, 0.8], scenery: 'park',
   },
-  monaco: {
-    name: 'Gran Premio Turbo (curvas cerradas)',
+  {
+    key: 'monaco', name: 'Gran Premio Turbo', at: [430, 0],
     ctrl: [[-40, -150], [40, -150], [70, -115], [40, -85], [80, -45], [45, -5], [100, 35], [65, 85], [5, 65], [-40, 115], [-95, 75], [-75, 20], [-135, 10], [-120, -60], [-70, -80], [-105, -140]],
     turbos: [0.1, 0.45, 0.7], scenery: 'city',
   },
-  silverstone: {
-    name: 'Circuito Turbo (curvas rápidas)',
+  {
+    key: 'silverstone', name: 'Curvas Turbo', at: [0, -520],
     ctrl: [[-160, -40], [-80, -120], [40, -130], [150, -80], [175, 20], [120, 110], [40, 150], [-40, 100], [-60, 40], [-150, 80]],
     turbos: [0.12, 0.5, 0.78], scenery: 'park',
   },
-};
+];
 
-export const RACING_TRACKS = Object.keys(TRACKS);
-
-export function buildRacing(track = 'classic') {
-  const T = TRACKS[track] || TRACKS.classic;
-  const pts = T.ctrl ? smoothLoop(T.ctrl, N) : T.pts();
+/** Pone un circuito en el mapa común. Devuelve su resumen para el servidor y el cliente. */
+function buildTrack(T, g) {
+  const base = T.ctrl ? smoothLoop(T.ctrl, N) : T.pts();
+  const pts = base.map(([x, z]) => [x + T.at[0], z + T.at[1]]);
   const n = pts.length;
-  const g = new WorldGen('r');
+  // Semilla por circuito: cliente y servidor generan exactamente el mismo mundo
+  const rnd = mulberry32(n * 131 + T.at[0] * 7 + T.at[1] * 3 + 7);
 
   // Asfalto por tramos, bordillos alternos y barreras de neumáticos en el exterior
   for (let i = 0; i < n; i++) {
@@ -76,7 +75,7 @@ export function buildRacing(track = 'classic') {
   // Puntos de control (zonas invisibles) en orden
   for (let k = 0; k < CP; k++) {
     const [x, z] = pts[Math.floor((k * n) / CP)];
-    g.add('zone', [x, 2, z], [W + 8, 8, W + 8], '#ffffff', 'plastic', { id: `rcp${k}`, n: k });
+    g.add('zone', [x, 2, z], [W + 8, 8, W + 8], '#ffffff', 'plastic', { id: `rcp_${T.key}_${k}`, n: k });
   }
 
   // Línea de salida, arco y parrilla
@@ -132,11 +131,10 @@ export function buildRacing(track = 'classic') {
 
   // Lo que rodea el circuito: lago (clásico), parques o ciudad (Mónaco)
   const dist = (x, z) => pts.reduce((m, [px2, pz2]) => Math.min(m, Math.hypot(x - px2, z - pz2)), 1e9);
-  // Semilla fija: cliente y servidor deben construir exactamente el mismo mundo
-  const rnd = mulberry32(track.length * 131 + 7);
+  const cx = T.at[0], cz = T.at[1];
   let placed = 0;
-  for (let i = 0; i < 900 && placed < 110; i++) {
-    const x = (rnd() - 0.5) * 460, z = (rnd() - 0.5) * 460;
+  for (let i = 0; i < 900 && placed < 70; i++) {
+    const x = cx + (rnd() - 0.5) * 340, z = cz + (rnd() - 0.5) * 340;
     if (dist(x, z) < 30) continue;
     if (T.scenery === 'city' && i % 2) {
       g.block([x, 4, z], [6 + (i % 3) * 3, 8 + (i % 5) * 4, 6 + (i % 4) * 2], ['#90a4ae', '#b0bec5', '#78909c'][i % 3], 'brick');
@@ -147,20 +145,34 @@ export function buildRacing(track = 'classic') {
     }
     placed++;
   }
-  if (T.scenery === 'lake') {
-    g.add('sphere', [0, 2.6, 0], [1.6, 1.6, 1.6], '#4fc3f7', 'glass', { nc: true });
-  }
+  if (T.scenery === 'lake') g.add('sphere', [cx, 2.6, cz], [1.6, 1.6, 1.6], '#4fc3f7', 'glass', { nc: true });
   // Carteles publicitarios a lo largo del circuito
   ['¡TURBO!', 'KESTWORLDS', 'NO FRENES', 'CURVA PELIGROSA'].forEach((t, k) => {
     const [x, z] = pts[Math.floor(((k + 0.5) * n) / 4)];
-    const r = Math.hypot(x, z) || 1;
-    g.add('sign', [x * (1 + 16 / r), 3, z * (1 + 16 / r)], [8, 3, 0.3], ['#ffeb3b', '#7c4dff', '#ff5722', '#00bcd4'][k], 'metal', { text: t }).ry = (Math.atan2(x, z) * 180) / Math.PI;
+    const r = Math.hypot(x - cx, z - cz) || 1;
+    g.add('sign', [cx + (x - cx) * (1 + 16 / r), 3, cz + (z - cz) * (1 + 16 / r)], [8, 3, 0.3], ['#ffeb3b', '#7c4dff', '#ff5722', '#00bcd4'][k], 'metal', { text: t }).ry = (Math.atan2(x - cx, z - cz) * 180) / Math.PI;
   });
 
-  const xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]);
+  return {
+    key: T.key,
+    name: T.name,
+    grid,
+    boosts,
+    bbox: [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[1]))],
+    spawns: grid.map((s) => [s.p[0], 0.4, s.p[2]]),
+  };
+}
+
+/** El mapa común con los cuatro circuitos. */
+export function buildRacing() {
+  const g = new WorldGen('r');
+  const tracks = TRACKS.map((T) => buildTrack(T, g));
+  const minX = Math.min(...tracks.map((t) => t.bbox[0])), maxX = Math.max(...tracks.map((t) => t.bbox[2]));
+  const minZ = Math.min(...tracks.map((t) => t.bbox[1])), maxZ = Math.max(...tracks.map((t) => t.bbox[3]));
   const pad = 60;
-  const bounds = { min: [Math.min(...xs) - pad, -20, Math.min(...zs) - pad], max: [Math.max(...xs) + pad, 120, Math.max(...zs) + pad] };
+  const bounds = { min: [minX - pad, -20, minZ - pad], max: [maxX + pad, 120, maxZ + pad] };
   const size = Math.max(bounds.max[0] - bounds.min[0], bounds.max[2] - bounds.min[2]) + 160;
+  const first = tracks[0];
 
   return {
     version: 1,
@@ -168,14 +180,14 @@ export function buildRacing(track = 'classic') {
     water: null,
     sky: { time: 0.38, dayNight: false, fog: true },
     bounds,
-    spawns: grid.map((s) => [s.p[0], 0.4, s.p[2]]),
+    spawns: first.spawns,
     objects: g.objects,
     vehicles: [],
-    meta: { mode: 'racing', vehicle: 'f1', grid, checkpoints: CP, laps: 3, minLapTime: 12, boosts },
+    meta: {
+      mode: 'racing', vehicle: 'f1', laps: 3, minLapTime: 12, checkpoints: CP,
+      tracks: tracks.map(({ key, name, grid, boosts }) => ({ key, name, grid, boosts })),
+    },
   };
 }
 
-/** Monta uno de los circuitos por su clave (monza, monaco…). */
-export function buildRacingTrack(track) {
-  return buildRacing(track);
-}
+export const RACING_TRACKS = TRACKS.map((T) => T.key);

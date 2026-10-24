@@ -10,7 +10,16 @@ export class RacingMode extends BaseMode {
   constructor(room) {
     super(room);
     this.meta = this.world.meta;
-    this.cps = this.objectsOfType('zone').filter((z) => z.id.startsWith('rcp')).sort((a, b) => a.n - b.n);
+    // Cada circuito tiene sus propios puntos de control (rcp_<circuito>_<n>)
+    this.cpsByTrack = {};
+    for (const z of this.objectsOfType('zone').filter((z) => z.id.startsWith('rcp_'))) {
+      const key = z.id.split('_')[1];
+      (this.cpsByTrack[key] ||= []).push(z);
+    }
+    for (const list of Object.values(this.cpsByTrack)) list.sort((a, b) => a.n - b.n);
+    this.trackIdx = -1;
+    this.track = this.meta.tracks[0];
+    this.cps = this.cpsByTrack[this.track.key];
     this.state = 'waiting';
     this.racers = new Map(); // userId -> { cp, lap, lapStart, finishedAt, name }
     this.startAt = 0;
@@ -22,6 +31,7 @@ export class RacingMode extends BaseMode {
   publicState() {
     return {
       state: this.state, startAt: this.startAt, laps: this.meta.laps, checkpoints: this.cps.length,
+      track: { key: this.track.key, name: this.track.name },
       standings: this.standings(), results: this.results,
     };
   }
@@ -42,7 +52,14 @@ export class RacingMode extends BaseMode {
   }
 
   gridSlot(index) {
-    return this.meta.grid[index % this.meta.grid.length];
+    return this.track.grid[index % this.track.grid.length];
+  }
+
+  /** Elige el siguiente circuito (en rotación) para la carrera que empieza. */
+  nextTrack() {
+    this.trackIdx = (this.trackIdx + 1) % this.meta.tracks.length;
+    this.track = this.meta.tracks[this.trackIdx];
+    this.cps = this.cpsByTrack[this.track.key];
   }
 
   spectatorState() {
@@ -82,6 +99,7 @@ export class RacingMode extends BaseMode {
   onEvent(p, name) {
     if (name === 'start') {
       if (this.state !== 'waiting') return { error: 'Ya hay una carrera en curso' };
+      this.nextTrack();
       this.state = 'countdown';
       this.startAt = Date.now() + COUNTDOWN_MS;
       this.results = [];
@@ -94,7 +112,7 @@ export class RacingMode extends BaseMode {
         this.room.teleport(pl, slot.p);
         this.emit(pl, 'race:grid', { p: slot.p, ry: slot.ry });
       }
-      this.room.systemMessage(`🏎️ ${p.name} ha iniciado una carrera. ¡Preparados!`);
+      this.room.systemMessage(`🏎️ ${p.name} ha iniciado una carrera en ${this.track.name}. ¡Preparados!`);
       this.sync();
       return { ok: true };
     }

@@ -1,7 +1,7 @@
 // Registro de mundos oficiales. Se generan una vez y se cachean.
 import { buildCity } from './city.js';
 import { buildObby } from './obby.js';
-import { buildRacing, buildRacingTrack } from './racing.js';
+import { buildRacing } from './racing.js';
 import { buildSurvival } from './survival.js';
 import { buildHangout } from './hangout.js';
 import { buildOnlyUp } from './onlyup.js';
@@ -21,7 +21,7 @@ import { buildPoppy } from './poppy.js';
 import { buildGalaxia } from './galaxia.js';
 
 const builders = {
-  city: buildCity, obby: buildObby, racing: buildRacing, racing_monza: () => buildRacingTrack('monza'), racing_monaco: () => buildRacingTrack('monaco'), racing_silverstone: () => buildRacingTrack('silverstone'), survival: buildSurvival, hangout: buildHangout,
+  city: buildCity, obby: buildObby, racing: buildRacing, survival: buildSurvival, hangout: buildHangout,
   onlyup: buildOnlyUp, keys: buildKeys, horror: buildHorror, royale: buildRoyale, rocket: buildRocket, castores: buildCastores,
   camaleon: buildCamaleon, asalto: buildAsalto, pesadilla: buildPesadilla, desastres: buildDesastres, huerto: buildHuerto, bloques: buildBloques, fnaf: buildFnaf, poppy: buildPoppy, galaxia: buildGalaxia,
 };
