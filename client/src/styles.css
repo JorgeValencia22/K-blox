@@ -441,24 +441,64 @@ input, textarea, .chat-log { -webkit-user-select: text; user-select: text; }
 .fn-over-text b { font: 900 64px monospace; color: #fff; text-shadow: 4px 0 #ff1744, -4px 0 #00e5ff; animation: ppglitch .15s steps(2) infinite; }
 .fn-over-text small { font: 700 18px monospace; color: #ddd; }
 
-/* Guerra Galáctica */
-.gx-boss { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); text-align: center; pointer-events: none; }
-.gx-boss-name { font-weight: 900; font-size: 18px; letter-spacing: 2px; color: #ff5252; text-shadow: 0 2px 8px #000; }
-.gx-boss-bar { height: 12px; margin-top: 4px; border-radius: 6px; background: rgba(0,0,0,.6); border: 1px solid rgba(255,82,82,.6); overflow: hidden; }
-.gx-boss-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #b71c1c, #ff1744); transition: width .2s; }
-.gx-down { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; background: radial-gradient(circle, rgba(0,0,0,.2), rgba(80,0,0,.65)); pointer-events: none; text-shadow: 0 2px 8px #000; }
-.gx-mission { position: fixed; inset: 0; z-index: 40; pointer-events: none; font-family: inherit; color: #fff; }
-.gx-m-title { position: absolute; top: 18%; width: 100%; text-align: center; font-size: clamp(26px, 5vw, 54px); font-weight: 900; letter-spacing: 3px; color: #ffe81f; text-shadow: 0 0 18px rgba(255,232,31,.5), 0 3px 10px #000; }
-.gx-m-title.pop { animation: gxpop .5s ease-out; }
-@keyframes gxpop { from { transform: scale(1.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.gx-m-obj { position: absolute; top: calc(18% + 64px); width: 100%; text-align: center; font-size: 18px; font-weight: 700; text-shadow: 0 2px 6px #000; }
-.gx-m-hp { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; font-size: 12px; font-weight: 900; letter-spacing: 2px; color: #80d8ff; }
-.gx-m-hpbar { width: 240px; height: 10px; border-radius: 5px; background: rgba(0,0,0,.6); border: 1px solid rgba(128,216,255,.5); overflow: hidden; }
-.gx-m-hpfill { height: 100%; width: 100%; background: #00e5ff; transition: width .2s; }
-.gx-m-reticle { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border: 2px solid rgba(118,255,3,.85); border-radius: 50%; box-shadow: 0 0 8px rgba(118,255,3,.6); }
-.gx-m-reticle::after { content: ''; position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; background: #76ff03; border-radius: 50%; }
-.gx-m-lock { position: absolute; top: 62%; width: 100%; text-align: center; font-size: 26px; font-weight: 900; color: #ff6d00; text-shadow: 0 0 14px #ff6d00, 0 2px 6px #000; animation: gxblink .35s steps(2) infinite; }
-@keyframes gxblink { 50% { opacity: .35; } }
-.gx-m-white { position: absolute; inset: 0; background: #fff; opacity: 0; transition: opacity .9s ease-out; }
-.gx-m-btns { position: absolute; top: 58%; width: 100%; display: flex; gap: 12px; justify-content: center; pointer-events: auto; }
-.gx-m-help { position: absolute; left: 16px; bottom: 52px; font-size: 12px; opacity: .7; text-shadow: 0 1px 4px #000; }
+/* Guerra Galáctica (campaña de un jugador) */
+.gxc { position: fixed; inset: 0; z-index: 45; pointer-events: none; color: #fff; font-family: inherit; overflow: hidden; }
+.gxc .hidden { display: none !important; }
+.gxc-fade { position: absolute; inset: 0; background: #000; opacity: 1; z-index: 30; transition: opacity .6s ease; }
+.gxc-flash { position: absolute; inset: 0; background: #fff; opacity: 0; z-index: 29; }
+.gxc-hurt { position: absolute; inset: 0; opacity: 0; box-shadow: inset 0 0 140px 30px rgba(255, 0, 40, .75); z-index: 5; }
+.gxc-bars i { position: absolute; left: 0; right: 0; height: 0; background: #000; transition: height .6s ease; z-index: 20; }
+.gxc-bars i:first-child { top: 0; }
+.gxc-bars i:last-child { bottom: 0; }
+.gxc-bars.on i { height: 11vh; }
+.gxc-cap { position: absolute; left: 50%; bottom: 14vh; transform: translateX(-50%); width: min(820px, calc(100vw - 32px)); text-align: center; font-size: clamp(16px, 2.2vw, 24px); font-weight: 700; z-index: 21; }
+.gxc-cap span { display: inline-block; padding: 8px 18px; background: rgba(0, 0, 0, .62); border-radius: 12px; text-shadow: 0 2px 6px #000; line-height: 1.35; }
+.gxc-cap.pop span { animation: gxcfade .35s ease-out; }
+@keyframes gxcfade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.gxc-title { position: absolute; top: 20%; width: 100%; text-align: center; z-index: 22; text-shadow: 0 0 22px rgba(255, 232, 31, .45), 0 3px 12px #000; }
+.gxc-title .t1 { font-size: clamp(28px, 6vw, 64px); font-weight: 900; letter-spacing: 3px; color: #ffe81f; }
+.gxc-title .t2 { margin-top: 6px; font-size: clamp(14px, 2.2vw, 22px); font-weight: 700; color: #fff; padding: 0 16px; }
+.gxc-title.pop .t1 { animation: gxcpop .55s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes gxcpop { from { transform: scale(1.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.gxc-obj { position: absolute; top: 14px; width: 100%; text-align: center; font-size: 16px; font-weight: 800; text-shadow: 0 2px 6px #000; z-index: 6; }
+.gxc-timer { position: absolute; top: 46px; width: 100%; text-align: center; font-size: 38px; font-weight: 900; color: #ff5252; text-shadow: 0 0 14px #ff1744, 0 2px 8px #000; z-index: 6; animation: gxcblink .8s steps(2) infinite; }
+@keyframes gxcblink { 50% { opacity: .6; } }
+.gxc-help { position: absolute; left: 16px; bottom: 12px; max-width: 70vw; font-size: 12px; opacity: .78; text-shadow: 0 1px 4px #000; z-index: 6; }
+.gxc-lock { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%); padding: 10px 18px; background: rgba(0, 0, 0, .7); border: 1px solid rgba(255, 255, 255, .4); border-radius: 22px; font-weight: 800; z-index: 25; white-space: nowrap; }
+.gxc-stats { position: absolute; left: 50%; bottom: 36px; transform: translateX(-50%); width: min(340px, calc(100vw - 32px)); padding: 10px 14px; background: rgba(8, 10, 20, .72); border-radius: 14px; z-index: 6; }
+.gxc-bar { height: 12px; border-radius: 6px; background: rgba(255, 255, 255, .15); overflow: hidden; }
+.gxc-hpfill { height: 100%; width: 100%; background: #00e676; transition: width .15s; }
+.gxc-weapon { margin-top: 6px; font-size: 13px; font-weight: 800; }
+.gxc-pips { display: flex; gap: 5px; margin-top: 6px; }
+.gxc-pips i { flex: 1; height: 9px; border-radius: 3px; background: rgba(255, 255, 255, .15); }
+.gxc-pips i.on { background: #40c4ff; box-shadow: 0 0 8px #40c4ff; }
+.gxc-pips i.over { background: #ff3d00; box-shadow: 0 0 8px #ff3d00; animation: gxcblink .35s steps(2) infinite; }
+.gxc-boss { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); text-align: center; z-index: 6; }
+.gxc-boss-name { font-weight: 900; font-size: 18px; letter-spacing: 3px; color: #ff5252; text-shadow: 0 2px 8px #000; }
+.gxc-boss-bar { height: 14px; margin-top: 4px; border-radius: 7px; background: rgba(0, 0, 0, .65); border: 1px solid rgba(255, 82, 82, .7); overflow: hidden; }
+.gxc-boss-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #b71c1c, #ff1744); transition: width .2s; }
+.gxc-shiphp { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; font-size: 12px; font-weight: 900; letter-spacing: 2px; color: #80d8ff; z-index: 6; }
+.gxc-shiphp .gxc-bar { width: 240px; }
+.gxc-cross { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 2px solid rgba(118, 255, 3, .9); border-radius: 50%; box-shadow: 0 0 8px rgba(118, 255, 3, .6); z-index: 4; }
+.gxc-cross i { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: #76ff03; }
+.gxc-cross.lock { border-color: #ffea00; box-shadow: 0 0 12px #ffea00; transform: scale(1.35); }
+.gxc-cross.lock i { background: #ffea00; }
+.gxc-marks { position: absolute; inset: 0; z-index: 3; }
+.gxc-mark { position: absolute; width: 0; height: 0; }
+.gxc-mark i { position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border: 3px solid #ff3b30; box-shadow: 0 0 10px #ff3b30, inset 0 0 8px rgba(255, 59, 48, .4); border-radius: 4px; }
+.gxc-mark span { position: absolute; left: -40px; top: 26px; width: 80px; text-align: center; font-size: 12px; font-weight: 800; color: #ff8a80; text-shadow: 0 1px 4px #000; }
+.gxc-mark.lock i { border-color: #ffea00; box-shadow: 0 0 14px #ffea00; transform: scale(1.3) rotate(45deg); transition: transform .2s; }
+.gxc-mark.lock span { color: #ffea00; }
+.gxc-mark.edge i { width: 0; height: 0; border: 0; box-shadow: none; left: -14px; top: -14px; border-left: 28px solid #ff3b30; border-top: 14px solid transparent; border-bottom: 14px solid transparent; filter: drop-shadow(0 0 6px #ff3b30); border-radius: 0; }
+.gxc-mark.edge.lock i { border-left-color: #ffea00; transform: none; }
+.gxc-count { position: absolute; left: 0; right: 0; bottom: 16vh; text-align: center; z-index: 24; text-shadow: 0 0 20px #000, 0 4px 14px #000; }
+.gxc-count .n { font-size: clamp(80px, 16vw, 170px); font-weight: 900; line-height: 1; color: #ffe81f; animation: gxcpop .7s ease-out; }
+.gxc-count .s { font-size: clamp(14px, 2vw, 22px); font-weight: 800; letter-spacing: 3px; }
+.gxc-crawlwrap { position: absolute; left: 0; right: 0; top: 0; bottom: 38%; perspective: 340px; overflow: hidden; z-index: 2; }
+.gxc-crawl { position: absolute; left: 50%; bottom: -10%; width: 70%; margin-left: -35%; transform-origin: 50% 100%; transform: rotateX(45deg) translateY(100%); animation: gxcrawl 11s linear forwards; text-align: center; color: #ffe81f; font-weight: 800; font-size: clamp(18px, 3.2vw, 34px); line-height: 1.5; text-shadow: 0 0 6px rgba(0, 0, 0, .8); }
+.gxc-crawl h2 { font-size: 1.7em; letter-spacing: 6px; margin: 0 0 18px; }
+.gxc-crawl p { margin: 0 0 18px; }
+@keyframes gxcrawl { from { transform: rotateX(45deg) translateY(60%); } to { transform: rotateX(45deg) translateY(-140%); } }
+.gxc-btns { position: absolute; top: 56%; width: 100%; display: flex; gap: 14px; justify-content: center; z-index: 26; pointer-events: auto; }
+.gxc-skip { position: absolute; right: 18px; bottom: calc(11vh + 12px); z-index: 26; pointer-events: auto; padding: 8px 16px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, .5); background: rgba(0, 0, 0, .55); color: #fff; font-weight: 800; cursor: pointer; }
+.gxc-skip:hover { background: rgba(255, 255, 255, .2); }

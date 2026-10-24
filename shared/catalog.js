@@ -4,8 +4,8 @@ import { STUDIO_COSTUMES, STUDIO_OUTFITS, outfitPieces } from './skins.js';
 
 export const EXPERIENCES = [
   {
-    id: 'galaxia', name: 'Guerra Galáctica', category: 'battle', maxPlayers: 12, creator: 'KestWorlds Studio', isNew: true, featured: true,
-    description: 'Una saga galáctica épica con sables de plasma y blásters láser. Duelos 1v1 en la arena (contra tus amigos o contra el temible Lord Vex), modo Historia defendiendo la base rebelde de oleadas de droides… y súbete a tu caza estelar para volar por la trinchera y destruir la Estación Oscura.',
+    id: 'galaxia', name: 'Guerra Galáctica', category: 'battle', maxPlayers: 1, creator: 'KestWorlds Studio', isNew: true, featured: true,
+    description: 'Una campaña épica de un jugador: combate espacial, entra en la Estación Oscura, pelea con sables de plasma y blásters contra droides y soldados imperiales, destruye su núcleo magnético, escapa en el Halcón entre explosiones y bate a Lord Vex en un mundo de lava. ¡Dura unos 10 minutos!',
     cover: { a: '#0d0221', b: '#ff1744', icon: '⚔️' },
   },
   {
@@ -259,8 +259,7 @@ export const ACHIEVEMENTS = [
   { id: 'fnaf_last', name: 'Último en pie', desc: 'Gana una partida de Último superviviente', reward: 120 },
   { id: 'poppy_escape', name: 'Fuera de la fábrica', desc: 'Escapa de Tito Larguirucho en Fábrica Feliz', reward: 150 },
   { id: 'poppy_tapes', name: 'Videoteca', desc: 'Encuentra las 4 cintas VHS de Fábrica Feliz', reward: 100 },
-  { id: 'gx_duel', name: 'Maestro del sable', desc: 'Gana un duelo 1v1 en Guerra Galáctica', reward: 100 },
-  { id: 'gx_story', name: 'Héroe de la Rebelión', desc: 'Derrota a Lord Vex en la Historia de Guerra Galáctica', reward: 150 },
+  { id: 'gx_story', name: 'Héroe de la Rebelión', desc: 'Completa la campaña de Guerra Galáctica y derrota a Lord Vex', reward: 150 },
   { id: 'gx_star', name: 'Un disparo entre un millón', desc: 'Destruye la Estación Oscura', reward: 200 },
   { id: 'heist', name: 'Golpe maestro', desc: 'Completa un atraco en Castores al Ataque', reward: 100 },
 ];

@@ -312,6 +312,8 @@ class App {
 }
 
 const app = new App();
+// Solo en local: asa para las pruebas de desarrollo
+if (['localhost', '127.0.0.1'].includes(location.hostname)) window.__kestApp = app;
 app.boot().catch((e) => {
   console.error(e);
   document.querySelector('#boot .boot-text').textContent = 'Error al iniciar: ' + e.message;

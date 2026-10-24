@@ -13,7 +13,8 @@ import { buildAnimatronic } from '../game/fnaf.js';
 import { buildTito, poseTito } from '../game/poppy.js';
 import { PesadillaClient } from '../game/modes3.js';
 import { nodePos } from '../../../shared/worlds/fnaf.js';
-import { makeSaber } from '../game/galaxia.js';
+import { buildLava } from '../game/galaxia/scenes.js';
+import { makeSaberRig } from '../game/galaxia/kit.js';
 import { DEFAULT_AVATAR } from '../../../shared/avatar.js';
 
 const W = 960, H = 540;
@@ -40,10 +41,57 @@ const SHOTS = {
   royale: { pos: [45, 42, 45], look: [0, 6, 0], time: 0.42, people: 4 },
   rocket: { pos: [0, 32, 62], look: [0, 0, 0], time: 0.45 },
   castores: { pos: [14, 10, 54], look: [0, 1, 30], time: 0.62, people: 3 },
-  galaxia: { pos: [69.6, 2.6, 6.2], look: [69.6, 2.3, 0], time: 0.7 },
 };
 
+/** Portada de Guerra Galáctica: el Caballero Estelar contra Lord Vex en el mundo de lava. */
+async function galaxiaCover() {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(1);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  document.body.appendChild(renderer.domElement);
+  const built = buildLava();
+  const scene = built.scene;
+  built.wreck.visible = false;
+  const camera = new THREE.PerspectiveCamera(48, W / H, 0.1, 1500);
+  camera.position.set(1.5, 2.1, 9.5);
+  camera.lookAt(0, 2.3, 0);
+  for (const [x, ry, costume, color, sc] of [[-1.7, Math.PI / 2 - 0.35, 'skin_starknight', '#29b6f6', 1], [1.8, -Math.PI / 2 + 0.35, 'skin_darklord', '#ff1744', 1.22]]) {
+    const m = new AvatarModel({ ...DEFAULT_AVATAR, costume });
+    m.root.scale.setScalar(sc);
+    const a = new AvatarAnimator(m);
+    a.set('idle');
+    for (let k = 0; k < 6; k++) a.update(0.05, 0);
+    m.root.position.set(x, 0, 0);
+    m.root.rotation.y = ry;
+    m.rArm.rotation.set(-1.75, 0.1, 0.35);
+    m.lArm.rotation.set(-0.6, 0, 0.4);
+    const hand = new THREE.Group();
+    hand.position.set(0, -0.72, 0.08);
+    m.rArm.add(hand);
+    const rig = makeSaberRig(color, 1.5);
+    rig.root.rotation.set(1.2, 0, x < 0 ? 0.35 : -0.35);
+    rig.setLen(1);
+    hand.add(rig.root);
+    scene.add(m.root);
+  }
+  const clash = new THREE.PointLight('#ffffff', 40, 14, 1.6);
+  clash.position.set(0, 2.6, 1.2);
+  const red = new THREE.PointLight('#ff3b30', 30, 16, 1.6);
+  red.position.set(3.5, 2.5, 2);
+  const blue = new THREE.PointLight('#29b6f6', 30, 16, 1.6);
+  blue.position.set(-3.5, 2.5, 2);
+  scene.add(clash, red, blue);
+  renderer.render(scene, camera);
+  await new Promise((r) => setTimeout(r, 300));
+  renderer.render(scene, camera);
+  document.getElementById('out').textContent = renderer.domElement.toDataURL('image/jpeg', 0.86);
+  document.title = 'listo';
+}
+
 async function main() {
+  if (id === 'galaxia') return galaxiaCover();
   const shot = SHOTS[id] || { pos: [20, 15, 20], look: [0, 2, 0], time: 0.35 };
   const world = getBuiltinWorld(id);
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -104,27 +152,6 @@ async function main() {
     spot.position.set(2, 6, 87);
     spot.target.position.set(0, 3, 92);
     scene.add(spot, spot.target);
-  }
-  if (id === 'galaxia') {
-    // Duelo de sables: el Caballero Estelar contra Lord Vex
-    for (const [x, ry, costume, color, pose] of [[67.9, Math.PI / 2 - 0.5, 'skin_starknight', '#29b6f6', 0.18], [71.3, -Math.PI / 2 + 0.5, 'skin_darklord', '#ff1744', 0.1]]) {
-      const m = new AvatarModel({ ...DEFAULT_AVATAR, costume });
-      const a = new AvatarAnimator(m);
-      a.set('attack');
-      for (let k = 0; k < 4; k++) a.update(pose / 4 * 2, 0);
-      m.root.position.set(x, 1.2, 0);
-      m.root.rotation.y = ry;
-      const s = makeSaber(color);
-      s.position.set(0, -0.72, 0.08);
-      s.rotation.x = 1.9;
-      m.rArm.add(s);
-      const glow = new THREE.PointLight(color, 9, 7, 1.6);
-      glow.position.set(x + (x < 69.6 ? 0.7 : -0.7), 2.6, 0.3);
-      scene.add(m.root, glow);
-    }
-    const clash = new THREE.PointLight('#ffffff', 14, 6, 1.5);
-    clash.position.set(69.6, 2.9, 0.2);
-    scene.add(clash);
   }
   if (id === 'pesadilla') {
     const mon = PesadillaClient.prototype.buildMonster.call({});
