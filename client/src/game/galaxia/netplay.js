@@ -10,7 +10,7 @@ import { sfx, glowMat, angDiff } from './kit.js';
 import { Foe } from './combat.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
-const STATE_MS = 66;
+const STATE_MS = 100; // 10 veces por segundo: sobra para ver el movimiento y no satura el servidor
 
 /** Un jugador de la sala visto por el servidor: lo dibujamos nosotros, con su avatar. */
 export class RemoteHero {
