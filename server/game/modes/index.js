@@ -17,7 +17,7 @@ import { PoppyMode } from './PoppyMode.js';
 import { GalaxiaMode } from './GalaxiaMode.js';
 
 const MODES = {
-  city: CityMode, obby: ObbyMode, racing: RacingMode, survival: SurvivalMode, hangout: HangoutMode, custom: CustomMode,
+  city: CityMode, obby: ObbyMode, racing: RacingMode, racing_monza: RacingMode, racing_monaco: RacingMode, racing_silverstone: RacingMode, survival: SurvivalMode, hangout: HangoutMode, custom: CustomMode,
   keys: KeysMode, onlyup: OnlyUpMode, horror: HorrorMode, royale: RoyaleMode, rocket: RocketMode, castores: CastoresMode,
   camaleon: CamaleonMode, asalto: AsaltoMode, pesadilla: PesadillaMode, desastres: DesastresMode, huerto: HuertoMode, bloques: BloquesMode, fnaf: FnafMode, poppy: PoppyMode, galaxia: GalaxiaMode,
 };

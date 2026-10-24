@@ -74,6 +74,30 @@ export function buildVehicleMesh(type, id, colorOverride = null) {
       wheels.push(w);
     }
     seat = new THREE.Vector3(0, 0.75, -0.15);
+  } else if (type === 'f1') {
+    // Monoplaza de Fórmula 1: morro estrecho, pontones laterales, alerón delantero y trasero, halo y ruedas anchas
+    const dark = std('#263238', { metalness: 0.4, roughness: 0.5 });
+    addBox(body, 0.55, 0.28, 3.6, paint, 0, 0.42, 0.25);            // chasis
+    addBox(body, 0.32, 0.22, 1.9, paint, 0, 0.36, 2.15);            // morro
+    addBox(body, 0.85, 0.46, 1.5, paint, 0, 0.62, -0.75);           // carenado del motor
+    addBox(body, 0.7, 0.3, 1.6, paint, 0.45, 0.4, -0.1);            // pontón derecho
+    addBox(body, 0.7, 0.3, 1.6, paint, -0.45, 0.4, -0.1);           // pontón izquierdo
+    addBox(body, 2.5, 0.07, 0.55, dark, 0, 0.2, 3.25);              // alerón delantero
+    addBox(body, 2.2, 0.08, 0.5, dark, 0, 0.2, 3.1);
+    addBox(body, 2.1, 0.12, 0.55, dark, 0, 1.15, -1.9);             // alerón trasero
+    addBox(body, 0.08, 0.6, 0.7, dark, 1.05, 0.85, -1.9);           // placas laterales
+    addBox(body, 0.08, 0.6, 0.7, dark, -1.05, 0.85, -1.9);
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.04, 6, 14, Math.PI), dark);
+    halo.position.set(0, 0.92, 0.1);
+    halo.rotation.set(0.1, 0, 0);
+    body.add(halo);
+    for (const [x, z] of [[0.95, 1.7], [-0.95, 1.7], [1.05, -1.5], [-1.05, -1.5]]) {
+      const w = wheel(0.42, 0.5);
+      w.position.set(x, 0.42, z);
+      body.add(w);
+      wheels.push(w);
+    }
+    seat = new THREE.Vector3(0, 0.72, -0.25);
   } else {
     // Avioneta
     addBox(body, 1.3, 1.2, 5.6, paint, 0, 1.5, 0);

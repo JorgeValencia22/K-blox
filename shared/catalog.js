@@ -59,9 +59,24 @@ export const EXPERIENCES = [
     cover: { a: '#ff8a65', b: '#ba68c8', icon: '🧗' },
   },
   {
-    id: 'racing', name: 'Turbo Karts', category: 'racing', maxPlayers: 8, creator: 'KestWorlds Studio',
-    description: 'Carreras de karts a 3 vueltas. Pasa por todos los puntos de control y llega el primero.',
+    id: 'racing', name: 'Fórmula Turbo', category: 'racing', maxPlayers: 8, creator: 'KestWorlds Studio',
+    description: 'Carreras de monoplazas de Fórmula 1 a 3 vueltas en el Circuito Turbo. Pasa por todos los puntos de control, usa los turbos azules y llega el primero.',
     cover: { a: '#ffd54f', b: '#e57373', icon: '🏎️' },
+  },
+  {
+    id: 'racing_monza', name: 'Fórmula Turbo: Autódromo', category: 'racing', maxPlayers: 8, creator: 'KestWorlds Studio',
+    description: 'Rectas largas para los monoplazas: aquí se gana con los turbos. 3 vueltas.',
+    cover: { a: '#ff5722', b: '#ffd54f', icon: '🏁' },
+  },
+  {
+    id: 'racing_monaco', name: 'Fórmula Turbo: Gran Premio', category: 'racing', maxPlayers: 8, creator: 'KestWorlds Studio',
+    description: 'Curvas cerradas entre edificios: frena a tiempo y no te salgas. 3 vueltas.',
+    cover: { a: '#7c4dff', b: '#00bcd4', icon: '🏙️' },
+  },
+  {
+    id: 'racing_silverstone', name: 'Fórmula Turbo: Curvas rápidas', category: 'racing', maxPlayers: 8, creator: 'KestWorlds Studio',
+    description: 'Curvas rápidas y amplias para los monoplazas más veloces. 3 vueltas.',
+    cover: { a: '#00e676', b: '#29b6f6', icon: '🏎️' },
   },
   {
     id: 'survival', name: 'Noche Salvaje', category: 'survival', maxPlayers: 12, creator: 'KestWorlds Studio',

@@ -681,7 +681,7 @@ export class Game {
         if (d < 4.5 && d < bestD && Math.abs(b.y - v.state.y) < 3) {
           best = { kind: 'vehicle', v };
           bestD = d;
-          label = v.type === 'plane' ? 'Pilotar avioneta' : v.type === 'kart' ? 'Conducir kart' : 'Conducir coche';
+          label = v.type === 'plane' ? 'Pilotar avioneta' : v.type === 'kart' ? 'Conducir kart' : v.type === 'f1' ? 'Subir al monoplaza' : 'Conducir coche';
         }
       }
       // Interacciones propias del modo (roer tablones, coger troncos...)

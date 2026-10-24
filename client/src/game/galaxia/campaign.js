@@ -1163,6 +1163,7 @@ class Boss extends Chapter {
     this.A.hero.pos.set(-6, 0, 8);
     this.A.update(0.016);
     this.shotT = 0;
+    this.mats = [];
   }
 
   spawnVex() {

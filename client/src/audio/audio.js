@@ -249,7 +249,7 @@ class AudioEngine {
       this.engines.set(id, e);
     }
     const s = pos ? this.spatial(pos, 60) : { vol: 1, pan: 0 };
-    const base = type === 'plane' ? 70 : type === 'kart' ? 90 : 55;
+    const base = type === 'plane' ? 70 : type === 'kart' ? 90 : type === 'f1' ? 115 : 55;
     const freq = base + Math.abs(speed) * (type === 'plane' ? 2.2 : 3.2);
     e.o.frequency.setTargetAtTime(freq, c.currentTime, 0.05);
     e.o2.frequency.setTargetAtTime(freq * 1.51, c.currentTime, 0.05);

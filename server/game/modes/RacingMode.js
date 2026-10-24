@@ -52,7 +52,7 @@ export class RacingMode extends BaseMode {
   onJoin(p) {
     const slot = this.gridSlot(this.room.players.size - 1);
     const vid = `kart-${p.id}`;
-    const v = this.room.addVehicle(vid, 'kart', slot.p, slot.ry);
+    const v = this.room.addVehicle(vid, this.meta.vehicle || 'f1', slot.p, slot.ry);
     v.spawn = null; // los karts personales no vuelven a la parrilla solos
     v.driver = p.id;
     p.vehicleId = vid;

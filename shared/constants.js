@@ -32,6 +32,7 @@ export const VEHICLES = {
   car: { maxSpeed: 36, accel: 18, brake: 40, reverse: 10, steer: 1.6, radius: 1.3, seatHeight: 1.0 },
   kart: { maxSpeed: 30, accel: 22, brake: 45, reverse: 8, steer: 2.2, radius: 1.0, seatHeight: 0.6 },
   plane: { maxSpeed: 70, minFlySpeed: 22, accel: 14, radius: 2.2, seatHeight: 1.4 },
+  f1: { maxSpeed: 50, accel: 30, brake: 60, reverse: 6, steer: 2.4, radius: 1.1, seatHeight: 0.5 },
 };
 
 export const NET = {
