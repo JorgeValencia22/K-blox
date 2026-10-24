@@ -24,6 +24,7 @@ import { loadCustomEmotes } from './core/emotes.js';
 import { loadCustomItems } from './core/shopItems.js';
 import { shopScreen } from './ui/screens/shop.js';
 import { EXPERIENCES } from '../../shared/catalog.js';
+import { voice } from './voice/voice.js';
 
 const SCREENS = { shop: shopScreen, menu: menuScreen, discover: discoverScreen, avatar: avatarScreen, friends: friendsScreen, create: createScreen, profile: profileScreen, admin: adminScreen, coins: coinsScreen };
 
@@ -312,6 +313,7 @@ class App {
 }
 
 const app = new App();
+voice.init();
 // Solo en local: asa para las pruebas de desarrollo
 if (['localhost', '127.0.0.1'].includes(location.hostname)) window.__kestApp = app;
 app.boot().catch((e) => {

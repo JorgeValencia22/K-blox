@@ -502,3 +502,12 @@ input, textarea, .chat-log { -webkit-user-select: text; user-select: text; }
 .gxc-btns { position: absolute; top: 56%; width: 100%; display: flex; gap: 14px; justify-content: center; z-index: 26; pointer-events: auto; }
 .gxc-skip { position: absolute; right: 18px; bottom: calc(11vh + 12px); z-index: 26; pointer-events: auto; padding: 8px 16px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, .5); background: rgba(0, 0, 0, .55); color: #fff; font-weight: 800; cursor: pointer; }
 .gxc-skip:hover { background: rgba(255, 255, 255, .2); }
+
+/* Subtítulos de voz de los amigos (abajo, sin tapar el juego) */
+#voice-subs { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 60; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; width: min(860px, calc(100vw - 32px)); transition: bottom .25s ease; }
+#voice-subs.lift { bottom: 34vh; }
+.vsub-row { display: flex; align-items: center; gap: 12px; max-width: 100%; animation: vsubin .25s ease-out; }
+.vsub-photo { width: 52px; height: 52px; border-radius: 50%; flex: 0 0 52px; border: 3px solid #fff; box-shadow: 0 2px 8px #000; object-fit: cover; }
+.vsub-init { display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 24px; }
+.vsub-text { font-size: clamp(18px, 2.4vw, 26px); font-weight: 900; color: #ffe81f; -webkit-text-stroke: 4px #000; paint-order: stroke fill; text-shadow: 0 3px 8px #000; line-height: 1.25; }
+@keyframes vsubin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

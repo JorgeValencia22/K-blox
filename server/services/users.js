@@ -126,7 +126,17 @@ export function publicProfile(u) {
     createdAt: u.created_at,
     online: presence.isOnline(u.id),
     stats: { gamesPlayed: u.stats.gamesPlayed || 0, wins: u.stats.wins || 0 },
+    photo: u.photo || '',
   };
+}
+
+/** Foto de perfil: imagen pequeña (se redimensiona en el navegador). Vacía = sin foto. */
+export function setPhoto(userId, dataUrl) {
+  const s = typeof dataUrl === 'string' ? dataUrl : '';
+  if (s && !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s)) return { error: 'Formato de imagen no válido' };
+  if (s.length > 90000) return { error: 'La imagen es demasiado grande' };
+  getDb().prepare('UPDATE users SET photo = ? WHERE id = ?').run(s, userId);
+  return { ok: true, photo: s };
 }
 
 export function getInventory(userId) {

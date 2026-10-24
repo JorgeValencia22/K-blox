@@ -35,6 +35,7 @@ export function apiRouter(rooms) {
     res.json({ user: { ...users.publicProfile(u), friend: social.areFriends(req.user.id, u.id) } });
   });
   r.put('/avatar', (req, res) => res.json({ avatar: users.saveAvatar(req.user.id, req.body?.avatar) }));
+  r.put('/me/photo', (req, res) => send(res, users.setPhoto(req.user.id, req.body?.photo)));
 
   // --- Conjuntos de avatar guardados ------------------------------------------
   r.get('/presets', (req, res) => res.json({ presets: emotes.listPresets(req.user.id) }));

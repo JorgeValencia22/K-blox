@@ -170,6 +170,10 @@ export function openDb(file) {
   db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   db.exec(SCHEMA);
+  // Foto de perfil (se añadió después de la primera versión de la base de datos)
+  if (!db.prepare('PRAGMA table_info(users)').all().some((c) => c.name === 'photo')) {
+    db.exec("ALTER TABLE users ADD COLUMN photo TEXT NOT NULL DEFAULT ''");
+  }
   return db;
 }
 

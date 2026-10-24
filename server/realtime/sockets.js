@@ -107,6 +107,26 @@ export function setupSockets(io, rooms, chat) {
       return room.npcs.talk(p, String(req.id || ''), String(req.action || 'hola'));
     });
 
+    // Chat de voz y subtítulos: solo entre amigos aceptados; el servidor no guarda nada
+    on('voice:signal', (req) => {
+      const to = String(req.to || '');
+      const data = req.data;
+      if (!data || typeof data !== 'object' || !['offer', 'answer', 'ice'].includes(data.kind)) return { error: 'Señal no válida' };
+      if (!social.areFriends(userId, to)) return { error: 'Solo puedes hablar con amigos' };
+      if (!presence.isOnline(to)) return { error: 'Tu amigo no está conectado' };
+      presence.emit(to, 'voice:signal', { from: userId, data });
+      return { ok: true };
+    });
+
+    on('voice:caption', (req) => {
+      const text = String(req.text || '').replace(/s+/g, ' ').trim().slice(0, 200);
+      if (!text || !Array.isArray(req.to)) return { ok: true };
+      for (const to of req.to.slice(0, 8).map(String)) {
+        if (social.areFriends(userId, to)) presence.emit(to, 'voice:caption', { from: userId, text });
+      }
+      return { ok: true };
+    });
+
     on('chat', (req) => {
       const r = chat.send(userId, { text: req.text, to: req.to });
       return r.error ? r : { ok: true };
