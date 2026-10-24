@@ -486,7 +486,7 @@ export class RoyaleMode extends BaseMode {
 
 // --- Geometría de rayos -------------------------------------------------------------
 /** Rayo contra cilindro vertical (base en pos, radio r, altura h). Devuelve t o null. */
-function rayCylinder(o, d, pos, r, h) {
+export function rayCylinder(o, d, pos, r, h) {
   const ox = o[0] - pos[0], oz = o[2] - pos[2];
   const a = d[0] * d[0] + d[2] * d[2];
   if (a < 1e-8) return null;
@@ -504,7 +504,7 @@ function rayCylinder(o, d, pos, r, h) {
 }
 
 /** Rayo contra caja girada en Y (método de las franjas). */
-function rayBox(o, d, box, maxT) {
+export function rayBox(o, d, box, maxT) {
   const a = ((box.ry || 0) * Math.PI) / 180;
   const cos = Math.cos(a), sin = Math.sin(a);
   const rx = o[0] - box.p[0], rz = o[2] - box.p[2];

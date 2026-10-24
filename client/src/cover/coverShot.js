@@ -13,6 +13,8 @@ import { buildAnimatronic } from '../game/fnaf.js';
 import { buildTito, poseTito } from '../game/poppy.js';
 import { PesadillaClient } from '../game/modes3.js';
 import { nodePos } from '../../../shared/worlds/fnaf.js';
+import { makeSaber } from '../game/galaxia.js';
+import { DEFAULT_AVATAR } from '../../../shared/avatar.js';
 
 const W = 960, H = 540;
 const id = new URLSearchParams(location.search).get('w') || 'hangout';
@@ -38,6 +40,7 @@ const SHOTS = {
   royale: { pos: [45, 42, 45], look: [0, 6, 0], time: 0.42, people: 4 },
   rocket: { pos: [0, 32, 62], look: [0, 0, 0], time: 0.45 },
   castores: { pos: [14, 10, 54], look: [0, 1, 30], time: 0.62, people: 3 },
+  galaxia: { pos: [69.6, 2.6, 6.2], look: [69.6, 2.3, 0], time: 0.7 },
 };
 
 async function main() {
@@ -101,6 +104,27 @@ async function main() {
     spot.position.set(2, 6, 87);
     spot.target.position.set(0, 3, 92);
     scene.add(spot, spot.target);
+  }
+  if (id === 'galaxia') {
+    // Duelo de sables: el Caballero Estelar contra Lord Vex
+    for (const [x, ry, costume, color, pose] of [[67.9, Math.PI / 2 - 0.5, 'skin_starknight', '#29b6f6', 0.18], [71.3, -Math.PI / 2 + 0.5, 'skin_darklord', '#ff1744', 0.1]]) {
+      const m = new AvatarModel({ ...DEFAULT_AVATAR, costume });
+      const a = new AvatarAnimator(m);
+      a.set('attack');
+      for (let k = 0; k < 4; k++) a.update(pose / 4 * 2, 0);
+      m.root.position.set(x, 1.2, 0);
+      m.root.rotation.y = ry;
+      const s = makeSaber(color);
+      s.position.set(0, -0.72, 0.08);
+      s.rotation.x = 1.9;
+      m.rArm.add(s);
+      const glow = new THREE.PointLight(color, 9, 7, 1.6);
+      glow.position.set(x + (x < 69.6 ? 0.7 : -0.7), 2.6, 0.3);
+      scene.add(m.root, glow);
+    }
+    const clash = new THREE.PointLight('#ffffff', 14, 6, 1.5);
+    clash.position.set(69.6, 2.9, 0.2);
+    scene.add(clash);
   }
   if (id === 'pesadilla') {
     const mon = PesadillaClient.prototype.buildMonster.call({});

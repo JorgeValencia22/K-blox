@@ -4,6 +4,11 @@ import { STUDIO_COSTUMES, STUDIO_OUTFITS, outfitPieces } from './skins.js';
 
 export const EXPERIENCES = [
   {
+    id: 'galaxia', name: 'Guerra Galáctica', category: 'battle', maxPlayers: 12, creator: 'KestWorlds Studio', isNew: true, featured: true,
+    description: 'Una saga galáctica épica con sables de plasma y blásters láser. Duelos 1v1 en la arena (contra tus amigos o contra el temible Lord Vex), modo Historia defendiendo la base rebelde de oleadas de droides… y súbete a tu caza estelar para volar por la trinchera y destruir la Estación Oscura.',
+    cover: { a: '#0d0221', b: '#ff1744', icon: '⚔️' },
+  },
+  {
     id: 'poppy', name: 'Fábrica Feliz', category: 'horror', maxPlayers: 8, creator: 'KestWorlds Studio', isNew: true, featured: true,
     description: 'Una fábrica de juguetes abandonada. Con tu mochila de manos extensibles (azul y roja) agarra escáneres, enchufes, palancas y engranajes para abrir cada sala… hasta que Tito Larguirucho despierta y toca CORRER. Cooperativo, con cintas VHS secretas.',
     cover: { a: '#1a237e', b: '#d81b60', icon: '🧸' },
@@ -254,6 +259,9 @@ export const ACHIEVEMENTS = [
   { id: 'fnaf_last', name: 'Último en pie', desc: 'Gana una partida de Último superviviente', reward: 120 },
   { id: 'poppy_escape', name: 'Fuera de la fábrica', desc: 'Escapa de Tito Larguirucho en Fábrica Feliz', reward: 150 },
   { id: 'poppy_tapes', name: 'Videoteca', desc: 'Encuentra las 4 cintas VHS de Fábrica Feliz', reward: 100 },
+  { id: 'gx_duel', name: 'Maestro del sable', desc: 'Gana un duelo 1v1 en Guerra Galáctica', reward: 100 },
+  { id: 'gx_story', name: 'Héroe de la Rebelión', desc: 'Derrota a Lord Vex en la Historia de Guerra Galáctica', reward: 150 },
+  { id: 'gx_star', name: 'Un disparo entre un millón', desc: 'Destruye la Estación Oscura', reward: 200 },
   { id: 'heist', name: 'Golpe maestro', desc: 'Completa un atraco en Castores al Ataque', reward: 100 },
 ];
 export const ACH_BY_ID = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));

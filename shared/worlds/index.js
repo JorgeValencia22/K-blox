@@ -18,11 +18,12 @@ import { buildAsalto } from './asalto.js';
 import { buildCamaleon } from './camaleon.js';
 import { buildFnaf } from './fnaf.js';
 import { buildPoppy } from './poppy.js';
+import { buildGalaxia } from './galaxia.js';
 
 const builders = {
   city: buildCity, obby: buildObby, racing: buildRacing, survival: buildSurvival, hangout: buildHangout,
   onlyup: buildOnlyUp, keys: buildKeys, horror: buildHorror, royale: buildRoyale, rocket: buildRocket, castores: buildCastores,
-  camaleon: buildCamaleon, asalto: buildAsalto, pesadilla: buildPesadilla, desastres: buildDesastres, huerto: buildHuerto, bloques: buildBloques, fnaf: buildFnaf, poppy: buildPoppy,
+  camaleon: buildCamaleon, asalto: buildAsalto, pesadilla: buildPesadilla, desastres: buildDesastres, huerto: buildHuerto, bloques: buildBloques, fnaf: buildFnaf, poppy: buildPoppy, galaxia: buildGalaxia,
 };
 const cache = new Map();
 
