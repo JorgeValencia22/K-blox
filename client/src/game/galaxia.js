@@ -1,24 +1,18 @@
-// Guerra Galáctica (cliente), en cooperativo: el servidor lleva los capítulos y los combates; aquí
-// se dibuja la campaña (galaxia/campaign.js) y se reciben sus mensajes.
+// Guerra Galáctica (cliente): al entrar empieza la campaña de un jugador (ver galaxia/campaign.js).
 import { Campaign } from './galaxia/campaign.js';
 
 export class GalaxiaClient {
   constructor(game, state) {
     this.game = game;
+    this.netEvents = {};
     this.blockEmotes = true;
     this.customAudio = true;
     this.hint = [];
+    this.state = state || {};
     this.campaign = new Campaign(this);
-    // Mensajes del servidor (nombres tal y como los envía GalaxiaMode)
-    this.netEvents = {
-      'gx:chapter': (m) => this.campaign.follow(m.name),
-      enc: (snap) => this.campaign.onSnap(snap),
-      'enc:ev': (ev) => this.campaign.onEnc(ev),
-    };
-    this.campaign.start(state);
   }
 
-  /** La partida local no mueve al personaje: la campaña dibuja su propia escena. */
+  /** El personaje de la partida se queda quieto: la campaña dibuja su propia escena. */
   get frozen() { return true; }
 
   update(dt) { this.campaign.update(dt); }
