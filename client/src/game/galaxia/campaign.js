@@ -63,7 +63,7 @@ export class Campaign {
     this.game.cam.yaw = 0;
     this.game.cam.pitch = 0.3;
     // Cooperativo: el servidor decide los capítulos; aquí solo se pide empezar (o seguir la partida)
-    this.netplay = new NetPlay((n, d) => net.send('mode:fast', { name: n, data: d }));
+    this.netplay = new NetPlay((n, d) => net.send('mode', { name: n, data: d }));
   }
 
   /** Se une a la misión: si ya ha empezado, sigue el capítulo actual; si no, la empieza. */

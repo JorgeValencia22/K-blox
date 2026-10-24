@@ -9,9 +9,7 @@ import * as social from '../services/social.js';
 export function setupSockets(io, rooms, chat) {
   const stateLimiter = new RateLimiter(40, 1000);
   const actionLimiter = new RateLimiter(25, 1000);
-  // Combate en tiempo real (posición y golpes): su propio límite, para que no compita con el resto de acciones
-  const fastLimiter = new RateLimiter(60, 1000);
-  setInterval(() => { stateLimiter.cleanup(); actionLimiter.cleanup(); fastLimiter.cleanup(); }, 30_000).unref();
+  setInterval(() => { stateLimiter.cleanup(); actionLimiter.cleanup(); }, 30_000).unref();
 
   io.use((socket, next) => {
     const u = users.userFromToken(socket.handshake.auth?.token);
@@ -101,12 +99,6 @@ export function setupSockets(io, rooms, chat) {
       if (!p) return { error: 'No estás en una partida' };
       return rooms.roomOf(userId).mode.onEvent(p, String(req.name || ''), req.data || {});
     });
-
-    on('mode:fast', (req) => {
-      const p = me();
-      if (!p) return { error: 'No estás en una partida' };
-      return rooms.roomOf(userId).mode.onEvent(p, String(req.name || ''), req.data || {});
-    }, fastLimiter);
 
     on('npc', (req) => {
       const p = me();
