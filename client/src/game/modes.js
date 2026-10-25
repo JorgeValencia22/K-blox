@@ -8,6 +8,7 @@ import { h, toast, formatTime } from '../ui/dom.js';
 import { material } from '../engine/materials.js';
 import { boxGeo } from '../world/objectParts.js';
 import { store } from '../core/store.js';
+import { FallGuysClient } from './fallguys.js';
 import { OnlyUpClient, HorrorClient, RoyaleClient, RocketClient, CastoresClient } from './modes2.js';
 import { PesadillaClient, DesastresClient, HuertoClient, BloquesClient } from './modes3.js';
 import { AsaltoClient } from './asalto.js';
@@ -603,6 +604,7 @@ export function createClientMode(name, game, state) {
     case 'city': return new CityClient(game, state);
     case 'obby': return new ObbyClient(game, state);
     case 'racing': return new RacingClient(game, state);
+    case 'fallguys': return new FallGuysClient(game, state);
     case 'survival': return new SurvivalClient(game, state);
     case 'hangout': return new HangoutClient(game, state);
     default: return new CustomClient(game, state);
