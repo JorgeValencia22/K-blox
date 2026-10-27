@@ -373,7 +373,12 @@ export class CHud {
     this.hpTxt = h('span', '');
     this.pips = h('div.gxc-pips');
     this.weaponEl = h('div.gxc-weapon');
-    this.stats = h('div.gxc-stats.hidden', h('div.gxc-bar', this.hpFill), this.weaponEl, this.pips);
+    this.spFill = h('div.gxc-sp-fill');
+    this.spTxt = h('span');
+    this.spEl = h('div.gxc-special', this.spTxt, h('div.gxc-sp-bar', this.spFill));
+    this.stats = h('div.gxc-stats.hidden', h('div.gxc-bar', this.hpFill), this.weaponEl, this.pips, this.spEl);
+    this.announceEl = h('div.gxc-announce');
+    this.actEl = h('div.gxc-act');
     this.bossName = h('div.gxc-boss-name');
     this.bossFill = h('div.gxc-boss-fill');
     this.bossEl = h('div.gxc-boss.hidden', this.bossName, h('div.gxc-boss-bar', this.bossFill));
@@ -384,7 +389,7 @@ export class CHud {
     this.countEl = h('div.gxc-count.hidden');
     this.crawl = h('div.gxc-crawlwrap.hidden', h('div.gxc-crawl'));
     this.btns = h('div.gxc-btns.hidden');
-    this.root = h('div.gxc', this.crawl, this.marks, this.cross, this.hurtEl, this.flashEl, this.bossEl, this.shipHp, this.stats, this.objEl, this.timerEl, this.titleEl, this.cap, this.countEl, this.help, this.btns, this.lockEl, this.skipBtn, this.barsEl, this.fadeEl);
+    this.root = h('div.gxc', this.announceEl, this.actEl, this.crawl, this.marks, this.cross, this.hurtEl, this.flashEl, this.bossEl, this.shipHp, this.stats, this.objEl, this.timerEl, this.titleEl, this.cap, this.countEl, this.help, this.btns, this.lockEl, this.skipBtn, this.barsEl, this.fadeEl);
     document.body.appendChild(this.root);
     this.markEls = [];
     this.fadeEl.style.opacity = 1;
@@ -427,6 +432,37 @@ export class CHud {
     this.titleEl.classList.add('pop');
     clearTimeout(this.titleT);
     if (ms) this.titleT = setTimeout(() => clear(this.titleEl), ms);
+  }
+
+  /** Habilidad especial: nombre y barra de enfriamiento (se ilumina cuando está lista). */
+  setSpecial(cls, cd) {
+    const S = cls.special, ready = cd <= 0.01;
+    const txt = ready ? `[Q] ${cls.icon} ${S.name} · ¡LISTA!` : `${cls.icon} ${S.name} · ${Math.ceil(cd)} s`;
+    if (this.spTxt.textContent !== txt) this.spTxt.textContent = txt;
+    this.spFill.style.width = `${clamp(1 - cd / S.cd, 0, 1) * 100}%`;
+    this.spEl.classList.toggle('ready', ready);
+  }
+
+  /** Anuncio grande a media pantalla (eliminaciones seguidas, momentos épicos). */
+  announce(big, small = '', color = '#ffe81f') {
+    clear(this.announceEl);
+    this.announceEl.append(...[h('div.a1', { style: { color } }, big), small ? h('div.a2', small) : null].filter(Boolean));
+    this.announceEl.classList.remove('pop');
+    void this.announceEl.offsetWidth;
+    this.announceEl.classList.add('pop');
+    clearTimeout(this.annT);
+    this.annT = setTimeout(() => clear(this.announceEl), 1700);
+  }
+
+  /** Cartel de acto al empezar cada capítulo, como en un evento en directo. */
+  act(n, name, sub = '') {
+    clear(this.actEl);
+    this.actEl.append(...[h('div.k1', n), h('div.k2', name), sub ? h('div.k3', sub) : null].filter(Boolean));
+    this.actEl.classList.remove('pop');
+    void this.actEl.offsetWidth;
+    this.actEl.classList.add('pop');
+    clearTimeout(this.actT);
+    this.actT = setTimeout(() => clear(this.actEl), 4200);
   }
 
   objective(t) { this.objEl.textContent = t || ''; }

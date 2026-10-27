@@ -11,6 +11,7 @@ import { toast } from '../../ui/dom.js';
 import { CHud, Fx, Score, sfx, glowMat, glowSprite, addFlashLights, canvasTex, clamp, lerp, ease, rand } from './kit.js';
 import { buildSpace, buildFighter, buildEnemy, buildFalcon, buildHangar, buildCore, buildLava, buildHome, addSpaceBackdrop, buildStation } from './scenes.js';
 import { Arena } from './combat.js';
+import { heroOf } from './heroes.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const UP = V(0, 1, 0);
@@ -32,6 +33,17 @@ function rail(keys) {
   };
 }
 
+const ACTS = {
+  dogfight: ['ACTO I', 'LA BATALLA DEL BORDE EXTERIOR', 'Derriba el escuadrón enemigo'],
+  dock: ['ACTO II', 'INFILTRACIÓN', 'Un caza rebelde entra en la estación'],
+  hangar: ['ACTO III', 'EL HANGAR IMPERIAL', 'Sobrevive a las oleadas'],
+  core: ['ACTO IV', 'EL CORAZÓN DE LA ESTACIÓN', 'Destruye el generador magnético'],
+  escape: ['ACTO V', 'EL ÚLTIMO SALTO', 'Escapa antes de que explote'],
+  drift: ['ACTO VI', 'A LA DERIVA', 'La galaxia en silencio'],
+  boss: ['ACTO VII', 'EL DUELO FINAL', 'Lord Vex te espera'],
+  home: ['EPÍLOGO', 'REGRESO A CASA', 'La misión ha terminado'],
+};
+
 const CRAWL = [
   '# GUERRA GALÁCTICA',
   'La Estación Oscura apunta su superláser contra el último planeta libre.',
@@ -49,6 +61,12 @@ export class Campaign {
     this.fx = new Fx();
     this.score = new Score();
     this.cache = {};
+    this.heroId = client.heroId || 'knight';
+    this.party = client.party || null;
+    this.momentCam = null;
+    this.streak = 0;
+    this.lastKill = 0;
+    this.stood = false;
     this.time = 0;
     this.timeScale = 1;
     this.shakeAmt = 0;
@@ -80,7 +98,15 @@ export class Campaign {
   }
 
   go(name, arg) {
+    // En cooperativo, los capítulos con enemigos compartidos esperan a que lleguen todos
+    if (this.party?.needsBarrier(name)) {
+      if (!this.party.hold) this.party.arrive(name, () => this.go(name, arg));
+      return;
+    }
     this.ch?.leave();
+    this.momentCam = null;
+    this.stood = false;
+    this.streak = 0;
     const h = this.hud;
     h.crossOn(false); h.crossPos(null); h.showStats(false); h.showShip(false); h.boss(null); h.timer(null); h.skip(null); h.buttons(null);
     h.bars(false); h.title(''); h.caption(''); h.helpText(''); h.objective(''); h.hideMarks(); h.count(null);
@@ -89,6 +115,8 @@ export class Campaign {
     this.name = name;
     this.ch = new CHAPTERS[name](this, arg);
     this.ch.enter();
+    const act = ACTS[name];
+    if (act) h.act(act[0], act[1], act[2]);
   }
 
   /** Fundido a negro, cambio de capítulo y fundido de vuelta. */
@@ -110,15 +138,123 @@ export class Campaign {
     // La partida se pone como vista del motor después de crear el modo: aquí la sustituimos por la nuestra
     if (engine.view !== this.view) { this.prevView = this.prevView || engine.view; engine.view = this.view; engine.resize(); }
     const rdt = dt;
+    this.tickMoment(rdt);
     dt *= this.timeScale;
     this.time += dt;
     this.shakeAmt = Math.max(0, this.shakeAmt - rdt * 1.4);
     this.score.update(rdt);
     this.ch?.update(dt);
+    this.applyMoment();
+    this.watchHero();
     this.cur?.scene.userData.anim?.(this.time, dt, this.fx);
     this.fx.update(dt);
     this.cur?.follow?.(this.cam.position);
     this.hud.lockHint(!input.locked && !input.isTouch && this.ch?.needsLock && !this.changing);
+  }
+
+  // --- Cinemáticas dentro de la partida --------------------------------------------------------------
+  /** La cámara se separa del héroe unos segundos (barras de cine y cámara lenta) mientras el juego sigue. */
+  moment({ dur = 2.4, slow = 0.35, cam, title, sub, color, caption }) {
+    if (this.momentCam || this.over || this.changing) return false;
+    this.momentCam = { t: 0, dur, slow, cam, wasFrozen: this.frozen };
+    this.frozen = true;
+    this.hud.bars(true);
+    if (title) this.hud.announce(title, sub, color);
+    if (caption) this.hud.caption(caption, dur * 1000);
+    const H = this.ch?.A?.hero;
+    if (H) H.invuln = Math.max(H.invuln, dur * 0.9);
+    return true;
+  }
+
+  tickMoment(rdt) {
+    const m = this.momentCam;
+    if (!m) return;
+    m.t += rdt;
+    const edge = Math.min(m.t / 0.3, (m.dur - m.t) / 0.4, 1);
+    this.timeScale = lerp(1, m.slow, ease(clamp(edge, 0, 1)));
+    if (m.t >= m.dur) {
+      this.momentCam = null;
+      this.timeScale = 1;
+      this.frozen = m.wasFrozen;
+      this.hud.bars(false);
+    }
+  }
+
+  applyMoment() {
+    const m = this.momentCam;
+    if (!m) return;
+    const k = m.cam(clamp(m.t / m.dur, 0, 1));
+    this.cam.position.copy(k.p);
+    this.cam.up.set(0, 1, 0);
+    this.cam.lookAt(k.l);
+    this.cam.fov = k.fov;
+    this.cam.updateProjectionMatrix();
+  }
+
+  /** Cámara que da media vuelta alrededor de un punto. */
+  orbit(at, { r0 = 8, r1 = 5, a0 = 0, a1 = 1.7, h0 = 2.2, h1 = 3, fov0 = 62, fov1 = 46, look = 1.2 } = {}) {
+    return (u) => {
+      const t = typeof at === 'function' ? at() : at;
+      const a = lerp(a0, a1, ease(u)), r = lerp(r0, r1, ease(u));
+      return { p: V(t.x + Math.sin(a) * r, t.y + lerp(h0, h1, u), t.z + Math.cos(a) * r), l: V(t.x, t.y + look, t.z), fov: lerp(fov0, fov1, u) };
+    };
+  }
+
+  /** Al empezar una oleada: la cámara sobrevuela a los enemigos que aparecen. */
+  reveal(foes) {
+    if (!foes.length) return;
+    const c = V();
+    for (const f of foes) c.add(f.pos);
+    c.multiplyScalar(1 / foes.length);
+    this.moment({ dur: 2.5, slow: 0.55, cam: this.orbit(c, { r0: 19, r1: 12, a0: 0.3, a1: 1.9, h0: 7, h1: 3.2, fov0: 70, fov1: 52, look: 1.2 }) });
+  }
+
+  /** Cada eliminación suma a la racha; el último enemigo de la oleada final se ve en cámara lenta. */
+  onKill(foe) {
+    if (foe.kind === 'vex' || this.over) return;
+    const now = performance.now();
+    this.streak = now - this.lastKill < 3600 ? this.streak + 1 : 1;
+    this.lastKill = now;
+    const names = ['', '', 'DOBLE ELIMINACIÓN', 'TRIPLE ELIMINACIÓN', '¡RACHA x4!', '¡RACHA x5!'];
+    const colors = ['', '', '#ffe81f', '#ff9100', '#ff5252', '#e040fb'];
+    if (this.streak >= 2) {
+      const n = Math.min(this.streak, 5);
+      this.hud.announce(this.streak > 5 ? `¡IMPARABLE! x${this.streak}` : names[n], '', colors[n]);
+      sfx.beep(520 + n * 140);
+    }
+    const A = this.ch?.A;
+    if (this.name === 'hangar' && this.ch.wave === 2 && A && A.alive().length === 0) {
+      const p = foe.pos.clone();
+      this.moment({ dur: 2, slow: 0.22, cam: this.orbit(p, { r0: 6, r1: 3.6, a0: 0.4, a1: 2.3, h0: 0.9, h1: 1.6, fov0: 56, fov1: 38, look: 1 }), title: '¡OLEADA FINAL SUPERADA!', sub: 'la compuerta se abre', color: '#76ff03' });
+    }
+  }
+
+  /** Cuando estás al límite, la Fuerza te da una última oportunidad (una vez por combate). */
+  watchHero() {
+    const A = this.ch?.A, H = A?.hero;
+    if (!H || H.dead || this.stood || this.momentCam || !['hangar', 'core', 'boss'].includes(this.name) || this.cur?.scene !== A.scene) return;
+    if (H.hp / H.max > 0.2 || this.ch.phase === 'arrive' || this.ch.phase === 'intro') return;
+    this.stood = true;
+    H.hp = Math.min(H.max, H.hp + H.max * 0.35);
+    this.hud.setHp(H.hp, H.max);
+    const at = H.pos.clone();
+    this.moment({ dur: 2.2, slow: 0.25, cam: this.orbit(() => H.pos, { r0: 5, r1: 3.2, a0: 2.6, a1: 4.4, h0: 1.2, h1: 1.8, fov0: 58, fov1: 40, look: 1.3 }), title: 'LA FUERZA TE ACOMPAÑA', sub: '¡resiste!', color: '#80d8ff' });
+    this.fx.ring(at.clone().add(V(0, 1, 0)), UP, '#80d8ff', 0.7, 0.8, 16);
+    sfx.boom(0.4, 1.2);
+    for (const f of A.foes) {
+      if (f.dead || f.kind === 'vex' || f.pos.distanceTo(at) > 12) continue;
+      f.stun = 1.8;
+      f.pos.addScaledVector(f.pos.clone().sub(at).setY(0).normalize(), 4);
+      A.collide(f.pos);
+    }
+    for (const b of A.bolts) if (b.owner === 'foe') b.life = 0;
+  }
+
+  /** En cooperativo, caer no reinicia el combate: tus aliados pueden levantarte. Devuelve true si lo gestiona. */
+  coopDown() {
+    if (!this.party?.active) return false;
+    this.hud.title('HAS CAÍDO', 'Tus aliados pueden levantarte si se acercan a ti', 0, '#ff5252');
+    return true;
   }
 
   exit() {
@@ -273,6 +409,8 @@ class Dogfight extends Chapter {
     c.cam.fov = 70;
     for (let i = 0; i < 3; i++) this.spawn();
     this.f.chase(0, true);
+    const cls = heroOf(c.heroId);
+    setTimeout(() => { if (!c.over && c.name === 'dogfight') c.hud.caption(`${cls.icon} ${cls.name}: «${cls.lines.intro}»`, 3600); }, 3800);
   }
 
   spawn() {
@@ -604,10 +742,12 @@ class Hangar extends Chapter {
     sfx.alarm();
     for (const f of A.foes) c.fx.spark(f.pos.clone().add(V(0, 1, 0)), '#ff5252', 12, 6);
     this.state = 'wave';
+    c.reveal(A.foes);
   }
 
   heroDead() {
     const c = this.c;
+    if (c.coopDown()) return;
     c.hud.title('HAS CAÍDO', '', 0, '#ff5252');
     c.hud.buttons([['🔁 Reintentar oleada', () => this.retry()]]);
     if (input.locked) { c.game.ignoreUnlock = true; input.unlockPointer(); }
@@ -645,6 +785,7 @@ class Hangar extends Chapter {
       c.hud.objective(`Enemigos: ${left}`);
       if (left === 0 && this.reinf <= 0) {
         this.wave++;
+        if (H.dead && c.party?.active) { H.revive(H.pos, H.yaw); H.hp = H.max * 0.6; c.hud.title(''); c.hud.buttons(null); }
         if (this.wave < 2) { this.state = 'start'; this.timer = 3.5; H.hp = Math.min(H.max, H.hp + 45); c.hud.caption('Oleada superada. ¡Cuidado, vienen más!', 3000); }
         else {
           this.state = 'clear';
@@ -711,10 +852,32 @@ class Core extends Chapter {
     const st = this.built.state;
     if (this.phase !== 'shoot') return;
     st.hp = Math.max(0, st.hp - dmg);
+    this.c.party?.hit('core', dmg);
     this.c.fx.spark(p, '#b3e5fc', 10, 9);
     sfx.zap();
     this.c.hud.boss('⚡ ESTABILIDAD DEL NÚCLEO', st.hp, 100);
+    this.halfway();
     if (st.hp <= 0) this.overload();
+  }
+
+  /** Un aliado ha disparado al generador: la misma vida baja aquí. */
+  remoteCore(dmg) {
+    const st = this.built.state;
+    if (this.phase !== 'shoot') return;
+    st.hp = Math.max(0, st.hp - dmg);
+    this.c.fx.spark(this.built.center.clone().add(V(rand(-8, 8), rand(-8, 8), 2)), '#b3e5fc', 10, 9);
+    this.c.hud.boss('⚡ ESTABILIDAD DEL NÚCLEO', st.hp, 100);
+    this.halfway();
+    if (st.hp <= 0) this.overload();
+  }
+
+  /** A mitad de la carga, la cámara enseña cómo se desestabiliza el generador. */
+  halfway() {
+    const st = this.built.state;
+    if (this.half || st.hp > 50 || st.hp <= 0) return;
+    this.half = true;
+    const C = this.built.center;
+    this.c.moment({ dur: 2.4, slow: 0.4, cam: this.c.orbit(C, { r0: 26, r1: 19, a0: 2.7, a1: 3.6, h0: 2, h1: 5, fov0: 64, fov1: 52, look: 0 }), title: 'EL NÚCLEO SE DESESTABILIZA', sub: '¡sigue disparando!', color: '#ff9100' });
   }
 
   overload() {
@@ -741,6 +904,7 @@ class Core extends Chapter {
 
   heroDead() {
     const c = this.c;
+    if (c.coopDown()) return;
     c.hud.title('HAS CAÍDO', '', 0, '#ff5252');
     c.hud.buttons([['🔁 Reintentar', () => this.retry()]]);
     if (input.locked) { c.game.ignoreUnlock = true; input.unlockPointer(); }
@@ -1187,6 +1351,7 @@ class Boss extends Chapter {
 
   heroDead() {
     const c = this.c;
+    if (c.coopDown()) return;
     c.hud.title('HAS CAÍDO', 'Lord Vex sigue en pie', 0, '#ff5252');
     c.hud.buttons([['🔁 Reintentar duelo', () => this.retry()]]);
     if (input.locked) { c.game.ignoreUnlock = true; input.unlockPointer(); }
@@ -1234,7 +1399,7 @@ class Boss extends Chapter {
       A.update(dt);
       const k = this.camArrive(Math.min(t, 5.2));
       c.cam.position.copy(k.p); c.cam.lookAt(k.l); c.cam.fov = k.fov; c.cam.updateProjectionMatrix();
-      if (t >= this.cinEnd) { this.phase = 'intro'; this.t = 0; this.cinEnd = 8; this.spawnVex(); c.score.set('boss'); c.hud.caption('Has destruido mi estación… ahora destruiré tu esperanza.', 4200); }
+      if (t >= this.cinEnd) { this.phase = 'intro'; this.t = 0; this.cinEnd = 8; this.spawnVex(); c.score.set('boss'); c.hud.caption(heroOf(c.heroId).lines.vex, 4600); }
     } else if (this.phase === 'intro') {
       const v = this.vex;
       // Lord Vex avanza entre el humo y enciende su sable
@@ -1256,6 +1421,15 @@ class Boss extends Chapter {
       A.update(dt);
       const v = this.vex;
       c.hud.boss('LORD VEX', v.hp, v.max);
+      if (!this.rage && v.hp > 0 && v.hp < v.max * 0.5) {
+        // A mitad de vida, Lord Vex se enfurece: más rápido y más duro
+        this.rage = true;
+        v.K = { ...v.K, speed: v.K.speed * 1.25, dmg: v.K.dmg * 1.2 };
+        c.score.set('doom');
+        sfx.boom(0.5, 1.4);
+        c.fx.ring(v.pos.clone().add(V(0, 1, 0)), UP, '#ff1744', 0.8, 0.9, 18);
+        c.moment({ dur: 2.8, slow: 0.3, cam: c.orbit(() => v.pos, { r0: 9, r1: 4.4, a0: 0.2, a1: 2.2, h0: 1.1, h1: 2, fov0: 60, fov1: 36, look: 1.6 }), title: 'LORD VEX SE ENFURECE', sub: 'su sable arde con más rabia', color: '#ff5252' });
+      }
     } else if (this.phase === 'down') this.downUpdate(dt);
     else if (this.phase === 'lava') this.lavaUpdate(dt);
   }

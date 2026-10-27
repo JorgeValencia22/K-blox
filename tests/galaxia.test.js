@@ -25,7 +25,7 @@ const inventory = async () => (await import('../server/db/database.js')).getDb()
 test('mapa, juego de un jugador y trajes de la saga', () => {
   const w = buildGalaxia();
   assert.equal(w.meta.mode, 'galaxia');
-  assert.equal(EXPERIENCES.find((e) => e.id === 'galaxia').maxPlayers, 1);
+  assert.equal(EXPERIENCES.find((e) => e.id === 'galaxia').maxPlayers, 4);
   for (const id of REWARD_ITEMS) assert.ok(SHOP_BY_ID[id]?.unlock, id);
 });
 
@@ -34,6 +34,8 @@ test('no se puede cobrar la misión sin jugarla', async () => {
   try {
     const j = await emit(s, 'room:join', { key: 'galaxia' });
     assert.equal(j.mode.campaign, true);
+    assert.equal(j.mode.lobby.phase, 'lobby');
+    assert.ok((await mode(s, 'begin')).ok);
     let r = await mode(s, 'done');
     assert.match(r.error, /no válida/);
     r = await mode(s, 'start');
@@ -65,7 +67,7 @@ test('al completar la campaña se desbloquean los 4 trajes y el logro', async ()
   }
 });
 
-test('cada jugador tiene su propia partida (sala de 1)', async () => {
+test('cada jugador tiene su propia partida privada', async () => {
   const r2 = await srv.api('POST', '/api/auth/register', { username: 'Piloto2', password: 'secreto1' });
   const a = await srv.connect(token);
   const b = await srv.connect(r2.body.token);
@@ -74,6 +76,55 @@ test('cada jugador tiene su propia partida (sala de 1)', async () => {
     const jb = await emit(b, 'room:join', { key: 'galaxia' });
     assert.ok(!ja.error && !jb.error);
     assert.notEqual(ja.room.id, jb.room.id);
+  } finally {
+    a.disconnect();
+    b.disconnect();
+  }
+});
+
+test('cooperativo: vestíbulo, héroes, espera entre jugadores y vida compartida', async () => {
+  const r2 = await srv.api('POST', '/api/auth/register', { username: 'Copiloto', password: 'secreto1' });
+  const a = await srv.connect(token);
+  const b = await srv.connect(r2.body.token);
+  try {
+    const ja = await emit(a, 'room:join', { key: 'galaxia' });
+    const code = ja.room.inviteCode;
+    assert.ok(code, 'sala privada con código');
+    const jb = await emit(b, 'room:join', { code });
+    assert.ok(!jb.error, JSON.stringify(jb));
+    assert.equal(jb.mode.lobby.players.length, 2);
+    // Elegir héroe: solo los válidos
+    assert.ok((await mode(b, 'pick', { hero: 'shadow' })).ok);
+    assert.ok((await mode(b, 'pick', { hero: 'nope' })).error);
+    // Solo el anfitrión empieza
+    assert.match((await mode(b, 'begin')).error, /anfitri/);
+    const got = (s, ev) => new Promise((res) => s.once(ev, res));
+    const lobbyAtB = got(b, 'gx:lobby');
+    assert.ok((await mode(a, 'begin')).ok);
+    assert.equal((await lobbyAtB).phase, 'run');
+    // Nadie nuevo entra con la partida empezada
+    const r3 = await srv.api('POST', '/api/auth/register', { username: 'Tarde', password: 'secreto1' });
+    const c = await srv.connect(r3.body.token);
+    const jc = await emit(c, 'room:join', { code });
+    assert.ok(jc.mode.busy);
+    c.disconnect();
+    // Espera: el capítulo se abre cuando llegan los dos
+    const goAtB = got(b, 'gx:go');
+    const ra = await mode(a, 'arrive', { ch: 'hangar' });
+    assert.equal(ra.go, false);
+    const rb = await mode(b, 'arrive', { ch: 'hangar' });
+    assert.equal(rb.go, true);
+    assert.equal((await goAtB).ch, 'hangar');
+    assert.ok((await mode(a, 'arrive', { ch: 'xyz' })).error);
+    // Los golpes a enemigos y las posiciones llegan al otro jugador
+    const hitAtB = got(b, 'gx:hit');
+    a.emit('mode:fast', { name: 'hit', data: { i: 3, d: 22, c: 'hangar' } });
+    const hit = await hitAtB;
+    assert.equal(hit.i, 3);
+    assert.equal(hit.d, 22);
+    const allyAtA = got(a, 'gx:ally');
+    b.emit('mode:fast', { name: 'st', data: { ch: 'hangar', x: 1, y: 0, z: 2 } });
+    assert.equal((await allyAtA).s.x, 1);
   } finally {
     a.disconnect();
     b.disconnect();

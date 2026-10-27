@@ -7,6 +7,7 @@ import { AvatarAnimator } from '../../avatar/avatarAnimator.js';
 import { DEFAULT_AVATAR } from '../../../../shared/avatar.js';
 import { store } from '../../core/store.js';
 import { input } from '../../engine/input.js';
+import { heroOf } from './heroes.js';
 import { sfx, makeSaberRig, makeBlaster, Trail, glowMat, glowSprite, clamp, lerp, ease, angDiff, rand } from './kit.js';
 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
@@ -39,7 +40,7 @@ function raySphere(o, d, c, r) {
 }
 
 /** Colocar sable en la mano de un modelo (para héroe y enemigos). */
-function attachSaber(model, color, L = 1.3) {
+export function attachSaber(model, color, L = 1.3) {
   const hand = new THREE.Group();
   hand.position.set(0, -0.72, 0.08);
   model.rArm.add(hand);
@@ -57,7 +58,8 @@ export class Hero {
     this.model = new AvatarModel({ ...DEFAULT_AVATAR, ...av }, { shadows: true });
     this.anim = new AvatarAnimator(this.model);
     arena.scene.add(this.model.root);
-    const { hand, rig } = attachSaber(this.model, '#29b6f6');
+    this.cls = heroOf(arena.camp.heroId);
+    const { hand, rig } = attachSaber(this.model, this.cls.color);
     this.hand = hand;
     this.rig = rig;
     this.gun = makeBlaster();
@@ -65,15 +67,18 @@ export class Hero {
     this.gun.rotation.x = Math.PI / 2;
     this.gun.visible = false;
     hand.add(this.gun);
-    this.trail = new Trail(arena.scene, '#29b6f6');
+    this.trail = new Trail(arena.scene, this.cls.color);
     this.disc = new THREE.Mesh(new THREE.CircleGeometry(1.5, 28), glowMat('#80d8ff', 0));
     this.disc.position.set(0, 1.25, 0.75);
     this.model.root.add(this.disc);
     this.pos = pos.clone();
     this.vel = V();
     this.yaw = yaw;
-    this.max = 150;
+    this.max = this.cls.hp;
     this.hp = this.max;
+    this.heatMax = this.cls.heat;
+    this.spCd = 6;
+    this.shieldT = 0;
     this.weapon = 'saber';
     this.want = 'saber';
     this.bladeGoal = 0;
@@ -157,7 +162,7 @@ export class Hero {
   /** Un disparo enemigo llega a la zona de la hoja: lo desvía (con límite de 6 antes de sobrecalentarse). */
   deflect(bolt) {
     const A = this.arena;
-    this.heat++;
+    if (this.shieldT <= 0) this.heat++;
     this.lastDeflect = performance.now();
     this.spin = 1;
     // El disparo vuelve hacia quien lo disparó (o el enemigo más cercano)
@@ -174,7 +179,7 @@ export class Hero {
     A.fx.spark(bolt.pos, '#ffffff', 16, 9);
     A.fx.ring(bolt.pos, this.forward(), '#80d8ff', 0.5, 0.35, 5);
     A.camp.shake(0.12);
-    if (this.heat >= HEAT_MAX) {
+    if (this.heat >= this.heatMax) {
       this.overUntil = performance.now() + OVERHEAT_MS;
       this.heat = 0;
       this.blocking = false;
@@ -191,6 +196,12 @@ export class Hero {
     const cam = A.camp.game.cam;
     this.invuln = Math.max(0, this.invuln - dt);
     this.dashCd = Math.max(0, this.dashCd - dt);
+    this.spCd = Math.max(0, this.spCd - dt);
+    if (this.shieldT > 0) {
+      this.shieldT -= dt;
+      this.heat = 0;
+      if (Math.random() < dt * 6) A.fx.ring(this.pos.clone().add(V(0, 1.1, 0)), UP, this.cls.color, 0.9, 0.5, 5);
+    }
     this.spin = Math.max(0, this.spin - dt * 2.4);
     if (this.over === false && this.overUntil && now >= this.overUntil) { this.overUntil = 0; this.rig.tint(this.rig.color); sfx.beep(990); }
     // Enfriamiento poco a poco si no se desvían disparos
@@ -214,14 +225,14 @@ export class Hero {
     const want = right.multiplyScalar(ctl.mv.x).add(fwd.multiplyScalar(ctl.mv.y));
     this.blocking = ctl.canAct && ctl.rmb && this.canBlock() && this.dash <= 0;
     const aiming = this.weapon === 'blaster' && this.want === 'blaster';
-    let sp = ctl.run ? 8.4 : 5.6;
+    let sp = (ctl.run ? 8.4 : 5.6) * this.cls.speed;
     if (this.blocking) sp *= 0.5;
     if (this.swing) sp *= 0.35;
     if (aiming) sp *= 0.85;
     // Esquiva
     if (ctl.canAct && ctl.dodge && this.dashCd <= 0 && !this.swing) {
       this.dash = 0.24;
-      this.dashCd = 1.1;
+      this.dashCd = this.cls.dodgeCd;
       this.invuln = 0.3;
       this.dashDir.copy(want.lengthSq() > 0.01 ? want.clone().normalize() : this.forward().negate());
       sfx.whoosh();
@@ -242,6 +253,7 @@ export class Hero {
       if (ctl.k1) this.setWeapon('saber');
       if (ctl.k2) this.setWeapon('blaster');
       if (ctl.swap) this.setWeapon(this.want === 'saber' ? 'blaster' : 'saber');
+      if (ctl.special && this.spCd <= 0 && !this.swing) this.useSpecial();
     }
     if (this.weapon === 'saber' && this.want === 'saber') {
       if (ctl.canAct && ctl.lmbP && !this.blocking && !this.over) {
@@ -250,7 +262,7 @@ export class Hero {
       }
       this.updateSwing(dt, now);
     } else if (aiming && ctl.canAct && ctl.lmb && now >= this.nextShot) {
-      this.nextShot = now + 210;
+      this.nextShot = now + this.cls.rate;
       this.fire();
     }
 
@@ -269,7 +281,8 @@ export class Hero {
     const A = this.arena;
     this.combo = now - this.comboAt < 800 ? (this.combo + 1) % 3 : 0;
     const kinds = [{ dur: 0.34, dmg: 22, lunge: 1.1 }, { dur: 0.34, dmg: 22, lunge: 1.1 }, { dur: 0.5, dmg: 34, lunge: 2.2 }];
-    const k = kinds[this.combo];
+    const k = { ...kinds[this.combo] };
+    k.dmg *= this.cls.saber;
     // Ayuda a apuntar: se gira hacia el enemigo más cercano delante
     const t = A.nearestFoe(this.pos, 6.5, this.forward(), 0.1);
     this.swing = { kind: this.combo, ...k, t: 0, u: 0, hit: new Set(), face: t ? Math.atan2(t.pos.x - this.pos.x, t.pos.z - this.pos.z) : null, played: false };
@@ -315,10 +328,62 @@ export class Hero {
     sfx.blaster(0.18);
     this.arena.fx.flash(m, '#40c4ff', 3);
     this.recoil = 1;
-    if (hit.foe) { hit.foe.hit(hit.foe.kind === 'vex' ? 3 : 12, this.pos, 'blaster'); A.fx.spark(aim, '#fff59d', 6, 6); }
+    if (hit.foe) { hit.foe.hit((hit.foe.kind === 'vex' ? 3 : 12) * this.cls.blaster, this.pos, 'blaster'); A.fx.spark(aim, '#fff59d', 6, 6); }
     else if (hit.target) hit.target.onHit(aim, 3.2);
     else if (hit.t < 89) A.fx.spark(aim, '#ffd180', 6, 5);
     A.camp.hud.crossHit?.();
+  }
+
+  /** Habilidad especial de cada personaje [Q]: cambia mucho cómo se juega. */
+  useSpecial() {
+    const A = this.arena, S = this.cls.special, cam = A.camp.cam;
+    this.spCd = S.cd;
+    const chest = this.pos.clone().add(V(0, 1.1, 0));
+    const alive = A.foes.filter((x) => !x.dead);
+    A.camp.hud.caption(`${this.cls.icon} ${S.name.toUpperCase()}`, 1500);
+    A.camp.shake(0.6);
+    cam.fov = 46; // golpe de zoom: la cámara vuelve sola a su ángulo
+    A.camp.hud.whiteFlash(220);
+    A.fx.ring(chest, UP, this.cls.color, 0.6, 0.6, 13);
+    A.fx.burst(chest, 0.9, this.cls.color);
+    if (S.id === 'push') {
+      sfx.boom(0.35, 0.9);
+      for (const f of alive) {
+        const d = f.pos.distanceTo(this.pos);
+        if (d > 11) continue;
+        f.hit(38 * (1 - d / 22), this.pos, 'force');
+        if (f.kind !== 'vex') { f.pos.addScaledVector(f.pos.clone().sub(this.pos).setY(0).normalize(), 4.5 * (1 - d / 11)); A.collide(f.pos); f.stun = Math.max(f.stun, 0.9); }
+      }
+      for (const b of A.bolts) if (b.owner === 'foe' && b.pos.distanceTo(this.pos) < 14) b.life = 0;
+    } else if (S.id === 'barrage') {
+      sfx.blaster(0.3);
+      const tg = alive.filter((x) => x.pos.distanceTo(this.pos) < 40).sort((a, b) => a.pos.distanceTo(this.pos) - b.pos.distanceTo(this.pos)).slice(0, 8);
+      tg.forEach((f, i) => setTimeout(() => {
+        if (f.dead || A.hero !== this) return;
+        const from = this.pos.clone().add(V(0, 1.4, 0)), to = f.pos.clone().add(V(0, 1.2, 0));
+        A.spawnBolt({ pos: from, vel: to.clone().sub(from).normalize().multiplyScalar(160), owner: 'hero', cosmetic: true, color: this.cls.color, life: from.distanceTo(to) / 160 });
+        sfx.blaster(0.12);
+        f.hit((f.kind === 'vex' ? 6 : 34) * this.cls.blaster, this.pos, 'blaster');
+      }, i * 70));
+    } else if (S.id === 'shield') {
+      this.shieldT = 4;
+      this.invuln = Math.max(this.invuln, 4);
+      this.heat = 0;
+      this.overUntil = 0;
+      sfx.ignite();
+    } else if (S.id === 'blitz') {
+      sfx.whoosh();
+      const t = alive.filter((x) => x.pos.distanceTo(this.pos) < 22).sort((a, b) => a.pos.distanceTo(this.pos) - b.pos.distanceTo(this.pos))[0];
+      const dir = t ? t.pos.clone().sub(this.pos).setY(0).normalize() : this.forward();
+      const dest = t ? t.pos.clone().addScaledVector(dir, -1.8) : this.pos.clone().addScaledVector(dir, 8);
+      A.fx.spark(this.pos.clone().add(V(0, 1, 0)), this.cls.color, 18, 9);
+      this.pos.copy(dest);
+      A.collide(this.pos);
+      this.yaw = Math.atan2(dir.x, dir.z);
+      this.invuln = Math.max(this.invuln, 0.9);
+      A.fx.spark(this.pos.clone().add(V(0, 1, 0)), this.cls.color, 24, 11);
+      for (const f of alive) if (f.pos.distanceTo(this.pos) < 5) f.hit(55 * this.cls.saber, this.pos, 'saber');
+    }
   }
 
   /** Coloca el modelo y las poses (encima de la animación normal). */
@@ -409,7 +474,7 @@ export class Foe {
     arena.scene.add(this.model.root);
     this.pos = pos.clone();
     this.yaw = 0;
-    this.max = this.hp = K.hp * DIFF * (arena.hpScale || 1);
+    this.max = this.hp = K.hp * DIFF * (arena.hpScale || 1) * (arena.camp.party?.hpMul || 1);
     this.dead = false;
     this.t = rand(0, 4);
     this.stun = 0;
@@ -465,6 +530,7 @@ export class Foe {
       if (this.mode === 'recover') dmg *= 1.4;
     }
     this.hp -= dmg;
+    A.net?.hit(this.id, dmg);
     this.flash = 0.12;
     sfx.hit();
     A.fx.spark(this.pos.clone().add(V(0, 1.3, 0)), how === 'saber' ? '#ffcc80' : '#fff59d', 12, 8);
@@ -474,12 +540,23 @@ export class Foe {
     if (this.hp <= 0) this.die();
   }
 
+  /** Un aliado ha golpeado a este enemigo en su pantalla: se resta la misma vida aquí. */
+  applyRemote(dmg) {
+    if (this.dead) return;
+    this.hp -= dmg;
+    this.flash = 0.1;
+    sfx.hit();
+    this.arena.fx.spark(this.pos.clone().add(V(0, 1.3, 0)), '#fff59d', 8, 6);
+    if (this.hp <= 0) this.die();
+  }
+
   die() {
     if (this.dead) return;
     this.dead = true;
     this.hp = 0;
     const A = this.arena;
     A.kills++;
+    A.camp.onKill?.(this);
     if (this.kind === 'vex') { this.anim.set('sad'); this.bladeGoal = 0; this.rig?.setLen(0); A.onBossDead?.(this); return; }
     this.anim.set('dead');
     if (this.kind === 'droid' || this.kind === 'staff') { A.fx.burst(this.pos.clone().add(V(0, 1, 0)), 0.8, '#ffab40'); sfx.boom(0.2, 0.4); }
@@ -729,6 +806,8 @@ export class Arena {
     this.markers = [];
     this.targets = [];
     this.kills = 0;
+    this.nextId = 0;
+    this.net = camp.party?.active ? camp.party : null;
     this.enemiesFire = true;
     this.hpScale = 1;
     this.hero = new Hero(this, pos, yaw);
@@ -745,7 +824,13 @@ export class Arena {
     this.built.bounds(p);
   }
 
-  spawn(kind, pos) { const f = new Foe(this, kind, pos instanceof THREE.Vector3 ? pos : V(pos[0], 0, pos[1])); this.foes.push(f); return f; }
+  spawn(kind, pos) {
+    const f = new Foe(this, kind, pos instanceof THREE.Vector3 ? pos : V(pos[0], 0, pos[1]));
+    f.id = this.nextId++;
+    this.foes.push(f);
+    this.net?.spawned(this, f);
+    return f;
+  }
   alive(kind) { return this.foes.filter((f) => !f.dead && (!kind || f.kind === kind)); }
 
   nearestFoe(p, maxD, fwd = null, minDot = -1) {
@@ -821,6 +906,7 @@ export class Arena {
     for (const m of [...this.markers]) this.removeMarker(m);
     this.foes = [];
     this.bolts = [];
+    this.nextId = 0;
   }
 
   dispose() {
@@ -840,7 +926,7 @@ export class Arena {
       lmbP: input.pressed('Mouse0'),
       rmb: input.down('Mouse2') || input.mouse.buttons.has(2),
       dodge: input.pressed('Space'),
-      k1: input.pressed('Digit1'), k2: input.pressed('Digit2'), swap: input.pressed('KeyX'),
+      k1: input.pressed('Digit1'), k2: input.pressed('Digit2'), swap: input.pressed('KeyX'), special: input.pressed('KeyQ'),
     };
   }
 
@@ -854,11 +940,12 @@ export class Arena {
     this.hero.trail.update(dt);
     for (const f of this.foes) f.trail?.update(dt);
     this.camp.hud.setHp(this.hero.hp, this.hero.max);
-    this.camp.hud.setPips(Math.ceil(this.hero.heat), HEAT_MAX, this.hero.over);
+    this.camp.hud.setPips(Math.ceil(this.hero.heat), this.hero.heatMax, this.hero.over);
+    this.camp.hud.setSpecial(this.hero.cls, this.hero.spCd);
     this.camp.hud.setWeapon(this.hero.want, this.hero.over ? ' · 🔥 enfriando…' : '');
     this.camp.hud.crossOn(this.hero.want === 'blaster' && !this.hero.dead);
     for (const m of this.markers) { const s = 1 + Math.sin(now / 90) * 0.04; m.ring.scale.set(s, s, s); }
-    if (this.cameraEnabled) this.updateCamera(dt);
+    if (this.cameraEnabled && !this.camp.momentCam) this.updateCamera(dt);
   }
 
   updateBolts(dt) {

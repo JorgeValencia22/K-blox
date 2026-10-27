@@ -30,7 +30,7 @@ export class RoomManager {
   resolveExperience(key, user) {
     const exp = EXPERIENCES.find((e) => e.id === key);
     if (exp) {
-      return { key, name: exp.name, world: getBuiltinWorld(key), builtin: true, mode: key, maxPlayers: Math.min(exp.maxPlayers, config.maxPlayersPerRoom) };
+      return { key, name: exp.name, world: getBuiltinWorld(key), builtin: true, mode: key, maxPlayers: Math.min(exp.maxPlayers, config.maxPlayersPerRoom), forcePrivate: !!exp.forcePrivate };
     }
     const row = worldsSvc.playableWorld(user.id, key, { isAdmin: users.isAdmin(user) });
     if (!row) return null;
