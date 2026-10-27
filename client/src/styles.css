@@ -613,3 +613,26 @@ body.padmode .lock-hint, body.padmode .gxc-lock { display: none !important; }
 .qf-row .grow { flex: 1; min-width: 100px; }
 .qf-list { display: flex; flex-direction: column; gap: 12px; }
 .qf-flag { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+/* Intro de marca (ui/brandIntro.js) */
+.bi { position: fixed; inset: 0; z-index: 400; background: #020203; overflow: hidden; cursor: pointer; font-family: Montserrat, Nunito, system-ui, sans-serif; }
+.bi.knock { animation: bi-knock .26s ease-out; }
+@keyframes bi-knock { 0% { transform: translateY(0); } 20% { transform: translateY(5px); } 45% { transform: translateY(-3px); } 100% { transform: translateY(0); } }
+.bi > * { position: absolute; pointer-events: none; }
+.bi-dust, .bi-vig, .bi-fade { inset: 0; width: 100%; height: 100%; }
+.bi-vig { background: radial-gradient(ellipse at center, transparent 38%, rgba(0,0,0,.7) 100%); }
+.bi-fade { background: #000; }
+.bi-bar { left: 0; right: 0; height: min(84px, 11vh); background: #000; }
+.bi-bar.top { top: 0; } .bi-bar.bot { bottom: 0; }
+.bi-streak { left: 0; right: 0; top: 50%; height: 0; --len: 0%; mix-blend-mode: screen; opacity: 0; }
+.bi-streak i { position: absolute; left: 50%; width: var(--len); transform: translate(-50%, -50%); -webkit-mask-image: linear-gradient(90deg, transparent, #000 50%, transparent); mask-image: linear-gradient(90deg, transparent, #000 50%, transparent); }
+.bi-streak .core { height: 2px; background: #fff; box-shadow: 0 0 8px #bcd4ff; }
+.bi-streak .mid { height: 14px; background: radial-gradient(ellipse at center, rgba(130,175,255,.55), transparent 70%); }
+.bi-streak .halo { height: 120px; background: radial-gradient(ellipse at center, rgba(110,160,255,.28), transparent 70%); }
+.bi-logo { left: 50%; top: 46%; width: min(520px, 78vw); display: grid; justify-items: center; gap: 10px; margin: 0; translate: -50% -50%; visibility: hidden; color: #f7f9ff; }
+.bi-mark svg { width: min(150px, 28vw); height: auto; display: block; }
+.bi-word { font-size: min(76px, 13vw); font-weight: 900; letter-spacing: 1px; line-height: 1; }
+.bi-word b { background: linear-gradient(90deg, #00d1b2, #7c5cff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.bi-glow { filter: blur(34px) saturate(1.4); mix-blend-mode: screen; opacity: 0; }
+.bi-shine { filter: brightness(3.2) saturate(.3); mix-blend-mode: screen; }
+.bi-tag { left: 0; right: 0; bottom: calc(min(84px, 11vh) + 34px); text-align: center; color: #b8c7e6; font-size: 20px; font-weight: 700; opacity: 0; letter-spacing: 26px; padding-left: 26px; }

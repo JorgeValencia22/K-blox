@@ -7,6 +7,7 @@ import { auth, get, post } from './core/api.js';
 import { store } from './core/store.js';
 import { net } from './core/net.js';
 import { h, toast, modal, button, LOGO_SVG } from './ui/dom.js';
+import { playBrandIntro } from './ui/brandIntro.js';
 import { MenuScene } from './ui/menuScene.js';
 import { authScreen } from './ui/screens/auth.js';
 import { menuScreen, shell } from './ui/screens/menu.js';
@@ -41,6 +42,7 @@ class App {
   }
 
   async boot() {
+    this.intro();
     engine.init(document.getElementById('stage'));
     input.attach(engine.canvas);
     pad.start();
@@ -87,7 +89,6 @@ class App {
       }
     }
     document.getElementById('boot').classList.add('hide');
-    this.intro();
     if (user) this.onLogin(user);
     else this.showScreen(authScreen(this));
   }
@@ -106,14 +107,10 @@ class App {
     } else b.classList.add('hide');
   }
 
-  /** Intro al abrir el juego (una vez por sesión): el logo se monta y aparece el nombre. */
+  /** Intro de marca al abrir el juego (una vez por sesión; se salta con cualquier tecla, clic o botón). */
   intro() {
     try { if (sessionStorage.getItem('kest.intro')) return; sessionStorage.setItem('kest.intro', '1'); } catch { /* sin almacenamiento */ }
-    const el = h('div.intro', { html: `<div class="intro-logo">${LOGO_SVG}</div><div class="intro-word">Kest<b>Worlds</b></div><div class="intro-tag">Juega · Crea · Comparte</div>` });
-    document.body.appendChild(el);
-    const end = () => { el.classList.add('out'); setTimeout(() => el.remove(), 600); };
-    el.addEventListener('pointerdown', end);
-    setTimeout(end, 2600);
+    playBrandIntro();
   }
 
   showScreen(el) {
