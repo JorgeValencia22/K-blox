@@ -126,6 +126,7 @@ export class Game {
     });
 
     engine.setView(this);
+    input.inGame = true;
     if (this.mode.startAudio) this.mode.startAudio();
     else {
       audio.setAmbient('day');
@@ -909,6 +910,7 @@ export class Game {
 
   dispose() {
     this.disposed = true;
+    input.inGame = false;
     this.listeners.forEach((u) => u());
     this.offClick?.(); this.offLock?.(); this.offKey?.(); this.offKeyUp?.();
     this.mode?.dispose?.();

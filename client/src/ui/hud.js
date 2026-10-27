@@ -8,6 +8,7 @@ import { net } from '../core/net.js';
 import { post } from '../core/api.js';
 import { audio } from '../audio/audio.js';
 import { availableEmotes } from '../core/emotes.js';
+import { openQuickFriends } from './quickFriends.js';
 
 function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen?.();
@@ -42,7 +43,7 @@ export class Hud {
     // --- Superior derecha: conexión, jugadores, pausa
     this.conn = h('div.conn', h('div.bars', h('i', { style: { height: '5px' } }), h('i', { style: { height: '9px' } }), h('i', { style: { height: '14px' } })), h('span', '—'));
     this.playersBtn = button('👥 0', () => this.togglePlayerList(), 'small');
-    this.el.appendChild(h('div.tr', h('div.hud-card', this.conn), this.playersBtn, button('⏸', () => game.openPause(), 'small')));
+    this.el.appendChild(h('div.tr', h('div.hud-card', this.conn), this.playersBtn, button('🤝', () => { game.openPause(); openQuickFriends(game); }, 'small'), button('⏸', () => game.openPause(), 'small')));
 
     this.modePanel = h('div.mode-panel');
     this.el.appendChild(this.modePanel);

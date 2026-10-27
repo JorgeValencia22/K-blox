@@ -12,6 +12,10 @@ class Input extends Emitter {
     this.joy = { x: 0, y: 0 };
     this.touchLook = { dx: 0, dy: 0 };
     this.virtual = new Set(); // botones táctiles mantenidos
+    this.padMove = { x: 0, y: 0 }; // stick izquierdo del mando
+    this.padLook = { dx: 0, dy: 0 }; // stick derecho del mando
+    this.padActive = false; // se está usando el mando (ver engine/gamepad.js)
+    this.inGame = false; // hay una partida en marcha
     this.canvas = null;
     this.dragLook = false;
     this.leftDragLook = false; // en partida, arrastrar con el botón izquierdo también gira la cámara
@@ -74,8 +78,9 @@ class Input extends Emitter {
     if (document.pointerLockElement) document.exitPointerLock();
   }
 
+  /** Con ratón, el puntero está capturado; con mando no hace falta capturar nada. */
   get locked() {
-    return document.pointerLockElement === this.canvas;
+    return document.pointerLockElement === this.canvas || (this.padActive && this.inGame);
   }
 
   down(code) {
@@ -94,17 +99,18 @@ class Input extends Emitter {
     if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) y -= 1;
     if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) x += 1;
     if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) x -= 1;
-    x += this.joy.x;
-    y += this.joy.y;
+    x += this.joy.x + this.padMove.x;
+    y += this.joy.y + this.padMove.y;
     const l = Math.hypot(x, y);
     if (l > 1) { x /= l; y /= l; }
     return { x, y };
   }
 
   takeLook() {
-    const r = { dx: this.mouse.dx + this.touchLook.dx, dy: this.mouse.dy + this.touchLook.dy, wheel: this.mouse.wheel };
+    const r = { dx: this.mouse.dx + this.touchLook.dx + this.padLook.dx, dy: this.mouse.dy + this.touchLook.dy + this.padLook.dy, wheel: this.mouse.wheel };
     this.mouse.dx = this.mouse.dy = this.mouse.wheel = 0;
     this.touchLook.dx = this.touchLook.dy = 0;
+    this.padLook.dx = this.padLook.dy = 0;
     return r;
   }
 

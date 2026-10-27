@@ -1,4 +1,6 @@
 // Panel de configuración: gráficos, controles, audio e interfaz.
+import { pad } from '../engine/gamepad.js';
+import { PAD_ACTIONS, PAD_BUTTONS, padMap } from '../../../shared/padmap.js';
 import { h, modal, button, toast } from './dom.js';
 import { get, put } from '../core/api.js';
 import { settings } from '../core/settings.js';
@@ -45,6 +47,43 @@ function shrinkPhoto(file) {
 }
 
 /** Chat de voz y subtítulos: solo con los amigos que elijas, más la foto de perfil. */
+/** Mando: estado, ajustes, asignación de botones y prueba en directo. */
+function padSection(rerender) {
+  const status = h('p.small');
+  const live = h('div.pad-live.small.muted');
+  const map = padMap(settings.get('padMap'));
+  const rows = PAD_BUTTONS.map((name, i) => {
+    const sel = h('select.input', { style: { maxWidth: '230px' } }, PAD_ACTIONS.map((a) => h('option', { value: a.id, selected: map[i] === a.id }, a.label)));
+    sel.addEventListener('change', () => {
+      settings.set('padMap', { ...(settings.get('padMap') || {}), [i]: sel.value });
+    });
+    return h('div.pad-row', h('b.pad-btn', name), sel);
+  });
+  const refresh = () => {
+    if (!status.isConnected) { clearInterval(timer); pad.cancelCapture(); return; }
+    status.textContent = pad.connected ? `🎮 Mando detectado: ${pad.name}` : '🎮 Conecta tu mando (USB o Bluetooth) y pulsa un botón para que el navegador lo detecte.';
+    const p = pad.pressedNow();
+    const [lx, ly, rx, ry] = pad.stick();
+    live.textContent = pad.connected ? `Prueba: ${p.length ? p.join(' + ') : 'ningún botón'} · stick izq. ${lx.toFixed(1)}, ${ly.toFixed(1)} · stick der. ${rx.toFixed(1)}, ${ry.toFixed(1)}` : '';
+  };
+  const timer = setInterval(refresh, 120);
+  refresh();
+  return h('div',
+    h('div.section-title', 'Mando (DualShock 4, Xbox…)'),
+    status,
+    live,
+    toggle('Usar mando', 'padEnabled'),
+    slider('Sensibilidad de la cámara', 'padSens', 0.3, 3, 0.1, (v) => v.toFixed(1)),
+    slider('Zona muerta de los sticks', 'padDeadzone', 0.05, 0.4, 0.01, (v) => v.toFixed(2)),
+    toggle('Vibración', 'padRumble'),
+    h('p.muted.small', 'En partida: stick izquierdo mueve, derecho gira la cámara. En menús: cruceta o stick para moverte, ✕ aceptar, ○ volver, L1/R1 cambia de sección. △ pulsa la acción principal (Comenzar, Aceptar…). Options abre la pausa.'),
+    h('details', h('summary', 'Cambiar los botones'),
+      h('p.muted.small', 'Cada fila es un botón del mando; elige qué hace en el juego.'),
+      ...rows,
+      h('div.row', { style: { marginTop: '8px' } }, button('Restablecer botones', () => { settings.set('padMap', {}); rerender(); }, 'small'))),
+  );
+}
+
 function voiceSection() {
   const list = h('div.voice-friends', h('p.muted.small', 'Cargando amigos…'));
   get('/friends').then((r) => {
@@ -117,6 +156,7 @@ export function openSettings() {
       toggle('Sonidos de interfaz', 'uiSounds'),
       h('div.section-title', 'Interfaz'),
       toggle('Mostrar chat', 'showChat'),
+      padSection(rerender),
       voiceSection(),
     );
   };

@@ -25,6 +25,8 @@ import { loadCustomItems } from './core/shopItems.js';
 import { shopScreen } from './ui/screens/shop.js';
 import { EXPERIENCES } from '../../shared/catalog.js';
 import { voice } from './voice/voice.js';
+import { pad } from './engine/gamepad.js';
+import { setAppRef, handleLinks } from './ui/quickFriends.js';
 
 const SCREENS = { shop: shopScreen, menu: menuScreen, discover: discoverScreen, avatar: avatarScreen, friends: friendsScreen, create: createScreen, profile: profileScreen, admin: adminScreen, coins: coinsScreen };
 
@@ -41,6 +43,8 @@ class App {
   async boot() {
     engine.init(document.getElementById('stage'));
     input.attach(engine.canvas);
+    pad.start();
+    setAppRef(this);
     const unlock = () => audio.unlock();
     addEventListener('pointerdown', unlock);
     addEventListener('keydown', unlock);
@@ -145,6 +149,7 @@ class App {
     engine.setView(this.menuScene);
     audio.startMusic();
     this.go('menu');
+    setTimeout(() => handleLinks(this), 700);
     if (user.newAccount) toast('¡Bienvenido/a a KestWorlds! Por seguridad, las cuentas nuevas tienen el chat limitado unos minutos.', 'info', 6000);
   }
 

@@ -597,3 +597,19 @@ input, textarea, .chat-log { -webkit-user-select: text; user-select: text; }
 .gxc-ally-bar { height: 5px; background: #ffffff22; border-radius: 3px; overflow: hidden; }
 .gxc-ally-bar i { display: block; height: 100%; }
 .gxc-ally span { font-size: 11px; color: #ff8a80; }
+
+/* Mando y panel rápido de amigos */
+.pad-focus { outline: 3px solid #ffe81f !important; outline-offset: 2px; box-shadow: 0 0 18px #ffe81f88 !important; border-radius: 10px; }
+body.padmode .lock-hint, body.padmode .gxc-lock { display: none !important; }
+.pad-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+.pad-btn { width: 96px; font-size: 13px; }
+.pad-live { margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
+.qf-panel { display: flex; flex-direction: column; gap: 12px; max-height: 70vh; overflow: auto; }
+.qf-box { background: #ffffff0d; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.qf-box h4 { margin: 0; font-size: 14px; opacity: .85; }
+.qf-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.qf-row.wrap { gap: 16px; }
+.qf-row .input { flex: 1; min-width: 160px; }
+.qf-row .grow { flex: 1; min-width: 100px; }
+.qf-list { display: flex; flex-direction: column; gap: 12px; }
+.qf-flag { display: flex; align-items: center; gap: 6px; cursor: pointer; }

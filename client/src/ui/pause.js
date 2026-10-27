@@ -3,6 +3,7 @@ import { h, button, modal, toast, clear } from './dom.js';
 import { openSettings } from './settingsPanel.js';
 import { get } from '../core/api.js';
 import { net } from '../core/net.js';
+import { openQuickFriends, roomLink } from './quickFriends.js';
 
 export class PauseMenu {
   constructor(game) {
@@ -20,6 +21,7 @@ export class PauseMenu {
       button('▶ Continuar', () => this.close(), 'primary'),
       button('↺ Reaparecer', () => { this.close(); g.respawn(); }),
       button('⚙ Configuración', () => openSettings()),
+      g.offline ? null : button('👥 Amigos, voz y enlaces', () => openQuickFriends(g), 'primary'),
       g.offline ? null : button('✉ Invitar amigos', () => this.invite()),
       button(g.offline ? '✎ Volver al editor' : '⏏ Salir de la partida', () => g.exit('leave'), 'danger'),
     ));

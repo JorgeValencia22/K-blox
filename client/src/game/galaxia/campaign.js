@@ -82,7 +82,10 @@ export class Campaign {
     this.go('intro');
   }
 
-  shake(a) { this.shakeAmt = Math.max(this.shakeAmt, a); }
+  shake(a) {
+    this.shakeAmt = Math.max(this.shakeAmt, a);
+    if (a >= 0.15) input.rumble?.(Math.min(1, a), 90 + a * 160);
+  }
 
   /** Ordena al servidor (inicio y fin de la misión, para dar los premios). */
   send(name, data = {}) { return net.request('mode', { name, data }).catch(() => ({})); }

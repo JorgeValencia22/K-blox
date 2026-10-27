@@ -23,6 +23,11 @@ const DEFAULTS = {
   showChat: true,
   showFps: false,
   autoRes: true,
+  padEnabled: true,
+  padSens: 1,
+  padDeadzone: 0.15,
+  padRumble: true,
+  padMap: {},
 };
 
 function load() {

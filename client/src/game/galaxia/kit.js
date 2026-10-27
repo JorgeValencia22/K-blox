@@ -2,6 +2,7 @@
 // encendido y apagado, estela del sable, partículas/explosiones e interfaz (DOM).
 import * as THREE from 'three';
 import { audio } from '../../audio/audio.js';
+import { input } from '../../engine/input.js';
 import { h, clear } from '../../ui/dom.js';
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -467,7 +468,7 @@ export class CHud {
 
   objective(t) { this.objEl.textContent = t || ''; }
   timer(t) { this.timerEl.classList.toggle('hidden', !t); this.timerEl.textContent = t || ''; }
-  hurt() { this.hurtEl.style.transition = 'none'; this.hurtEl.style.opacity = 1; void this.hurtEl.offsetWidth; this.hurtEl.style.transition = 'opacity .5s'; this.hurtEl.style.opacity = 0; }
+  hurt() { input.rumble?.(0.6, 160); this.hurtEl.style.transition = 'none'; this.hurtEl.style.opacity = 1; void this.hurtEl.offsetWidth; this.hurtEl.style.transition = 'opacity .5s'; this.hurtEl.style.opacity = 0; }
   showStats(on) { this.stats.classList.toggle('hidden', !on); }
   setHp(v, max) { this.hpFill.style.width = `${clamp(v / max, 0, 1) * 100}%`; this.hpFill.style.background = v / max > 0.5 ? '#00e676' : v / max > 0.25 ? '#ffca28' : '#ff1744'; }
   setShip(v) { this.shipFill.style.width = `${clamp(v, 0, 100)}%`; this.shipFill.style.background = v > 50 ? '#00e5ff' : v > 25 ? '#ffca28' : '#ff1744'; }
