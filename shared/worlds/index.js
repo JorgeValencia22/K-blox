@@ -2,7 +2,6 @@
 import { buildCity } from './city.js';
 import { buildObby } from './obby.js';
 import { buildRacing } from './racing.js';
-import { buildFallGuys } from './fallguys.js';
 import { buildSurvival } from './survival.js';
 import { buildHangout } from './hangout.js';
 import { buildOnlyUp } from './onlyup.js';
@@ -22,7 +21,7 @@ import { buildPoppy } from './poppy.js';
 import { buildGalaxia } from './galaxia.js';
 
 const builders = {
-  city: buildCity, obby: buildObby, racing: buildRacing, fallguys: buildFallGuys, survival: buildSurvival, hangout: buildHangout,
+  city: buildCity, obby: buildObby, racing: buildRacing, survival: buildSurvival, hangout: buildHangout,
   onlyup: buildOnlyUp, keys: buildKeys, horror: buildHorror, royale: buildRoyale, rocket: buildRocket, castores: buildCastores,
   camaleon: buildCamaleon, asalto: buildAsalto, pesadilla: buildPesadilla, desastres: buildDesastres, huerto: buildHuerto, bloques: buildBloques, fnaf: buildFnaf, poppy: buildPoppy, galaxia: buildGalaxia,
 };

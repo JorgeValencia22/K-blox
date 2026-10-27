@@ -511,3 +511,16 @@ input, textarea, .chat-log { -webkit-user-select: text; user-select: text; }
 .vsub-init { display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 24px; }
 .vsub-text { font-size: clamp(18px, 2.4vw, 26px); font-weight: 900; color: #ffe81f; -webkit-text-stroke: 4px #000; paint-order: stroke fill; text-shadow: 0 3px 8px #000; line-height: 1.25; }
 @keyframes vsubin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Panel del chat de voz */
+#voice-pill { position: fixed; left: 12px; bottom: 96px; z-index: 40; display: flex; flex-direction: column; gap: 6px; }
+.vp-bar { display: flex; gap: 6px; }
+.vp-bar button { background: rgba(20, 24, 40, .85); color: #fff; border: 2px solid #ffffff33; border-radius: 22px; height: 40px; min-width: 40px; padding: 0 12px; font-size: 16px; cursor: pointer; }
+.vp-mic.talk { border-color: #4caf50 !important; box-shadow: 0 0 10px #4caf50; }
+.vp-mic.off { background: #b71c1c !important; }
+.vp-list { background: rgba(20, 24, 40, .92); border-radius: 14px; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-width: 230px; max-height: 40vh; overflow: auto; }
+.vp-row { display: flex; align-items: center; gap: 8px; padding: 4px; border-radius: 10px; border: 2px solid transparent; }
+.vp-row.talk { border-color: #4caf50; box-shadow: 0 0 8px #4caf5088; }
+.vp-row .vsub-photo { width: 32px; height: 32px; flex-basis: 32px; border-width: 2px; font-size: 15px; }
+.vp-name { display: flex; flex-direction: column; flex: 1; min-width: 0; line-height: 1.1; }
+.vp-row input[type=range] { width: 70px; }

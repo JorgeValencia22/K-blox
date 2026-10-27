@@ -4,11 +4,6 @@ import { STUDIO_COSTUMES, STUDIO_OUTFITS, outfitPieces } from './skins.js';
 
 export const EXPERIENCES = [
   {
-    id: 'fallguys', name: 'Fall Guys Pro', category: 'party', maxPlayers: 12, creator: 'KestWorlds Studio', isNew: true, featured: true,
-    description: '10 rondas, 10 recorridos de obstáculos: salta, esquiva y llega a la meta. Cada ronda clasifica al 60 % de los que siguen en pie. Juega contra bots o espera a jugadores reales. ¡Gana el último en pie!',
-    cover: { a: '#ff4081', b: '#ffd740', icon: '🪂' },
-  },
-  {
     id: 'galaxia', name: 'Guerra Galáctica', category: 'battle', maxPlayers: 1, creator: 'KestWorlds Studio', isNew: true, featured: true,
     description: 'Una campaña épica de un jugador: combate espacial, entra en la Estación Oscura, pelea con sables de plasma y blásters contra droides y soldados imperiales, destruye su núcleo magnético, escapa en el Halcón entre explosiones y bate a Lord Vex en un mundo de lava. ¡Dura unos 10 minutos!',
     cover: { a: '#0d0221', b: '#ff1744', icon: '⚔️' },

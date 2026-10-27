@@ -119,7 +119,7 @@ export function setupSockets(io, rooms, chat) {
     });
 
     on('voice:caption', (req) => {
-      const text = String(req.text || '').replace(/s+/g, ' ').trim().slice(0, 200);
+      const text = String(req.text || '').replace(/\s+/g, ' ').trim().slice(0, 200);
       if (!text || !Array.isArray(req.to)) return { ok: true };
       for (const to of req.to.slice(0, 8).map(String)) {
         if (social.areFriends(userId, to)) presence.emit(to, 'voice:caption', { from: userId, text });
