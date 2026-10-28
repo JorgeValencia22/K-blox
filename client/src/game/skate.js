@@ -31,6 +31,8 @@ const sfx = {
   bail() { audio.noiseBurst({ dur: 0.4, vol: 0.3, freq: 400, type: 'lowpass' }); audio.tone({ freq: 160, type: 'sawtooth', dur: 0.4, vol: 0.16, slide: -120, filter: 700 }); },
   hit() { audio.noiseBurst({ dur: 0.14, vol: 0.2, freq: 500, type: 'lowpass' }); },
   tick() { audio.tone({ freq: 880, type: 'square', dur: 0.07, vol: 0.08 }); },
+  drop() { audio.noiseBurst({ dur: 0.09, vol: 0.2, freq: 900, q: 2 }); audio.tone({ freq: 140, type: 'square', dur: 0.08, vol: 0.12, slide: -60, filter: 900 }); },
+  step(v = 1) { audio.noiseBurst({ dur: 0.05, vol: 0.09 * v, freq: 500, type: 'lowpass' }); },
   go() { audio.tone({ freq: 1320, type: 'square', dur: 0.3, vol: 0.1 }); },
 };
 
@@ -77,7 +79,7 @@ export class SkateClient {
     this.state = state || {};
     this.best = this.state.best || {};
     this.me = this.state.you;
-    this.sel = { map: load('kest.skate.map', 'park'), mode: load('kest.skate.mode', 'attack') };
+    this.sel = { map: load('kest.skate.map', 'city'), mode: load('kest.skate.mode', 'free') };
     if (!SKATE_MAP_BY_ID[this.sel.map]) this.sel.map = 'park';
     if (!SKATE_MODE_BY_ID[this.sel.mode]) this.sel.mode = 'attack';
     this.phase = 'menu';
@@ -142,7 +144,7 @@ export class SkateClient {
     const modes = SKATE_MODES.map((md) => h('button.sk-mode' + (md.id === this.sel.mode ? '.sel' : ''), { on: { click: () => { this.sel.mode = md.id; save('kest.skate.mode', md.id); this.root.replaceChildren(this.menuEl()); } } }, h('b', md.name), h('small', md.desc)));
     const controls = h('div.sk-controls',
       h('h4', 'Controles'),
-      ...[['W / S', 'Empujar / frenar'], ['A / D', 'Girar · girar en el aire'], ['Espacio', 'Ollie (mantén = más alto)'], ['Q / E / R', 'Kickflip / Heelflip / Shove-it'],
+      ...[['B', 'Bajarte / subir a la patineta'], ['W / S', 'Caminar · empujar / frenar'], ['Shift (a pie)', 'Correr'], ['A / D', 'Girar · girar en el aire'], ['Espacio', 'Saltar · ollie (mantén = más alto)'], ['Q/E/R · ←/→/↓', 'Kickflip / Heelflip / Shove-it'], ['G · Z', 'Tirarte (dive) · deshacer'],
         ['Q+R · E+R', '360 Flip · Varial'], ['F', 'Agarre (en el aire)'], ['Shift', 'Manual (W/S equilibrio)'], ['A / D en grind', 'Mantener el equilibrio'], ['T', 'Volver a la salida'], ['Ratón', 'Girar la cámara']]
         .map(([k, v]) => h('div.sk-ctl', h('kbd', k), h('span', v))));
     return h('div.sk-menu',
@@ -162,9 +164,10 @@ export class SkateClient {
     this.loadMap(this.sel.map);
     this.sim = new SkaterSim(this.map);
     this.world.place(this.sim.world);
+    if (this.mode.id === 'free') this.sim.toWalk();
     this.rig = new SkaterRig(store.user?.avatar, this.map.theme.accent);
     this.rig.addTo(this.world.scene);
-    this.phase = 'count';
+    this.phase = this.mode.time ? 'count' : 'run';
     this.count = 3.2;
     this.timeLeft = this.mode.time;
     this.elapsed = 0;
@@ -174,6 +177,7 @@ export class SkateClient {
     this.camReady = false;
     this.shown = 0;
     this.pad = { jump: false };
+    this.stack = []; this.lineT = 0; this.chips = null; this.chipsT = 0; this.curTrick = null; this.undoT = 0; this.districtName = '';
     this.root.replaceChildren(this.hudEl());
     this.syncHud(true);
     input.lockPointer();
@@ -183,17 +187,24 @@ export class SkateClient {
 
   hudEl() {
     const q = (c, ...k) => h(c, ...k);
+    const ring = (n) => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" class="sk-ring-bg"/><circle cx="50" cy="50" r="44" class="sk-ring-fg" pathLength="100"/></svg>`;
     this.el = {
-      score: q('div.sk-score', '0'), best: q('div.sk-bestc', ''), time: q('div.sk-time', ''), mode: q('div.sk-modename', ''),
-      combo: q('div.sk-combo'), feed: q('div.sk-feed'), pops: q('div.sk-pops'), count: q('div.sk-count'),
-      speed: q('div.sk-speedfill'), balance: q('div.sk-balance.hidden', q('i.sk-bmark')), goals: q('div.sk-goals'), letters: q('div.sk-letters'),
-      rank: q('div.sk-rank'), help: q('div.sk-help'), flash: q('div.sk-flash'), lock: q('div.sk-lock.hidden', '🖱️ Haz clic para girar la cámara con el ratón'),
+      compass: q('div.sk-compass', q('div.sk-district', q('b', ''), q('small', '')), q('div.sk-compassbar')),
+      time: q('div.sk-time', ''), mode: q('div.sk-modename', ''), letters: q('div.sk-letters'),
+      pops: q('div.sk-pops'), count: q('div.sk-count'), flash: q('div.sk-flash'),
+      lock: q('div.sk-lock.hidden', '🖱️ Haz clic para girar la cámara con el ratón'),
+      ring: h('div.sk-ring', { html: ring() }), mult: q('div.sk-multn', 'x1'),
+      stack: q('div.sk-stack'), cur: q('div.sk-cur'), rate: q('div.sk-rate'), pts: q('div.sk-pts', ''), line: q('div.sk-line', ''), chips: q('div.sk-chips'),
+      undo: q('div.sk-undo.hidden'), balance: q('div.sk-balance.hidden', q('i.sk-bmark')), goals: q('div.sk-goals'), rank: q('div.sk-rank'),
+      speed: q('div.sk-speedfill'), help: q('div.sk-help'), tag: q('div.sk-tag.hidden'),
     };
     this.el.letters.append(...'SKATE'.split('').map((c) => h('span', c)));
+    this.el.ring.append(this.el.mult);
     const touch = input.isTouch ? this.touchPad() : null;
-    const top = q('div.sk-top', q('div.sk-scorebox', q('small', 'PUNTOS'), this.el.score, this.el.best), q('div.sk-mid', this.el.mode, this.el.time, this.el.letters),
-      q('div.sk-topr', button('☰ Mapas', () => this.confirmMenu(), 'small'), button('?', () => { this.helpOn = !this.helpOn; this.syncHud(true); }, 'small')));
-    return q('div.sk-hud', this.el.flash, top, this.el.combo, this.el.pops, this.el.goals, this.el.rank, q('div.sk-speed', q('small', 'VELOCIDAD'), q('div.sk-speedbar', this.el.speed)), this.el.balance, this.el.help, this.el.count, this.el.lock, touch);
+    const board = q('div.sk-board', q('div.sk-boardl', this.el.ring, q('div.sk-boardr', this.el.stack, this.el.cur, q('div.sk-scoreline', this.el.pts, this.el.chips), this.el.line)), this.el.rate, this.el.tag);
+    const top = q('div.sk-top', q('div.sk-topl', this.el.mode, this.el.letters), this.el.compass,
+      q('div.sk-topr', this.el.time, q('div.sk-btns', button('☰ Mapas', () => this.confirmMenu(), 'small'), button('?', () => { this.helpOn = !this.helpOn; this.syncHud(true); }, 'small'))));
+    return q('div.sk-hud', this.el.flash, top, this.el.pops, this.el.goals, this.el.rank, this.el.balance, board, this.el.undo, q('div.sk-speed', q('small', 'VELOCIDAD'), q('div.sk-speedbar', this.el.speed)), this.el.help, this.el.count, this.el.lock, touch);
   }
 
   touchPad() {
@@ -203,7 +214,7 @@ export class SkateClient {
       for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => input.releaseVirtual(code));
       return b;
     };
-    return h('div.sk-touch', btn('OLLIE', 'Space', '.big'), btn('KICK', 'KeyQ'), btn('HEEL', 'KeyE'), btn('SHOVE', 'KeyR'), btn('GRAB', 'KeyF'), btn('MANUAL', 'ShiftLeft'));
+    return h('div.sk-touch', btn('OLLIE', 'Space', '.big'), btn('KICK', 'KeyQ'), btn('HEEL', 'KeyE'), btn('SHOVE', 'KeyR'), btn('GRAB', 'KeyF'), btn('MANUAL', 'ShiftLeft'), btn('B', 'KeyB'));
   }
 
   confirmMenu() {
@@ -219,14 +230,14 @@ export class SkateClient {
     if (full) {
       el.mode.textContent = `${this.map.icon} ${this.map.name} · ${this.mode.name}`;
       el.help.classList.toggle('hidden', !this.helpOn);
-      el.help.replaceChildren(h('b', 'Controles'), h('div', 'W/S empujar · A/D girar · Espacio ollie · Q/E/R trucos · F agarre · Shift manual · T salida'));
-      el.goals.replaceChildren(h('b', this.mode.id === 'missions' ? 'MISIONES' : 'OBJETIVOS'), ...this.map.goals.map((g) => h('div.sk-goal' + (st.goals.has(g.id) ? '.ok' : ''), { 'data-id': g.id }, (st.goals.has(g.id) ? '✔ ' : '○ ') + g.text)));
+      el.help.replaceChildren(h('div', 'B subir/bajar de la patineta · W/S empujar o caminar · A/D girar · Espacio ollie o saltar · Shift correr/manual · ←/→/↓ o Q/E/R trucos · F agarre · Shift manual · G tirarte · Z deshacer · T volver a la salida'));
+      const showGoals = this.mode.id === 'missions';
+      el.goals.classList.toggle('hidden', !showGoals);
+      el.goals.replaceChildren(h('b', 'MISIONES'), ...this.map.goals.map((g) => h('div.sk-goal' + (st.goals.has(g.id) ? '.ok' : ''), { 'data-id': g.id }, (st.goals.has(g.id) ? '✔ ' : '○ ') + g.text)));
     }
-    const best = this.best[this.map.id];
-    el.best.textContent = best ? `Récord: ${fmt(best)}` : '';
     this.world.markLetters(st.letters);
     this.world.markGaps(st.gaps);
-    [...el.letters.children].forEach((s) => s.classList.toggle('on', st.letters.has(s.textContent)));
+    [...el.letters.children].forEach((sp) => sp.classList.toggle('on', st.letters.has(sp.textContent)));
   }
 
   pop(text, cls = '', ms = 1600) {
@@ -284,9 +295,11 @@ export class SkateClient {
     return {
       sx: mv.x, py: mv.y,
       jump: down('Space'), jumpP: pr('Space'),
-      kickP: pr('KeyQ'), heelP: pr('KeyE'), shuvP: pr('KeyR'),
+      kickP: pr('KeyQ') || pr('ArrowLeft'), heelP: pr('KeyE') || pr('ArrowRight'), shuvP: pr('KeyR') || pr('ArrowDown'),
+      undoP: pr('KeyZ') || pr('Backspace'), diveP: pr('KeyG'),
       grab: down('KeyF'), manual: down('ShiftLeft') || down('ShiftRight') || down('KeyX'),
-      respawnP: pr('KeyT') || pr('Tab'),
+      respawnP: pr('KeyT'),
+      boardP: pr('KeyB') || pr('Enter'), camYaw: this.camYaw + this.camOff,
     };
   }
 
@@ -301,41 +314,82 @@ export class SkateClient {
     if (this.mode.id === 'missions' && sim.stats.goals.size >= this.map.goals.length && sim.combo.base === 0) this.finish();
     // Rival: envío de estado
     this.sendT += dt;
-    if (this.sendT >= 0.1 && this.mode.record) {
+    if (this.sendT >= 0.1) {
       this.sendT = 0;
       net.send('mode:fast', { name: 'st', data: { m: this.map.id, x: sim.x, y: sim.y, z: sim.z, yaw: sim.yaw, sc: sim.stats.score, st: ['ground', 'air', 'grind', 'manual', 'bail'].indexOf(sim.state) } });
     }
   }
 
   onEvent(e) {
-    const sim = this.sim;
     switch (e.k) {
       case 'pop': sfx.pop(); break;
-      case 'launch': break;
       case 'flip': sfx.flip(); break;
-      case 'land': sfx.land(clamp(e.impact / 8, 0.3, 1.2)); if (e.impact > 6) this.shake = Math.max(this.shake, 0.25); if (e.perfect && e.air > 0.4) this.pop('PERFECTO', 'cy'); break;
-      case 'trick': sfx.trick(e.mult); this.feed(e); break;
+      case 'land':
+        sfx.land(clamp(e.impact / 8, 0.3, 1.2));
+        if (e.impact > 6) this.shake = Math.max(this.shake, 0.25);
+        if (e.clean && (e.height > 0.8 || e.air > 0.5)) { this.chips = { h: e.height, d: e.dist, t: e.air }; this.chipsT = 3.2; this.drawChips(); }
+        break;
+      case 'trick': sfx.trick(e.mult); this.onTrick(e); break;
       case 'bonus': this.pop(`+${fmt(e.pts)} ${e.name}`, 'gd'); if (e.direct) this.flash('#ffd600'); break;
       case 'grind': sfx.hit(); break;
       case 'gap': this.pop(`GAP: ${e.name}  +${fmt(e.pts)}`, 'cy', 2200); sfx.goal(); this.syncHud(); break;
       case 'letter': sfx.letter(); this.pop(`¡Letra ${e.ch}!`, 'gd', 1800); this.syncHud(); break;
-      case 'bank': sfx.bank(); this.pop(`+${fmt(e.pts)}`, 'gr big', 1900); this.el.combo.classList.remove('on'); this.el.feed?.replaceChildren(); break;
-      case 'lost': this.pop('COMBO PERDIDO', 'rd'); this.el.combo.classList.remove('on'); break;
-      case 'bail': sfx.bail(); this.shake = 0.5; this.flash('#ff1744'); this.pop(e.why.toUpperCase(), 'rd big', 1800); input.rumble?.(0.7, 260); break;
+      case 'bank': sfx.bank(); this.endLine(e.pts, true); break;
+      case 'lost': this.endLine(e.pts, false); break;
+      case 'bail':
+        sfx.bail(); this.shake = 0.5; this.flash('#ff1744'); input.rumble?.(0.7, 260);
+        this.undoT = e.undo ? 4 : 0;
+        break;
+      case 'mount': sfx.drop(); this.camReady = true; this.camYaw = this.sim.yaw; this.camOff = 0; this.pop('Patineta lista', 'cy', 1200); break;
+      case 'dismount': sfx.land(0.6); this.pop('Te bajas de la patineta', '', 1200); break;
+      case 'jump': sfx.step(0.5); break;
+      case 'step': sfx.step(e.hard ? 1 : 0.5); break;
+      case 'undo': sfx.bank(); this.camReady = false; this.undoT = 0; this.pop('Deshecho', 'cy'); this.setCur(null); break;
+      case 'dive': this.pop('¡DIVE!', 'cy'); break;
       case 'hit': if (e.speed > 2) { sfx.hit(); this.shake = Math.max(this.shake, 0.15); } break;
       case 'fall': this.pop('¡TE CAÍSTE DEL EDIFICIO!', 'rd big', 2200); sfx.bail(); this.camReady = false; break;
-      case 'respawn': this.camReady = false; this.pop('De vuelta a la salida', ''); break;
+      case 'respawn': this.camReady = false; this.pop('De vuelta al marcador', ''); this.endLine(0, false); break;
       case 'goal': sfx.goal(); this.pop(`✔ ${e.text}`, 'gd', 2600); this.syncHud(true); break;
       default:
     }
-    void sim;
   }
 
-  feed(e) {
-    if (!this.el) return;
-    this.el.combo.classList.add('on');
-    this.el.combo.replaceChildren(h('div.sk-cnames', ...this.sim.combo.names.slice(-5).map((n) => h('span', n))), h('div.sk-cpts', `${fmt(this.sim.combo.base)} × ${Math.max(1, this.sim.combo.uniq.size)}`));
-    void e;
+  /** Un truco nuevo en la línea: el anterior baja a la pila de nombres, como en el original. */
+  onTrick(e) {
+    if (this.curTrick) { this.stack.push(this.curTrick.name); while (this.stack.length > 3) this.stack.shift(); }
+    this.curTrick = { name: e.name, pts: e.shown, rating: e.rating };
+    this.drawTrick();
+  }
+
+  setCur(t) { this.curTrick = t; if (!t) this.stack = []; this.drawTrick(); }
+
+  drawTrick() {
+    const el = this.el;
+    if (!el) return;
+    el.stack.replaceChildren(...this.stack.map((n, i) => h('div.sk-prev' + (i === this.stack.length - 1 ? '.last' : ''), n)));
+    const c = this.curTrick;
+    el.cur.replaceChildren(...(c ? [h('div.sk-curname', h('i', '🛹'), c.name)] : []));
+    el.pts.textContent = c ? fmt(c.pts) : '';
+    const r = c?.rating || '';
+    el.rate.textContent = r;
+    el.rate.className = 'sk-rate' + (r ? ' show r' + ['NICE', 'GREAT', 'EXCELLENT!', 'SICK!', 'INCREDIBLE!', 'LEGENDARY!'].indexOf(r) : '');
+  }
+
+  endLine(pts, banked) {
+    const el = this.el;
+    if (!el) return;
+    if (banked && pts > 0) this.pop(`LINE +${fmt(pts)}`, 'gr big', 2000);
+    else if (pts > 0) this.pop('LÍNEA PERDIDA', 'rd');
+    this.stack = []; this.curTrick = null;
+    this.drawTrick();
+    el.line.textContent = '';
+    el.mult.textContent = 'x1';
+    el.ring.style.setProperty('--p', 0);
+  }
+
+  drawChips() {
+    const c = this.chips;
+    this.el.chips.replaceChildren(...(c ? [h('span', `⤒ ${c.h.toFixed(1)} m`), h('span', `⇥ ${c.d.toFixed(1)} m`), h('span', `◷ ${c.t.toFixed(1)} s`)] : []));
   }
 
   flash(color) {
@@ -345,22 +399,55 @@ export class SkateClient {
     f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
   }
 
+  districtAt(x, z) {
+    const ds = this.map.districts;
+    if (!ds) return null;
+    for (let i = ds.length - 1; i >= 0; i--) { const d = ds[i]; if (x >= d.x0 && x <= d.x1 && z >= d.z0 && z <= d.z1) return d; }
+    return null;
+  }
+
   updateHud(dt) {
     const sim = this.sim, el = this.el;
-    this.shown += (sim.stats.score - this.shown) * Math.min(1, dt * 8);
-    el.score.textContent = fmt(this.shown);
-    el.time.textContent = this.mode.time ? fmtTime(this.timeLeft) : '∞';
+    el.time.textContent = this.mode.time ? fmtTime(this.timeLeft) : '';
     el.time.classList.toggle('low', !!this.mode.time && this.timeLeft < 15);
     el.speed.style.width = `${clamp(sim.speed / 13, 0, 1) * 100}%`;
     el.speed.style.background = sim.speed > 9.6 ? '#ff5252' : '#00e5ff';
     const bal = sim.state === 'grind' || sim.state === 'manual';
     el.balance.classList.toggle('hidden', !bal);
     if (bal) el.balance.firstChild.style.left = `${50 + clamp(sim.bal, -1, 1) * 48}%`;
+    // Línea y multiplicador
     if (sim.combo.base > 0 && sim.state !== 'bail') {
-      const c = el.combo.querySelector('.sk-cpts');
-      if (c) c.textContent = `${fmt(sim.combo.base)} × ${Math.max(1, sim.combo.uniq.size)}`;
-      else if (sim.combo.names.length) this.feed();
-    } else el.combo.classList.remove('on');
+      el.line.textContent = `LINE: ${fmt(sim.comboPts)}`;
+      el.mult.textContent = `x${sim.mult}`;
+      el.ring.style.setProperty('--p', clamp((sim.mult - 1) / 3, 0, 1) * 100);
+    }
+    // Estado actual
+    let tag = '';
+    if (sim.state === 'walk') tag = 'B · Subirte a la patineta';
+    else if (sim.state === 'manual') tag = sim.sw ? 'Switch Manual' : 'Manual';
+    else if (sim.state === 'grind') tag = 'Grind';
+    else if (sim.pumping) tag = 'Pumping';
+    else if (sim.dive) tag = sim.dive.spread ? 'Spread Eagle' : 'Dive';
+    el.tag.textContent = tag;
+    el.tag.classList.toggle('hidden', !tag);
+    // Deshacer
+    this.undoT = Math.max(0, this.undoT - dt);
+    el.undo.classList.toggle('hidden', !(this.undoT > 0 && sim.state === 'bail'));
+    if (!el.undo.firstChild) el.undo.replaceChildren(h('div', h('kbd', 'Z'), ' Tap again to Undo'), h('div.sk-undo2', h('kbd', 'T'), ' Volver al marcador'));
+    if (this.chipsT > 0) { this.chipsT -= dt; if (this.chipsT <= 0) { this.chips = null; this.drawChips(); } }
+    // Barrio
+    this.dT = (this.dT || 0) - dt;
+    if (this.dT <= 0) {
+      this.dT = 0.25;
+      const d = this.districtAt(sim.x, sim.z);
+      const name = d ? d.name : this.map.name;
+      if (name !== this.districtName) {
+        this.districtName = name;
+        el.compass.firstChild.firstChild.textContent = name;
+        el.compass.firstChild.lastChild.textContent = this.map.name;
+        el.compass.classList.remove('flash'); void el.compass.offsetWidth; el.compass.classList.add('flash');
+      }
+    }
     // Rueda y grind
     if (audio.ready) {
       const l = audio.loop('sk-roll', { noise: true, vol: 0, filter: 700 });
@@ -380,28 +467,34 @@ export class SkateClient {
   cameraFollow(dt, still = false) {
     const sim = this.sim;
     const look = input.takeLook();
-    if (look.dx) this.camOff = clamp(this.camOff - look.dx * 0.004, -2.4, 2.4);
-    else this.camOff *= Math.exp(-dt * 0.8);
+    if (sim.state !== 'walk') { if (look.dx) this.camOff = clamp(this.camOff - look.dx * 0.004, -2.6, 2.6); else this.camOff *= Math.exp(-dt * 0.9); }
+    const walking = sim.state === 'walk';
+    if (walking) { this.camYaw -= look.dx * 0.004 + 0; this.camOff = 0; }
     const spd = sim.speed;
     let target = sim.yaw;
-    if (sim.state !== 'grind' && spd > 1.5) target = Math.atan2(sim.vx, sim.vz);
-    if (!this.camReady) { this.camYaw = target; this.camReady = true; this.camPos.set(sim.x, sim.y + 2, sim.z); }
-    let d = Math.atan2(Math.sin(target - this.camYaw), Math.cos(target - this.camYaw));
-    if (!still) this.camYaw += d * (1 - Math.exp(-dt * (sim.state === 'air' ? 1.6 : 3.2)));
+    if (sim.state !== 'grind' && spd > 1.2) target = Math.atan2(sim.vx, sim.vz);
+    if (sim.state === 'bail') target = this.camYaw;
+    if (!this.camReady) { this.camYaw = target; this.camReady = true; this.camPos.set(sim.x - Math.sin(target) * 3.6, sim.y + 1.4, sim.z - Math.cos(target) * 3.6); }
+    const d = Math.atan2(Math.sin(target - this.camYaw), Math.cos(target - this.camYaw));
+    if (!still && !walking) this.camYaw += d * (1 - Math.exp(-dt * (sim.state === 'air' ? 1.3 : 2.6)));
     const yaw = this.camYaw + this.camOff;
-    const dist = 4.9 + clamp(spd, 0, 12) * 0.06;
-    const px = sim.x - Math.sin(yaw) * dist, pz = sim.z - Math.cos(yaw) * dist;
-    const groundY = this.sim.world.heightAt(px, pz).h;
-    const py = Math.max(sim.y + 1.9 + (sim.state === 'air' ? 0.4 : 0), groundY + 0.9);
-    const k = 1 - Math.exp(-dt * 9);
+    // Cámara baja y pegada, un poco a la derecha del patinador como en el original
+    const dist = walking ? 3.4 : 3.5 + clamp(spd, 0, 12) * 0.05;
+    const rx = Math.cos(yaw) * 0.55, rz = -Math.sin(yaw) * 0.55;
+    const px = sim.x - Math.sin(yaw) * dist + rx, pz = sim.z - Math.cos(yaw) * dist + rz;
+    const groundY = sim.world.heightAt(px, pz).h;
+    const fall = sim.state === 'bail' || sim.dive ? 1.2 : 0;
+    const py = Math.max(sim.y + 1.25 + (sim.state === 'air' ? 0.25 : 0) + fall, groundY + 0.7);
+    const k = 1 - Math.exp(-dt * 7);
     this.camPos.x += (px - this.camPos.x) * k;
     this.camPos.z += (pz - this.camPos.z) * k;
     this.camPos.y += (py - this.camPos.y) * (1 - Math.exp(-dt * 5));
     this.shake = Math.max(0, this.shake - dt * 1.6);
     const sh = this.shake;
     this.cam.position.set(this.camPos.x + (Math.random() - 0.5) * sh * 0.3, this.camPos.y + (Math.random() - 0.5) * sh * 0.3, this.camPos.z);
-    this.cam.lookAt(sim.x, sim.y + 1.0, sim.z);
-    const fov = 62 + clamp(spd, 0, 13) * 1.0;
+    this.cam.lookAt(sim.x - rx * 0.5, sim.y + 0.95, sim.z - rz * 0.5);
+    this.cam.rotateZ(-sim.steer * 0.035 * clamp(spd / 8, 0, 1));
+    const fov = walking ? 66 + clamp(spd, 0, 6) * 1.2 : 72 + clamp(spd, 0, 14) * 1.15;
     if (Math.abs(this.cam.fov - fov) > 0.05) { this.cam.fov += (fov - this.cam.fov) * Math.min(1, dt * 4); this.cam.updateProjectionMatrix(); }
   }
 

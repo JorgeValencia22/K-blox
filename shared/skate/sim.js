@@ -7,7 +7,7 @@ export const G = 9.8;
 const SUB = 1 / 120; // paso fijo de la física
 const V_PUSH = 9.5; // velocidad máxima empujando
 const STEP = 0.5; // escalón que se sube rodando
-const COMBO_IDLE = 1.4; // segundos en el suelo antes de cerrar el combo
+const COMBO_IDLE = 2.6; // segundos en el suelo antes de cerrar el combo
 
 export const TRICKS = {
   ollie: { name: 'Ollie', pts: 60 },
@@ -24,6 +24,12 @@ export const TRICKS = {
   manual: { name: 'Manual', pts: 120 },
   switch: { name: 'Switch', pts: 150 },
 };
+/** Multiplicador de la línea según los trucos distintos encadenados (x1 … x4). */
+export const multFor = (n) => [1, 1, 1.5, 2, 2.5, 3, 3.5, 4][Math.min(7, Math.max(0, n))];
+/** Valoración de un truco por sus puntos (como en el juego original). */
+export function rating(pts) {
+  return pts >= 4000 ? 'LEGENDARY!' : pts >= 1500 ? 'INCREDIBLE!' : pts >= 1000 ? 'SICK!' : pts >= 700 ? 'EXCELLENT!' : pts >= 450 ? 'GREAT' : pts >= 250 ? 'NICE' : '';
+}
 const GRABS = { left: 'Indy', right: 'Melon', up: 'Nose Grab', down: 'Tail Grab', none: 'Mute' };
 
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -42,6 +48,7 @@ export class SkaterSim {
     this.world = new SkateWorld(map);
     this.stats = newStats();
     this.time = 0;
+    this.sw = false;
     this.respawn();
   }
 
@@ -63,6 +70,7 @@ export class SkaterSim {
     this.bailT = 0;
     this.bailWhy = '';
     this.spinVel = 0;
+    this.swapT = 0; this.swapDir = 0; this.pushT = 0; this.landT = 0; this.grounded = true;
     this.nx = 0; this.ny = 1; this.nz = 0;
     this.slide = 0;
     this.endCombo(false);
@@ -79,7 +87,8 @@ export class SkaterSim {
   get speed() { return Math.hypot(this.vx, this.vz); }
   get dirX() { return Math.sin(this.yaw); }
   get dirZ() { return Math.cos(this.yaw); }
-  get comboPts() { return Math.round(this.combo.base * Math.max(1, this.combo.uniq.size)); }
+  get comboPts() { return Math.round(this.combo.base * multFor(this.combo.uniq.size)); }
+  get mult() { return multFor(this.combo.uniq.size); }
 
   // ------------------------------------------------------------------------------ combos y puntos
   endCombo(bank, ev) {
@@ -89,7 +98,7 @@ export class SkaterSim {
       this.stats.score += pts;
       this.stats.bestCombo = Math.max(this.stats.bestCombo, pts);
       this.stats.combos++;
-      ev?.push({ k: 'bank', pts, base: c.base, mult: Math.max(1, c.uniq.size), names: c.names.slice() });
+      ev?.push({ k: 'bank', pts, base: c.base, mult: this.mult, names: c.names.slice() });
     } else if (c && c.base > 0) ev?.push({ k: 'lost', pts: this.comboPts });
     this.combo = { base: 0, uniq: new Set(), names: [], reps: {}, idle: 0 };
   }
@@ -105,7 +114,7 @@ export class SkaterSim {
     c.names.push(name);
     c.idle = 0;
     this.stats.tricks++;
-    ev.push({ k: 'trick', id, name, pts: gain, base: c.base, mult: c.uniq.size });
+    ev.push({ k: 'trick', id, name, pts: gain, shown: Math.round(gain * this.mult), line: this.comboPts, rating: rating(Math.round(gain * this.mult)), base: c.base, mult: this.mult });
   }
 
   // ------------------------------------------------------------------------------------ paso
@@ -117,12 +126,12 @@ export class SkaterSim {
   step(dt, inp) {
     const ev = [];
     let left = dt;
-    const edge = { jumpP: inp.jumpP, kickP: inp.kickP, heelP: inp.heelP, shuvP: inp.shuvP };
+    const edge = { jumpP: inp.jumpP, kickP: inp.kickP, heelP: inp.heelP, shuvP: inp.shuvP, boardP: inp.boardP, undoP: inp.undoP, diveP: inp.diveP, respawnP: inp.respawnP };
     while (left > 1e-6) {
       const h = Math.min(SUB, left);
       left -= h;
       this.sub(h, { ...inp, ...edge }, ev);
-      edge.jumpP = edge.kickP = edge.heelP = edge.shuvP = false;
+      edge.jumpP = edge.kickP = edge.heelP = edge.shuvP = edge.boardP = edge.undoP = edge.diveP = edge.respawnP = false;
     }
     this.time += dt;
     this.stats.maxSpeed = Math.max(this.stats.maxSpeed, this.speed);
@@ -132,7 +141,16 @@ export class SkaterSim {
 
   sub(dt, inp, ev) {
     if (inp.respawnP) { this.respawn(); ev.push({ k: 'respawn' }); return; }
+    if (inp.undoP && this.state === 'bail' && this.undoSnap && !this.dive) { this.undo(ev); return; }
+    if (this.dive && inp.grab) this.dive.spread = true;
+    this.swapT = Math.max(0, this.swapT - dt);
+    this.landT = Math.max(0, this.landT - dt);
+    if (inp.boardP) {
+      if (this.state === 'walk' && this.grounded) this.mount(ev);
+      else if (this.state === 'ground' && this.speed < 6.5 && !this.jumpHeld && this.swapT <= 0) this.dismount(ev);
+    }
     switch (this.state) {
+      case 'walk': this.onWalk(dt, inp, ev); break;
       case 'ground': this.onGround(dt, inp, ev); break;
       case 'manual': this.onGround(dt, inp, ev); break;
       case 'air': this.inAir(dt, inp, ev); break;
@@ -183,9 +201,16 @@ export class SkaterSim {
     let lx = this.vx - f * tx, ly = this.vy - f * ty, lz = this.vz - f * tz; // lateral
     const k = Math.exp(-7 * dt);
     lx *= k; ly *= k; lz *= k;
+    if (this.state === 'ground' && inp.py > 0.1 && f < V_PUSH - 0.3) this.pushT = (this.pushT + dt / 0.8) % 1; else this.pushT = 0;
     if (inp.py > 0.1 && this.state !== 'manual') f += (f < V_PUSH ? 4.2 : 0) * inp.py * dt / drag * (drag > 1 ? 0.6 : 1);
     if (inp.py < -0.1 && this.state !== 'manual') f -= Math.sign(f) * Math.min(Math.abs(f), 9 * -inp.py * dt);
-    f -= Math.sign(f) * Math.min(Math.abs(f), (0.28 + f * f * 0.0035) * dt * drag * (drag > 1 ? 2.5 : 1));
+    f -= Math.sign(f) * Math.min(Math.abs(f), (0.2 + f * f * 0.0026) * dt * drag * (drag > 1 ? 2.5 : 1));
+    // «Pump»: al comprimirse en una transición (de bajada a plano o subida) se gana velocidad
+    const pitch = ty;
+    const dPitch = pitch - (this.prevPitch ?? pitch);
+    this.prevPitch = pitch;
+    this.pumping = false;
+    if (this.state === 'ground' && dPitch > 0.0015 && f > 2.5) { f += Math.min(dPitch, 0.02) * f * 1.35 * (inp.py < -0.1 ? 0.4 : 1); this.pumping = dPitch > 0.004; }
     this.vx = f * tx + lx; this.vy = f * ty + ly; this.vz = f * tz + lz;
     this.slide = Math.hypot(lx, ly, lz);
 
@@ -258,8 +283,9 @@ export class SkaterSim {
   }
 
   takeoff(ollie, ev) {
+    this.snap = this.snapshot();
     this.state = 'air';
-    this.air = { t: 0, y0: this.y, peak: this.y, spin: 0, flip: null, pending: [], grab: 0, grabDir: 'none', ollie, lastFlipEnd: 0, count: 0 };
+    this.air = { t: 0, x0: this.x, z0: this.z, y0: this.y, peak: this.y, spin: 0, flip: null, pending: [], grab: 0, grabDir: 'none', ollie, lastFlipEnd: 0, count: 0 };
     this.spinVel = 0;
     if (ollie) ev.push({ k: 'pop', power: this.vy });
     else ev.push({ k: 'launch', vy: this.vy });
@@ -288,6 +314,7 @@ export class SkaterSim {
       else if (a.flip && a.flip.id === 'heelflip' && a.flip.t < 0.25) { a.flip.id = 'varial'; a.flip.dur = 0.55; }
       else start('shuvit', 0.42);
     }
+    if (inp.diveP && a.t > 0.15) { this.startDive(ev); return; }
     // Agarre
     if (inp.grab) {
       a.grab += dt;
@@ -344,27 +371,31 @@ export class SkaterSim {
     // Aterrizaje limpio
     if (fakie) { this.yaw = wrap(this.yaw + Math.PI); ev.push({ k: 'switch' }); }
     this.state = 'ground';
+    this.landT = 0.28;
     const vn = this.vx * nx + this.vy * ny + this.vz * nz;
     if (vn < 0) { this.vx -= nx * vn; this.vz -= nz * vn; }
     this.vy = (-nx * this.vx - nz * this.vz) / Math.max(0.08, ny);
-    ev.push({ k: 'land', impact, perfect: Math.abs(rel) < 0.2 || Math.abs(Math.abs(rel) - Math.PI) < 0.2, air: a.t });
+    ev.push({ k: 'land', impact, perfect: Math.abs(rel) < 0.2 || Math.abs(Math.abs(rel) - Math.PI) < 0.2, air: a.t, height: a.peak - a.y0, dist: Math.hypot(this.x - a.x0, this.z - a.z0), clean: long });
     if (!long) { this.combo.idle = 0; return; }
     const c = this.combo;
     c.idle = 0;
-    if (a.ollie && !a.pending.length && a.spin === 0) this.addTrick('ollie', 'Ollie', TRICKS.ollie.pts, ev);
-    for (const t of a.pending) {
-      this.addTrick(t.id, t.name, t.pts, ev);
-      this.stats.landed.add(t.id);
-    }
-    if (a.pending.some((t) => t.id === 'tre' || t.id === 'varial')) { this.stats.landed.add('kickflip'); this.stats.landed.add('shuvit'); }
+    // Un solo truco por aterrizaje, con nombre compuesto («Fakie Heelflip 180», «BS 540 Pop-Shuvit»)
     const spins = Math.round(Math.abs(a.spin) / Math.PI);
-    if (spins >= 1) {
-      const deg = spins * 180;
-      this.addTrick('spin', `Giro ${deg}`, 100 * spins * spins + 20, ev, `spin${deg}`);
-      this.stats.maxSpin = Math.max(this.stats.maxSpin, deg);
+    const deg = spins * 180;
+    const parts = [];
+    let pts = 0;
+    for (const t of a.pending) { parts.push(t.name); pts += t.pts; this.stats.landed.add(t.id); }
+    if (a.pending.some((t) => t.id === 'tre' || t.id === 'varial')) { this.stats.landed.add('kickflip'); this.stats.landed.add('shuvit'); }
+    if (spins >= 1) { pts += 100 * spins * spins + 20; this.stats.maxSpin = Math.max(this.stats.maxSpin, deg); this.stats.landed.add(`spin${deg}`); }
+    if (a.grab > 0.25) { parts.push(GRABS[a.grabDir] || 'Mute'); pts += TRICKS.grab.pts + Math.round(a.grab * 160); }
+    const stance = this.sw ? 'Switch ' : '';
+    if (spins >= 1) parts.push(`${a.spin > 0 ? 'BS' : 'FS'} ${deg}`);
+    if (!parts.length && a.ollie) { parts.push('Ollie'); pts += TRICKS.ollie.pts; }
+    if (fakie) this.sw = !this.sw;
+    if (parts.length) {
+      const name = (stance + parts.join(' ')).replace(/Switch Switch /, '');
+      this.addTrick(a.ollie ? 'combo' : 'air', name, pts, ev, name);
     }
-    if (a.grab > 0.25) this.addTrick('grab', GRABS[a.grabDir] || 'Agarre', TRICKS.grab.pts + Math.round(a.grab * 160), ev, `grab${a.grabDir}`);
-    if (fakie) this.addTrick('switch', 'Switch', TRICKS.switch.pts, ev);
     const gain = a.peak - a.y0;
     if (a.t > 1.0) { const pts = Math.round((a.t - 0.8) * 320); c.base += pts; ev.push({ k: 'bonus', name: 'Tiempo en el aire', pts }); }
     if (gain > 2.0) { const pts = Math.round((gain - 2) * 420); c.base += pts; ev.push({ k: 'bonus', name: 'Gran altura', pts }); }
@@ -443,7 +474,7 @@ export class SkaterSim {
     this.grind = null;
     this.vy = up;
     this.state = 'air';
-    this.air = { t: 0, y0: this.y, peak: this.y, spin: 0, flip: null, pending: [], grab: 0, grabDir: 'none', ollie: false, lastFlipEnd: 0, count: 0, fromGrind: true };
+    this.air = { t: 0, x0: this.x, z0: this.z, y0: this.y, peak: this.y, spin: 0, flip: null, pending: [], grab: 0, grabDir: 'none', ollie: false, lastFlipEnd: 0, count: 0, fromGrind: true };
     this.spinVel = 0;
     this.y += 0.05;
     this.combo.idle = 0;
@@ -474,10 +505,109 @@ export class SkaterSim {
     this.bailWhy = why;
     this.air = null; this.grind = null;
     this.stats.bails++;
+    this.undoSnap = this.snap || null;
     this.endCombo(false, ev);
-    ev.push({ k: 'bail', why });
+    ev.push({ k: 'bail', why, undo: !!this.undoSnap });
     this.vy = Math.max(this.vy, 1.5);
     this.spinVel = 0;
+  }
+
+  // ------------------------------------------------------------------------------ a pie
+  /** Se baja de la tabla: pasa a caminar con la patineta en la mano. */
+  dismount(ev) {
+    this.endCombo(true, ev);
+    this.state = 'walk';
+    this.vx *= 0.5; this.vz *= 0.5; this.vy = 0;
+    this.swapT = 0.35; this.swapDir = -1;
+    this.grounded = true;
+    this.charge = 0; this.jumpHeld = false; this.bal = 0;
+    this.y = this.world.heightAt(this.x, this.z).h;
+    ev.push({ k: 'dismount' });
+  }
+
+  /** Suelta la tabla y se sube a ella, conservando la dirección y algo de velocidad. */
+  mount(ev) {
+    const sp = Math.max(Math.hypot(this.vx, this.vz), 1.6);
+    this.state = 'ground';
+    this.vx = this.dirX * sp; this.vz = this.dirZ * sp; this.vy = 0;
+    this.swapT = 0.35; this.swapDir = 1;
+    this.steer = 0; this.prevPitch = undefined;
+    this.y = this.world.heightAt(this.x, this.z).h;
+    ev.push({ k: 'mount' });
+  }
+
+  /** Empieza la sesión de pie (para el modo abierto). */
+  toWalk() {
+    this.state = 'walk';
+    this.vx = this.vy = this.vz = 0;
+    this.swapT = 0; this.swapDir = 0; this.grounded = true;
+  }
+
+  /** Caminar, correr y saltar. El movimiento es relativo a la cámara (`inp.camYaw`). */
+  onWalk(dt, inp, ev) {
+    const w = this.world;
+    const cy = inp.camYaw ?? this.yaw;
+    const fx = Math.sin(cy), fz = Math.cos(cy), rx = -Math.cos(cy), rz = Math.sin(cy);
+    let mx = fx * inp.py + rx * inp.sx, mz = fz * inp.py + rz * inp.sx;
+    const ml = Math.hypot(mx, mz);
+    if (ml > 1) { mx /= ml; mz /= ml; }
+    const top = inp.manual ? 5.2 : 2.4;
+    const acc = this.grounded ? 11 : 2.2;
+    const k = Math.min(1, acc * dt);
+    this.vx += (mx * top - this.vx) * k;
+    this.vz += (mz * top - this.vz) * k;
+    if (ml > 0.15) this.yaw = wrap(this.yaw + wrap(Math.atan2(mx, mz) - this.yaw) * Math.min(1, dt * 12));
+    // Movimiento por ejes: se sube a bordillos y escalones, pero las paredes frenan
+    const h0 = w.heightAt(this.x, this.z).h;
+    const climb = (nx, nz) => w.heightAt(nx, nz).h - Math.max(this.y, h0) <= 0.5;
+    const nx = this.x + this.vx * dt, nz = this.z + this.vz * dt;
+    if (climb(nx, nz)) { this.x = nx; this.z = nz; } else if (climb(nx, this.z)) { this.x = nx; this.vz = 0; } else if (climb(this.x, nz)) { this.z = nz; this.vx = 0; } else { this.vx = this.vz = 0; }
+    // Vertical: gravedad, salto y pegarse al suelo al bajar escalones
+    const h = w.heightAt(this.x, this.z).h;
+    if (this.grounded && inp.jumpP) { this.vy = 5.4; this.grounded = false; ev.push({ k: 'jump' }); }
+    if (!this.grounded || this.vy > 0) {
+      this.vy -= G * dt;
+      this.y += this.vy * dt;
+      if (this.y <= h) {
+        const hit = -this.vy;
+        this.y = h; this.vy = 0;
+        if (!this.grounded) { this.grounded = true; this.landT = 0.25; ev.push({ k: 'step', hard: hit > 5.5 }); }
+      } else this.grounded = false;
+    } else if (this.y - h > 0.45) { this.grounded = false; this.vy = 0; } else this.y = h;
+  }
+
+  /** Foto del estado para poder deshacer un truco fallido («Tap again to Undo»). */
+  snapshot() {
+    const c = this.combo;
+    return {
+      x: this.x, y: this.y, z: this.z, yaw: this.yaw, vx: this.vx, vy: 0, vz: this.vz, sw: this.sw,
+      score: this.stats.score, bestCombo: this.stats.bestCombo, tricks: this.stats.tricks, bails: this.stats.bails,
+      combo: { base: c.base, uniq: new Set(c.uniq), names: c.names.slice(), reps: { ...c.reps }, idle: 0 },
+    };
+  }
+
+  undo(ev) {
+    const sn = this.undoSnap;
+    this.undoSnap = null;
+    this.x = sn.x; this.z = sn.z; this.yaw = sn.yaw; this.vx = sn.vx; this.vz = sn.vz; this.vy = 0;
+    this.y = this.world.heightAt(sn.x, sn.z).h;
+    this.sw = sn.sw;
+    this.stats.bails = sn.bails;
+    this.combo = sn.combo;
+    this.state = 'ground'; this.bailT = 0; this.air = null; this.grind = null; this.charge = 0; this.jumpHeld = false;
+    ev.push({ k: 'undo' });
+  }
+
+  /** Salto al vacío con el cuerpo suelto: puntos por el tiempo y la altura de la caída. */
+  startDive(ev) {
+    this.endCombo(true, ev);
+    this.state = 'bail';
+    this.bailT = 0;
+    this.bailWhy = 'Dive';
+    this.undoSnap = null;
+    this.air = null; this.grind = null;
+    this.dive = { t: 0, y0: this.y, peak: this.y, spread: false, done: false };
+    ev.push({ k: 'dive' });
   }
 
   onBail(dt, ev) {
@@ -491,8 +621,20 @@ export class SkaterSim {
     if (!(s.h > this.y + 0.3 && s.hard)) { this.x = nx; this.z = nz; }
     this.y += this.vy * dt;
     const h = w.heightAt(this.x, this.z).h;
-    if (this.y < h) { this.y = h; this.vy = 0; this.vx *= 0.9; this.vz *= 0.9; }
-    if (this.bailT > 1.5) {
+    const dv = this.dive;
+    if (dv) { dv.t += dt; dv.peak = Math.max(dv.peak, this.y); }
+    if (this.y < h) {
+      if (dv && !dv.done && dv.t > 0.5) {
+        dv.done = true;
+        const pts = Math.round((dv.t - 0.3) * 150 + Math.max(0, dv.peak - h) * 45);
+        this.stats.score += pts;
+        this.stats.maxHeight = Math.max(this.stats.maxHeight, dv.peak - dv.y0);
+        ev.push({ k: 'bonus', name: dv.spread ? 'Spread Eagle' : 'Dive', pts, direct: true });
+      }
+      this.y = h; this.vy = 0; this.vx *= 0.9; this.vz *= 0.9;
+    }
+    if (this.bailT > (dv ? 2.2 : 1.5)) {
+      this.dive = null;
       this.state = 'ground';
       this.vx = this.vy = this.vz = 0;
       this.y = h;

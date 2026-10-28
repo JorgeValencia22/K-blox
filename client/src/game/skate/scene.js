@@ -28,6 +28,14 @@ const windowsTex = (lit) => canvasTex(128, 256, (g, w, h) => {
     g.fillRect(x, y, 9, 11);
   }
 }, [3, 4]);
+const facadeTex = (wall, glass) => canvasTex(128, 256, (g, w, h) => {
+  g.fillStyle = wall; g.fillRect(0, 0, w, h);
+  for (let y = 8; y < h - 8; y += 22) for (let x = 8; x < w - 8; x += 20) {
+    const gr = g.createLinearGradient(x, y, x, y + 14); gr.addColorStop(0, glass); gr.addColorStop(1, '#2d4458');
+    g.fillStyle = gr; g.fillRect(x, y, 13, 14);
+    g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x - 1, y + 15, 15, 2);
+  }
+}, [2, 3]);
 const woodTex = () => canvasTex(256, 256, (g, w, h) => {
   g.fillStyle = '#a97a47'; g.fillRect(0, 0, w, h);
   for (let y = 0; y < h; y += 32) { g.fillStyle = y % 64 ? '#9a6c3b' : '#b3844f'; g.fillRect(0, y, w, 30); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, y + 30, w, 2); }
@@ -59,7 +67,7 @@ export function buildScene(map) {
   const scene = new THREE.Scene();
   const root = new THREE.Group();
   scene.add(root);
-  scene.fog = new THREE.Fog(th.fog, 60, th.haze ? 190 : 300);
+  scene.fog = new THREE.Fog(th.fog, th.city ? 90 : 60, th.haze ? 190 : th.city ? 420 : 300);
   scene.background = new THREE.Color(th.fog);
   const disposables = [];
   const mats = new Map();
@@ -88,6 +96,19 @@ export function buildScene(map) {
 
   // ------------------------------------------------------------------------------------- luces
   scene.add(sky(th.night ? '#07031a' : th.sky, th.fog));
+  if (!th.night) {
+    const glowTex = canvasTex(128, 128, (g, w, h) => { const gr = g.createRadialGradient(64, 64, 2, 64, 64, 64); gr.addColorStop(0, 'rgba(255,250,220,1)'); gr.addColorStop(0.18, 'rgba(255,240,190,.75)'); gr.addColorStop(1, 'rgba(255,230,170,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, fog: false }));
+    glow.scale.set(160, 160, 1); glow.position.set(210, 300, 140); glow.renderOrder = -1;
+    scene.add(glow); disposables.push(glowTex, glow.material);
+    const cloudTex = canvasTex(256, 128, (g, w, h) => { g.clearRect(0, 0, w, h); for (let i = 0; i < 16; i++) { const x = 40 + Math.random() * 176, y = 50 + Math.random() * 30, r = 18 + Math.random() * 26; const gr = g.createRadialGradient(x, y, 1, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); } });
+    for (let i = 0; i < 9; i++) {
+      const c = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, transparent: true, depthWrite: false, fog: false, opacity: 0.8 }));
+      const a = (i / 9) * TAU + 0.4; c.scale.set(260, 130, 1); c.position.set(Math.cos(a) * 420, 95 + (i % 3) * 22, Math.sin(a) * 420); c.renderOrder = -1;
+      scene.add(c); disposables.push(c.material);
+    }
+    disposables.push(cloudTex);
+  }
   scene.add(new THREE.HemisphereLight(th.night ? '#7a6cff' : '#ffffff', th.night ? '#201838' : '#8a8478', th.night ? 0.8 : 0.95 * th.light));
   const sun = new THREE.DirectionalLight(th.night ? '#9fb4ff' : th.dusk ? '#ffc68a' : '#fff4de', th.night ? 0.9 : 1.5 * th.light);
   sun.position.set(30, 50, 20);
@@ -338,7 +359,16 @@ function decorate(map, root, ctx) {
     bulb.position.set(x, h + 0.1, z);
     root.add(pole, bulb); disposables.push(pole.geometry, bulb.geometry, bulb.material);
   };
+  const FACADES = [['#d9c7ad', '#9fc4de'], ['#b86a4e', '#a9c6dc'], ['#c9ced3', '#78a6c8'], ['#e5dccb', '#8fb7d3'], ['#8d99a6', '#b4d4ea'], ['#cfae86', '#9bc1da']];
   const building = (x, z, w, d, h, lit = 0.5) => {
+    if (!th.night) {
+      const f = FACADES[Math.abs(Math.floor(x * 7 + z * 13)) % FACADES.length];
+      const tx = facadeTex(f[0], f[1]); tx.repeat.set(Math.max(2, Math.round(w / 5)), Math.max(2, Math.round(h / 8)));
+      const bm = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ map: tx, roughness: 0.85 }));
+      bm.position.set(x, h / 2, z); bm.castShadow = true;
+      root.add(bm); disposables.push(bm.geometry, bm.material, tx);
+      return;
+    }
     const tex = windowsTex(lit); tex.repeat.set(Math.max(2, Math.round(w / 6)), Math.max(2, Math.round(h / 6)));
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ map: tex, emissiveMap: th.night ? tex : null, emissive: th.night ? '#ffffff' : '#000', emissiveIntensity: th.night ? 0.8 : 0, roughness: 0.9 }));
     m.position.set(x, h / 2 - (map.respawnBelow ? 0 : 0), z);
@@ -402,6 +432,21 @@ function decorate(map, root, ctx) {
       sea.rotation.x = -Math.PI / 2; sea.position.set(0, -0.3, 200); root.add(sea); disposables.push(sea.geometry, sea.material);
       for (const x of [-40, 0, 40]) lamp(x, -7.7, 5.5);
       for (let i = 0; i < 6; i++) building(-70 + i * 28, -70, 20, 16, 14 + (i % 3) * 7, 0.4);
+      break;
+    }
+    case 'city': {
+      // Skyline alrededor del mapa, calles arboladas, palmeras en la playa y la piscina, y el mar al sur
+      let seed = 7;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      for (let x = b.x0 - 40; x <= b.x1 + 40; x += 22) for (const z of [b.z0 - 45 - rnd() * 20, b.z1 + 45 + rnd() * 20]) building(x + rnd() * 6, z, 16 + rnd() * 8, 16 + rnd() * 10, 28 + rnd() * 70, 0.45);
+      for (let z = b.z0 - 20; z <= b.z1 + 20; z += 22) for (const x of [b.x0 - 45 - rnd() * 20, b.x1 + 45 + rnd() * 20]) building(x, z + rnd() * 6, 16 + rnd() * 8, 16 + rnd() * 10, 28 + rnd() * 70, 0.45);
+      for (let i = 0; i < 12; i++) palm(-182 + i * 11, -128 + (i % 2) * 14);
+      for (let i = 0; i < 7; i++) palm(-165 + i * 14, 40);
+      for (const [x, z] of [[-48, -44], [48, -44], [-48, 44], [48, 44], [70, 44], [-70, -50], [60, -78], [-60, 78], [60, 78], [160, 44], [100, 44]]) tree(x, z, 1.2);
+      for (let x = -42; x <= 42; x += 21) { lamp(x, -44, 6.5); lamp(x, 44, 6.5); }
+      for (let z = 66; z <= 110; z += 22) { lamp(-72, z, 6.5, '#ffd68a'); lamp(72, z, 6.5, '#ffd68a'); }
+      const sea = new THREE.Mesh(new THREE.PlaneGeometry(900, 260), new THREE.MeshStandardMaterial({ color: '#2f7fa6', roughness: 0.3, metalness: 0.15 }));
+      sea.rotation.x = -Math.PI / 2; sea.position.set(0, -0.8, b.z0 - 150); root.add(sea); disposables.push(sea.geometry, sea.material);
       break;
     }
     default:

@@ -733,3 +733,46 @@ body.padmode .lock-hint, body.padmode .gxc-lock { display: none !important; }
   .sk-score { font-size: 24px; }
   .sk-controls { display: none; }
 }
+
+/* ===== Skate Pro · HUD estilo «línea» ===== */
+.sk-top { align-items: flex-start; }
+.sk-topl { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 140px; }
+.sk-topr { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 140px; }
+.sk-btns { display: flex; gap: 6px; pointer-events: auto; }
+.sk-compass { position: absolute; left: 50%; top: 0; transform: translateX(-50%); text-align: center; text-shadow: 0 1px 6px rgba(0,0,0,.8); }
+.sk-district { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+.sk-district b { font-size: 15px; font-weight: 800; letter-spacing: .02em; background: rgba(0,0,0,.35); padding: 1px 12px; border-radius: 4px; }
+.sk-district small { font-size: 11px; opacity: .85; margin-top: 1px; }
+.sk-compassbar { height: 1px; width: 300px; margin: 6px auto 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.85) 20%, rgba(255,255,255,.85) 80%, transparent); }
+.sk-compass.flash .sk-district b { animation: skflash2 1.4s ease-out; }
+@keyframes skflash2 { 0% { transform: scale(1.25); color: #00e5ff; } 100% { transform: scale(1); color: #fff; } }
+.sk-board { position: absolute; left: 14px; bottom: 54px; display: flex; flex-direction: column; gap: 2px; max-width: 60vw; text-shadow: 0 1px 6px rgba(0,0,0,.9); }
+.sk-boardl { display: flex; align-items: flex-end; gap: 10px; }
+.sk-boardr { display: flex; flex-direction: column; justify-content: flex-end; min-width: 220px; padding-bottom: 4px; }
+.sk-ring { position: relative; width: 86px; height: 86px; flex: none; --p: 0; }
+.sk-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.sk-ring-bg { fill: rgba(0,60,90,.55); stroke: rgba(255,255,255,.18); stroke-width: 7; }
+.sk-ring-fg { fill: none; stroke: #36d6ff; stroke-width: 7; stroke-linecap: round; stroke-dasharray: var(--p) 100; filter: drop-shadow(0 0 6px #36d6ff); transition: stroke-dasharray .25s; }
+.sk-multn { position: absolute; inset: 0; display: grid; place-items: center; font-size: 34px; font-weight: 900; font-style: italic; color: #fff; }
+.sk-stack { display: flex; flex-direction: column; font-size: 12px; font-weight: 600; opacity: .85; line-height: 1.25; }
+.sk-prev { opacity: .55; } .sk-prev.last { opacity: .8; }
+.sk-curname { display: flex; align-items: center; gap: 6px; font-size: 19px; font-weight: 800; animation: skin .25s ease-out; }
+.sk-curname i { font-style: normal; font-size: 14px; background: rgba(255,255,255,.2); border-radius: 50%; width: 22px; height: 22px; display: grid; place-items: center; }
+@keyframes skin { from { transform: translateX(-12px); opacity: 0; } }
+.sk-scoreline { display: flex; align-items: baseline; gap: 12px; }
+.sk-pts { font-size: 34px; font-weight: 900; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.sk-chips { display: flex; gap: 6px; font-size: 11px; font-weight: 700; }
+.sk-chips span { background: rgba(10,14,22,.65); padding: 3px 7px; border-radius: 4px; }
+.sk-line { font-size: 14px; font-weight: 800; letter-spacing: .02em; min-height: 17px; }
+.sk-rate { position: absolute; left: 96px; bottom: 112px; font-size: 14px; font-weight: 900; font-style: italic; letter-spacing: .04em; opacity: 0; transform: rotate(-4deg); white-space: nowrap; }
+.sk-rate.show { opacity: 1; animation: skrate .45s cubic-bezier(.2,1.5,.4,1); }
+@keyframes skrate { from { transform: rotate(-4deg) scale(.4); opacity: 0; } }
+.sk-rate.r0 { color: #cfe8ff; } .sk-rate.r1 { color: #7df9a6; } .sk-rate.r2 { color: #8dffc1; font-size: 15px; } .sk-rate.r3 { color: #aaf683; font-size: 16px; } .sk-rate.r4 { color: #ffe066; font-size: 17px; } .sk-rate.r5 { color: #ffb347; font-size: 19px; }
+.sk-tag { position: absolute; left: 104px; bottom: -22px; font-size: 12px; font-weight: 700; opacity: .9; }
+.sk-undo { position: absolute; left: 14px; bottom: 54px; background: rgba(8,12,20,.8); border-radius: 8px; padding: 8px 14px; font-size: 14px; font-weight: 700; display: flex; flex-direction: column; gap: 4px; }
+.sk-undo kbd { background: #fff; color: #111; border-radius: 4px; padding: 0 6px; font-size: 12px; font-family: inherit; font-weight: 900; }
+.sk-undo2 { font-size: 12px; opacity: .8; }
+.sk-speed { left: 14px; bottom: 16px; width: 150px; }
+.sk-speed small { display: none; }
+.sk-time:empty { display: none; }
+@media (max-width: 760px) { .sk-board { bottom: 74px; } .sk-compassbar { width: 160px; } .sk-ring { width: 64px; height: 64px; } .sk-multn { font-size: 24px; } .sk-pts { font-size: 24px; } }

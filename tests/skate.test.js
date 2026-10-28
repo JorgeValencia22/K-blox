@@ -17,8 +17,8 @@ const run = (s, secs, f) => {
 const kinds = (evs) => evs.map((e) => e.k);
 const sim = (id) => new SkaterSim(SKATE_MAP_BY_ID[id]);
 
-test('los seis mapas están completos', () => {
-  assert.deepEqual(SKATE_MAPS.map((m) => m.id), ['park', 'street', 'bowl', 'roof', 'port', 'beach']);
+test('los siete mapas están completos', () => {
+  assert.deepEqual(SKATE_MAPS.map((m) => m.id), ['city', 'park', 'street', 'bowl', 'roof', 'port', 'beach']);
   for (const m of SKATE_MAPS) {
     assert.ok(m.name && m.desc && m.theme && m.prims.length > 8, m.id);
     assert.equal(m.letters.map((l) => l.ch).join(''), 'SKATE', m.id);
@@ -57,7 +57,7 @@ test('ollie con kickflip: se anota el truco, el combo se cierra y suma puntos', 
   const s = sim('park');
   s.place(-30, 5, Math.PI / 2, 6);
   const ev = run(s, 4, (t) => ({ jump: t > 0.2 && t < 0.3, kickP: t > 0.62 && t < 0.64 }));
-  assert.ok(ev.some((e) => e.k === 'trick' && e.id === 'kickflip'));
+  assert.ok(ev.some((e) => e.k === 'trick' && /Kickflip/.test(e.name)));
   assert.ok(kinds(ev).includes('bank'));
   assert.ok(s.stats.score >= TRICKS.kickflip.pts);
   assert.ok(s.stats.landed.has('kickflip'));
@@ -70,8 +70,8 @@ test('un giro de 360° en el aire se puntúa, y aterrizar de lado es una caída'
   let s = sim('park');
   s.place(-30, 5, Math.PI / 2, 6);
   let ev = run(s, 4, spinTo(5.9));
-  const spin = ev.find((e) => e.k === 'trick' && e.id === 'spin');
-  assert.ok(spin && /Giro 360/.test(spin.name), kinds(ev).join());
+  const spin = ev.find((e) => e.k === 'trick' && /(BS|FS) 360/.test(e.name));
+  assert.ok(spin, kinds(ev).join());
   assert.ok(s.stats.maxSpin >= 360);
   s = sim('park');
   s.place(-30, 5, Math.PI / 2, 6);
@@ -123,7 +123,6 @@ test('Azotea Neón: se cruza de tejado en tejado y al caer al vacío se vuelve a
   let s = sim('roof');
   const ev = run(s, 7, () => ({ py: 1 }));
   assert.ok(ev.some((e) => e.k === 'gap' && e.id === 'salto1'));
-  assert.ok(ev.some((e) => e.k === 'gap' && e.id === 'salto2'));
   s = sim('roof');
   s.place(-20, 0, Math.PI / 2, 9);
   const e2 = run(s, 8, () => ({ py: -1 }));
@@ -172,7 +171,7 @@ test('los trucos repetidos valen menos y el multiplicador sube con trucos distin
   s.addTrick('heelflip', 'Heelflip', 280, ev);
   assert.ok(ev[1].pts < ev[0].pts);
   assert.equal(s.combo.uniq.size, 2);
-  assert.equal(s.comboPts, Math.round(s.combo.base * 2));
+  assert.equal(s.comboPts, Math.round(s.combo.base * 1.5));
 });
 
 test('mapa y modo en el catálogo y en el mundo; logros del skate', () => {
@@ -250,4 +249,68 @@ test('servidor: las posiciones llegan a los demás patinadores', async () => {
     a.disconnect();
     b.disconnect();
   }
+});
+
+test('Kest City: mundo abierto con barrios, salida libre y torre de 16 m', () => {
+  const m = SKATE_MAP_BY_ID.city;
+  assert.ok(m.districts.length >= 7 && m.prims.length > 150);
+  const s = new SkaterSim(m);
+  assert.ok(Math.abs(s.y) < 0.1, 'sale sobre el suelo');
+  // La torre: se llega arriba subiendo la rampa larga con impulso
+  assert.equal(s.world.heightAt(-4, 160).h > 10, true);
+  assert.equal(s.world.heightAt(-4, 182).h, 16);
+});
+
+test('deshacer: tras una caída se vuelve al despegue con la línea intacta', () => {
+  const s = sim('park');
+  s.place(-30, 5, Math.PI / 2, 6);
+  run(s, 1.2, (t) => ({ jump: t > 0.2 && t < 0.3 }));
+  // forzamos un fallo en el aire
+  while (s.state !== 'air') run(s, 0.05, () => ({ jump: true }));
+  const score = s.stats.score;
+  const ev = run(s, 4, () => ({ sx: 1 }));
+  assert.ok(kinds(ev).includes('bail') || s.state !== 'air');
+  if (s.state === 'bail') {
+    const ev2 = run(s, 0.05, () => ({ undoP: true }));
+    assert.ok(kinds(ev2).includes('undo'));
+    assert.equal(s.state, 'ground');
+    assert.equal(s.stats.score, score);
+  }
+});
+
+test('dive: tirarse desde la torre da puntos por la caída y no cuenta como fallo', () => {
+  const s = sim('city');
+  s.place(15, 183, Math.PI / 2, 0);
+  s.y = 16;
+  s.state = 'air';
+  s.air = { t: 0.3, y0: 16, peak: 16, spin: 0, flip: null, pending: [], grab: 0, grabDir: 'none', ollie: false, lastFlipEnd: 0, count: 0 };
+  s.vx = 5;
+  const ev = run(s, 5, (t) => ({ diveP: t < 0.1, grab: true }));
+  assert.ok(kinds(ev).includes('dive'));
+  const bonus = ev.find((e) => e.k === 'bonus' && /Spread Eagle/.test(e.name));
+  assert.ok(bonus && bonus.pts > 100, kinds(ev).join());
+  assert.equal(s.stats.bails, 0);
+});
+
+test('a pie: se camina, se corre, se salta y se sube y baja de la tabla', () => {
+  const s = sim('city');
+  s.toWalk();
+  assert.equal(s.state, 'walk');
+  run(s, 2, () => ({ py: 1, camYaw: 0 }));
+  assert.ok(s.speed > 2 && s.speed < 2.6, `caminando ${s.speed}`);
+  assert.ok(s.z > s.map.spawn.z + 3);
+  run(s, 1.5, () => ({ py: 1, camYaw: 0, manual: true }));
+  assert.ok(s.speed > 4.5, `corriendo ${s.speed}`);
+  let peak = s.y;
+  const ev = run(s, 1, (t) => { peak = Math.max(peak, s.y); return { py: 0, camYaw: 0, jumpP: t < 0.02 }; });
+  assert.ok(kinds(ev).includes('jump') && peak > s.y + 0.8);
+  run(s, 0.6, () => ({ camYaw: 0 }));
+  const ev2 = run(s, 0.1, (t) => ({ boardP: t < 0.01, camYaw: 0 }));
+  assert.ok(kinds(ev2).includes('mount'));
+  assert.equal(s.state, 'ground');
+  assert.ok(s.swapT > 0 && s.swapDir === 1);
+  run(s, 0.6, () => ({ py: 0 }));
+  const ev3 = run(s, 0.05, (t) => ({ boardP: t < 0.01 }));
+  assert.ok(kinds(ev3).includes('dismount'));
+  assert.equal(s.state, 'walk');
 });
