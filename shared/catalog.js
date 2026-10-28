@@ -4,6 +4,11 @@ import { STUDIO_COSTUMES, STUDIO_OUTFITS, outfitPieces } from './skins.js';
 
 export const EXPERIENCES = [
   {
+    id: 'skate', name: 'Skate Pro', category: 'sports', maxPlayers: 8, creator: 'KestWorlds Studio', isNew: true, featured: true,
+    description: 'Skate profesional con física real: ollie, kickflip, shove-it, giros, agarres, grinds con equilibrio, manuales y combos con multiplicador. 6 mapas completos (parque, calle, bowl, azoteas de noche, puerto con mega rampa y playa), 3 modos (sesión libre, puntuación y misiones), letras S-K-A-T-E, medallas y ranking en vivo con otros patinadores.',
+    cover: { a: '#ff6d00', b: '#1565c0', icon: '🛹' },
+  },
+  {
     id: 'galaxia', name: 'Guerra Galáctica', category: 'battle', maxPlayers: 4, forcePrivate: true, creator: 'KestWorlds Studio', isNew: true, featured: true,
     description: 'Una campaña épica para 1 a 4 jugadores: elige tu héroe (cada uno juega distinto), combate espacial, entra en la Estación Oscura, pelea con sables y blásters, destruye el núcleo, escapa en el Halcón y bate a Lord Vex en un mundo de lava. Solo o con amigos. ¡Dura unos 10 minutos!',
     cover: { a: '#0d0221', b: '#ff1744', icon: '⚔️' },
@@ -261,6 +266,10 @@ export const ACHIEVEMENTS = [
   { id: 'poppy_tapes', name: 'Videoteca', desc: 'Encuentra las 4 cintas VHS de Fábrica Feliz', reward: 100 },
   { id: 'gx_story', name: 'Héroe de la Rebelión', desc: 'Completa la campaña de Guerra Galáctica y derrota a Lord Vex', reward: 150 },
   { id: 'gx_star', name: 'Un disparo entre un millón', desc: 'Destruye la Estación Oscura', reward: 200 },
+  { id: 'sk_first', name: 'Primera sesión', desc: 'Termina una partida de Puntuación o Misiones en Skate Pro', reward: 40 },
+  { id: 'sk_gold', name: 'Medalla de oro', desc: 'Consigue una medalla de oro en cualquier mapa de Skate Pro', reward: 150 },
+  { id: 'sk_combo', name: 'Combo de locos', desc: 'Haz un combo de 10.000 puntos en Skate Pro', reward: 120 },
+  { id: 'sk_all', name: 'Leyenda del skate', desc: 'Consigue el oro en los 6 mapas de Skate Pro', reward: 300 },
   { id: 'heist', name: 'Golpe maestro', desc: 'Completa un atraco en Castores al Ataque', reward: 100 },
 ];
 export const ACH_BY_ID = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));

@@ -11,6 +11,10 @@ import { randomAvatar } from '../../../shared/avatar.js';
 import { mulberry32 } from '../../../shared/terrain.js';
 import { buildAnimatronic } from '../game/fnaf.js';
 import { buildTito, poseTito } from '../game/poppy.js';
+import { buildScene as buildSkateScene } from '../game/skate/scene.js';
+import { SkaterRig } from '../game/skate/rig.js';
+import { SKATE_MAP_BY_ID } from '../../../shared/skate/maps.js';
+import { SkaterSim } from '../../../shared/skate/sim.js';
 import { PesadillaClient } from '../game/modes3.js';
 import { nodePos } from '../../../shared/worlds/fnaf.js';
 import { buildLava } from '../game/galaxia/scenes.js';
@@ -90,7 +94,38 @@ async function galaxiaCover() {
   document.title = 'listo';
 }
 
+/** Portada de Skate Pro: un ollie sobre el Kest Skatepark al atardecer. */
+async function skateCover() {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(1);
+  renderer.shadowMap.enabled = true;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  document.body.appendChild(renderer.domElement);
+  const map = SKATE_MAP_BY_ID.park;
+  const world = buildSkateScene(map);
+  const sim = new SkaterSim(map);
+  world.place(sim.world);
+  const rig = new SkaterRig(null, map.theme.accent);
+  rig.addTo(world.scene);
+  sim.place(0, 6, 0, 8);
+  sim.y = 2.4; sim.state = 'air';
+  sim.air = { flip: { id: 'kickflip', t: 0.25, dur: 0.5 }, grab: 0, spin: 0, t: 0.5 };
+  rig.update(sim, 0.016, 0);
+  world.update(0, 0, sim);
+  const camera = new THREE.PerspectiveCamera(58, W / H, 0.1, 1200);
+  camera.position.set(-4.6, 1.5, 0.5);
+  camera.lookAt(0, 2.5, 6);
+  renderer.render(world.scene, camera);
+  await new Promise((r) => setTimeout(r, 300));
+  renderer.render(world.scene, camera);
+  document.getElementById('out').textContent = renderer.domElement.toDataURL('image/jpeg', 0.86);
+  document.title = 'listo';
+}
+
 async function main() {
+  if (id === 'skate') return skateCover();
   if (id === 'galaxia') return galaxiaCover();
   const shot = SHOTS[id] || { pos: [20, 15, 20], look: [0, 2, 0], time: 0.35 };
   const world = getBuiltinWorld(id);

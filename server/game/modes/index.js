@@ -15,11 +15,12 @@ import { CamaleonMode } from './CamaleonMode.js';
 import { FnafMode } from './FnafMode.js';
 import { PoppyMode } from './PoppyMode.js';
 import { GalaxiaMode } from './GalaxiaMode.js';
+import { SkateMode } from './SkateMode.js';
 
 const MODES = {
   city: CityMode, obby: ObbyMode, racing: RacingMode, survival: SurvivalMode, hangout: HangoutMode, custom: CustomMode,
   keys: KeysMode, onlyup: OnlyUpMode, horror: HorrorMode, royale: RoyaleMode, rocket: RocketMode, castores: CastoresMode,
-  camaleon: CamaleonMode, asalto: AsaltoMode, pesadilla: PesadillaMode, desastres: DesastresMode, huerto: HuertoMode, bloques: BloquesMode, fnaf: FnafMode, poppy: PoppyMode, galaxia: GalaxiaMode,
+  camaleon: CamaleonMode, asalto: AsaltoMode, pesadilla: PesadillaMode, desastres: DesastresMode, huerto: HuertoMode, bloques: BloquesMode, fnaf: FnafMode, poppy: PoppyMode, galaxia: GalaxiaMode, skate: SkateMode,
 };
 
 export function createMode(name, room) {
