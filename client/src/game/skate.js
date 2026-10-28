@@ -94,7 +94,7 @@ export class SkateClient {
     this.groove = new Groove();
     this.allies = new Map();
     this.camYaw = 0; this.camOff = 0; this.camPos = new THREE.Vector3(); this.camReady = false;
-    this.camPitch = 0.12; this.lastLook = 0; this.lock = true; this.lockOn = false;
+    this.camPitch = 0.12; this.lastLook = 0; this.autoBal = true;
     this.shake = 0; this.t = 0; this.sendT = 0; this.helpOn = true;
     this.shown = 0;
     this.root = h('div.sk');
@@ -146,8 +146,8 @@ export class SkateClient {
     const modes = SKATE_MODES.map((md) => h('button.sk-mode' + (md.id === this.sel.mode ? '.sel' : ''), { on: { click: () => { this.sel.mode = md.id; save('kest.skate.mode', md.id); this.root.replaceChildren(this.menuEl()); } } }, h('b', md.name), h('small', md.desc)));
     const controls = h('div.sk-controls',
       h('h4', 'Controles'),
-      ...[['B', 'Bajarte / subir a la patineta'], ['W / S', 'Caminar · empujar / frenar'], ['Shift (a pie)', 'Correr'], ['A / D', 'Girar · girar en el aire'], ['Espacio', 'Saltar · ollie (mantén = más alto)'], ['Q/E/R · ←/→/↓', 'Kickflip / Heelflip / Shove-it'], ['G · Z', 'Tirarte (dive) · deshacer'],
-        ['Q+R · E+R', '360 Flip · Varial'], ['F', 'Agarre (en el aire)'], ['Shift', 'Manual (W/S equilibrio)'], ['A / D en grind', 'Mantener el equilibrio'], ['T', 'Volver a la salida'], ['Ratón', 'Mover la cámara · el patinador gira solo (Shift en Configuración)']]
+      ...[['B', 'Bajarte / subir a la patineta'], ['W / S', 'Caminar · empujar / frenar'], ['Shift', 'Correr a pie · manual patinando (sin barra de equilibrio por defecto)'], ['A / D', 'Girar · girar en el aire'], ['Espacio', 'Saltar · ollie (mantén = más alto)'], ['Q/E/R · ←/→/↓', 'Kickflip / Heelflip / Shove-it'], ['G · Z', 'Tirarte (dive) · deshacer'],
+        ['Q+R · E+R', '360 Flip · Varial'], ['F', 'Agarre (en el aire)'], ['Shift', 'Manual (W/S equilibrio)'], ['A / D en grind', 'Mantener el equilibrio'], ['T', 'Volver a la salida'], ['Ratón', 'Mover la cámara (se queda donde la dejes)']]
         .map(([k, v]) => h('div.sk-ctl', h('kbd', k), h('span', v))));
     return h('div.sk-menu',
       h('div.sk-head', h('div.sk-logo', h('small', 'KESTWORLDS'), h('b', 'SKATE PRO')), button('← Salir', () => this.game.exit('leave'), 'small')),
@@ -294,21 +294,11 @@ export class SkateClient {
     const mv = input.moveVector();
     const down = (c) => input.down(c);
     const pr = (c) => input.pressed(c);
-    // Tipo de Shift: automático (fija la cámara siempre), manual con Shift mantenido o con Shift que alterna
-    const mode = settings.get('shiftMode') || 'auto';
-    const shiftDown = down('ShiftLeft') || down('ShiftRight');
-    if (mode === 'toggle' && (pr('ShiftLeft') || pr('ShiftRight'))) this.lockOn = !this.lockOn;
-    this.lock = mode === 'auto' ? true : mode === 'hold' ? shiftDown : this.lockOn;
-    const run = mode === 'auto' ? (shiftDown || down('KeyX')) : (down('KeyX') || down('ControlLeft'));
-    let sx = mv.x;
-    const sim = this.sim;
-    if (this.lock && (sim.state === 'ground' || sim.state === 'manual')) {
-      // El patinador gira solo hacia donde mira la cámara
-      const diff = Math.atan2(Math.sin(this.camYaw + this.camOff - sim.yaw), Math.cos(this.camYaw + this.camOff - sim.yaw));
-      sx = clamp(-diff * 2.4 + mv.x * 0.5, -1, 1);
-    }
+    // Tipo de Shift: automático (equilibrio solo, sin barra de colores) o manual (con la barra)
+    this.autoBal = (settings.get('shiftMode') || 'auto') !== 'manual';
+    const run = down('ShiftLeft') || down('ShiftRight') || down('KeyX');
     return {
-      sx, py: mv.y, lock: this.lock,
+      sx: mv.x, py: mv.y, autoBal: this.autoBal,
       jump: down('Space'), jumpP: pr('Space'),
       kickP: pr('KeyQ') || pr('ArrowLeft'), heelP: pr('KeyE') || pr('ArrowRight'), shuvP: pr('KeyR') || pr('ArrowDown'),
       undoP: pr('KeyZ') || pr('Backspace'), diveP: pr('KeyG'),
@@ -428,7 +418,7 @@ export class SkateClient {
     el.speed.style.width = `${clamp(sim.speed / 13, 0, 1) * 100}%`;
     el.speed.style.background = sim.speed > 9.6 ? '#ff5252' : '#00e5ff';
     const bal = sim.state === 'grind' || sim.state === 'manual';
-    el.balance.classList.toggle('hidden', !bal);
+    el.balance.classList.toggle('hidden', !bal || this.autoBal);
     if (bal) el.balance.firstChild.style.left = `${50 + clamp(sim.bal, -1, 1) * 48}%`;
     // Línea y multiplicador
     if (sim.combo.base > 0 && sim.state !== 'bail') {
@@ -485,10 +475,12 @@ export class SkateClient {
     const sens = 0.004 * (settings.get('sensitivity') || 1);
     if (look.dx || look.dy) this.lastLook = this.t;
     this.camPitch = clamp(this.camPitch + look.dy * sens * 0.8 * (settings.get('invertY') ? -1 : 1), -0.3, 1.1);
-    const free = this.lock || sim.state === 'walk';
+    // A pie la cámara es libre. Patinando, la cámara se queda donde la pongas y solo se recoloca
+    // detrás tras unos segundos sin tocar el ratón mientras vas rápido.
+    const free = sim.state === 'walk';
     if (free) { this.camYaw -= look.dx * sens; this.camOff = 0; }
     else if (look.dx) this.camOff = clamp(this.camOff - look.dx * sens, -3.1, 3.1);
-    else if (this.t - this.lastLook > 1.8) this.camOff *= Math.exp(-dt * 1.2);
+    else if (this.t - this.lastLook > 3 && sim.speed > 3) this.camOff *= Math.exp(-dt * 1.2);
     const walking = sim.state === 'walk';
     const spd = sim.speed;
     let target = sim.yaw;

@@ -231,12 +231,15 @@ export class SkaterSim {
       if (!inp.manual || sp < 0.9 || this.ny < 0.94) this.endManual(ev);
       else {
         this.manualT += dt;
-        this.balDrift += dt * 0.22;
-        this.bal += (Math.sign(this.bal || this.balDir) * (0.55 + this.balDrift) + inp.py * 1.9) * dt;
+        if (inp.autoBal) this.bal += (0 - this.bal) * Math.min(1, dt * 6); // equilibrio automático: sin barra ni caídas
+        else {
+          this.balDrift += dt * 0.22;
+          this.bal += (Math.sign(this.bal || this.balDir) * (0.55 + this.balDrift) + inp.py * 1.9) * dt;
+        }
         this.combo.base += 70 * dt;
         this.combo.idle = 0;
         this.stats.longestManual = Math.max(this.stats.longestManual, this.manualT);
-        if (Math.abs(this.bal) >= 1) { this.bail('Perdiste el manual', ev); return; }
+        if (!inp.autoBal && Math.abs(this.bal) >= 1) { this.bail('Perdiste el manual', ev); return; }
         const ff = this.vx * dx + this.vz * dz;
         const keep = 0.9 * dt;
         this.vx -= dx * Math.sign(ff) * Math.min(Math.abs(ff), keep); this.vz -= dz * Math.sign(ff) * Math.min(Math.abs(ff), keep);
@@ -444,8 +447,11 @@ export class SkaterSim {
   onGrind(dt, inp, ev) {
     const gr = this.grind, g = gr.g;
     gr.time += dt;
-    this.balDrift += dt * 0.25;
-    this.bal += (Math.sign(this.bal || 1) * (0.5 + this.balDrift) + inp.sx * 2.3) * dt;
+    if (inp.autoBal) this.bal += (0 - this.bal) * Math.min(1, dt * 6);
+    else {
+      this.balDrift += dt * 0.25;
+      this.bal += (Math.sign(this.bal || 1) * (0.5 + this.balDrift) + inp.sx * 2.3) * dt;
+    }
     gr.v = Math.max(0, gr.v - 0.55 * dt);
     gr.t += gr.sgn * gr.v * dt;
     gr.len += gr.v * dt;
@@ -460,7 +466,7 @@ export class SkaterSim {
     const along = Math.atan2(g.dx * gr.sgn, g.dz * gr.sgn);
     const want = gr.id === 'gboard' ? along + Math.PI / 2 : along;
     this.yaw += wrap(want - this.yaw) * Math.min(1, dt * 10);
-    if (Math.abs(this.bal) >= 1) { this.bail('Te caíste del grind', ev); return; }
+    if (!inp.autoBal && Math.abs(this.bal) >= 1) { this.bail('Te caíste del grind', ev); return; }
     if (inp.jumpP) { this.leaveGrind(4.2, ev); return; }
     if (gr.v < 0.4 || gr.t <= 0 || gr.t >= g.len) {
       const dirx = g.dx * gr.sgn, dirz = g.dz * gr.sgn;
@@ -556,8 +562,7 @@ export class SkaterSim {
     const k = Math.min(1, acc * dt);
     this.vx += (mx * top - this.vx) * k;
     this.vz += (mz * top - this.vz) * k;
-    if (inp.lock) this.yaw = wrap(this.yaw + wrap(cy - this.yaw) * Math.min(1, dt * 14)); // con el Shift automático mira a donde apunta la cámara
-    else if (ml > 0.15) this.yaw = wrap(this.yaw + wrap(Math.atan2(mx, mz) - this.yaw) * Math.min(1, dt * 12));
+    if (ml > 0.15) this.yaw = wrap(this.yaw + wrap(Math.atan2(mx, mz) - this.yaw) * Math.min(1, dt * 12));
     // Movimiento por ejes: se sube a bordillos y escalones, pero las paredes frenan
     const h0 = w.heightAt(this.x, this.z).h;
     const climb = (nx, nz) => w.heightAt(nx, nz).h - Math.max(this.y, h0) <= 0.5;

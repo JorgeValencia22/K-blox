@@ -315,12 +315,14 @@ test('a pie: se camina, se corre, se salta y se sube y baja de la tabla', () => 
   assert.equal(s.state, 'walk');
 });
 
-test('con el Shift automático el personaje a pie mira a donde apunta la cámara', () => {
-  const s = sim('city');
-  s.toWalk();
-  run(s, 1, () => ({ py: 0, sx: 0, camYaw: 1.2, lock: true }));
-  assert.ok(Math.abs(s.yaw - 1.2) < 0.05, `yaw ${s.yaw}`);
-  run(s, 1, () => ({ py: 1, camYaw: 1.2, lock: true }));
-  assert.ok(Math.abs(s.yaw - 1.2) < 0.05);
-  assert.ok(s.x > 1, 'avanza hacia donde mira la cámara');
+test('equilibrio automático: el manual y el grind no se pierden y sin él sí', () => {
+  const manual = (auto) => {
+    const s = sim('park');
+    s.place(-30, 5, Math.PI / 2, 7);
+    run(s, 0.5, () => ({ py: 1 }));
+    const ev = run(s, 6, () => ({ manual: true, autoBal: auto }));
+    return { s, ev };
+  };
+  assert.ok(!kinds(manual(true).ev).includes('bail'));
+  assert.ok(kinds(manual(false).ev).includes('bail'));
 });
