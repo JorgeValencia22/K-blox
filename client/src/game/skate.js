@@ -6,6 +6,7 @@ import { input } from '../engine/input.js';
 import { audio } from '../audio/audio.js';
 import { net } from '../core/net.js';
 import { store } from '../core/store.js';
+import { settings } from '../core/settings.js';
 import { h, button, toast } from '../ui/dom.js';
 import { SKATE_MAPS, SKATE_MAP_BY_ID, SKATE_MODES, SKATE_MODE_BY_ID, medalFor } from '../../../shared/skate/maps.js';
 import { SkaterSim } from '../../../shared/skate/sim.js';
@@ -93,6 +94,7 @@ export class SkateClient {
     this.groove = new Groove();
     this.allies = new Map();
     this.camYaw = 0; this.camOff = 0; this.camPos = new THREE.Vector3(); this.camReady = false;
+    this.camPitch = 0.12; this.lastLook = 0; this.lock = true; this.lockOn = false;
     this.shake = 0; this.t = 0; this.sendT = 0; this.helpOn = true;
     this.shown = 0;
     this.root = h('div.sk');
@@ -145,7 +147,7 @@ export class SkateClient {
     const controls = h('div.sk-controls',
       h('h4', 'Controles'),
       ...[['B', 'Bajarte / subir a la patineta'], ['W / S', 'Caminar · empujar / frenar'], ['Shift (a pie)', 'Correr'], ['A / D', 'Girar · girar en el aire'], ['Espacio', 'Saltar · ollie (mantén = más alto)'], ['Q/E/R · ←/→/↓', 'Kickflip / Heelflip / Shove-it'], ['G · Z', 'Tirarte (dive) · deshacer'],
-        ['Q+R · E+R', '360 Flip · Varial'], ['F', 'Agarre (en el aire)'], ['Shift', 'Manual (W/S equilibrio)'], ['A / D en grind', 'Mantener el equilibrio'], ['T', 'Volver a la salida'], ['Ratón', 'Girar la cámara']]
+        ['Q+R · E+R', '360 Flip · Varial'], ['F', 'Agarre (en el aire)'], ['Shift', 'Manual (W/S equilibrio)'], ['A / D en grind', 'Mantener el equilibrio'], ['T', 'Volver a la salida'], ['Ratón', 'Mover la cámara · el patinador gira solo (Shift en Configuración)']]
         .map(([k, v]) => h('div.sk-ctl', h('kbd', k), h('span', v))));
     return h('div.sk-menu',
       h('div.sk-head', h('div.sk-logo', h('small', 'KESTWORLDS'), h('b', 'SKATE PRO')), button('← Salir', () => this.game.exit('leave'), 'small')),
@@ -292,12 +294,25 @@ export class SkateClient {
     const mv = input.moveVector();
     const down = (c) => input.down(c);
     const pr = (c) => input.pressed(c);
+    // Tipo de Shift: automático (fija la cámara siempre), manual con Shift mantenido o con Shift que alterna
+    const mode = settings.get('shiftMode') || 'auto';
+    const shiftDown = down('ShiftLeft') || down('ShiftRight');
+    if (mode === 'toggle' && (pr('ShiftLeft') || pr('ShiftRight'))) this.lockOn = !this.lockOn;
+    this.lock = mode === 'auto' ? true : mode === 'hold' ? shiftDown : this.lockOn;
+    const run = mode === 'auto' ? (shiftDown || down('KeyX')) : (down('KeyX') || down('ControlLeft'));
+    let sx = mv.x;
+    const sim = this.sim;
+    if (this.lock && (sim.state === 'ground' || sim.state === 'manual')) {
+      // El patinador gira solo hacia donde mira la cámara
+      const diff = Math.atan2(Math.sin(this.camYaw + this.camOff - sim.yaw), Math.cos(this.camYaw + this.camOff - sim.yaw));
+      sx = clamp(-diff * 2.4 + mv.x * 0.5, -1, 1);
+    }
     return {
-      sx: mv.x, py: mv.y,
+      sx, py: mv.y, lock: this.lock,
       jump: down('Space'), jumpP: pr('Space'),
       kickP: pr('KeyQ') || pr('ArrowLeft'), heelP: pr('KeyE') || pr('ArrowRight'), shuvP: pr('KeyR') || pr('ArrowDown'),
       undoP: pr('KeyZ') || pr('Backspace'), diveP: pr('KeyG'),
-      grab: down('KeyF'), manual: down('ShiftLeft') || down('ShiftRight') || down('KeyX'),
+      grab: down('KeyF'), manual: run,
       respawnP: pr('KeyT'),
       boardP: pr('KeyB') || pr('Enter'), camYaw: this.camYaw + this.camOff,
     };
@@ -467,24 +482,30 @@ export class SkateClient {
   cameraFollow(dt, still = false) {
     const sim = this.sim;
     const look = input.takeLook();
-    if (sim.state !== 'walk') { if (look.dx) this.camOff = clamp(this.camOff - look.dx * 0.004, -2.6, 2.6); else this.camOff *= Math.exp(-dt * 0.9); }
+    const sens = 0.004 * (settings.get('sensitivity') || 1);
+    if (look.dx || look.dy) this.lastLook = this.t;
+    this.camPitch = clamp(this.camPitch + look.dy * sens * 0.8 * (settings.get('invertY') ? -1 : 1), -0.3, 1.1);
+    const free = this.lock || sim.state === 'walk';
+    if (free) { this.camYaw -= look.dx * sens; this.camOff = 0; }
+    else if (look.dx) this.camOff = clamp(this.camOff - look.dx * sens, -3.1, 3.1);
+    else if (this.t - this.lastLook > 1.8) this.camOff *= Math.exp(-dt * 1.2);
     const walking = sim.state === 'walk';
-    if (walking) { this.camYaw -= look.dx * 0.004 + 0; this.camOff = 0; }
     const spd = sim.speed;
     let target = sim.yaw;
     if (sim.state !== 'grind' && spd > 1.2) target = Math.atan2(sim.vx, sim.vz);
     if (sim.state === 'bail') target = this.camYaw;
     if (!this.camReady) { this.camYaw = target; this.camReady = true; this.camPos.set(sim.x - Math.sin(target) * 3.6, sim.y + 1.4, sim.z - Math.cos(target) * 3.6); }
     const d = Math.atan2(Math.sin(target - this.camYaw), Math.cos(target - this.camYaw));
-    if (!still && !walking) this.camYaw += d * (1 - Math.exp(-dt * (sim.state === 'air' ? 1.3 : 2.6)));
+    if (!still && !free) this.camYaw += d * (1 - Math.exp(-dt * (sim.state === 'air' ? 1.3 : 2.6)));
     const yaw = this.camYaw + this.camOff;
     // Cámara baja y pegada, un poco a la derecha del patinador como en el original
     const dist = walking ? 3.4 : 3.5 + clamp(spd, 0, 12) * 0.05;
     const rx = Math.cos(yaw) * 0.55, rz = -Math.sin(yaw) * 0.55;
-    const px = sim.x - Math.sin(yaw) * dist + rx, pz = sim.z - Math.cos(yaw) * dist + rz;
+    const cp = Math.cos(this.camPitch);
+    const px = sim.x - Math.sin(yaw) * dist * cp + rx, pz = sim.z - Math.cos(yaw) * dist * cp + rz;
     const groundY = sim.world.heightAt(px, pz).h;
     const fall = sim.state === 'bail' || sim.dive ? 1.2 : 0;
-    const py = Math.max(sim.y + 1.25 + (sim.state === 'air' ? 0.25 : 0) + fall, groundY + 0.7);
+    const py = Math.max(sim.y + 0.85 + dist * Math.sin(this.camPitch) + (sim.state === 'air' ? 0.25 : 0) + fall, groundY + 0.7);
     const k = 1 - Math.exp(-dt * 7);
     this.camPos.x += (px - this.camPos.x) * k;
     this.camPos.z += (pz - this.camPos.z) * k;

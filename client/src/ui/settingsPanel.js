@@ -149,6 +149,8 @@ export function openSettings() {
       h('div.section-title', 'Controles'),
       slider('Sensibilidad de cámara', 'sensitivity', 0.2, 3, 0.1, (v) => v.toFixed(1)),
       toggle('Invertir eje vertical', 'invertY'),
+      select('Tipo de Shift (Skate Pro)', 'shiftMode', [['auto', 'Automático: el patinador gira solo hacia donde miras'], ['hold', 'Manual: mantén Shift para fijar la cámara'], ['toggle', 'Manual: Shift activa y desactiva']]),
+      h('p.muted.small', 'En manual, el manual (equilibrio) y correr pasan a la tecla X.'),
       h('div.section-title', 'Audio'),
       slider('Música', 'music', 0, 1, 0.05, (v) => `${Math.round(v * 100)} %`),
       slider('Efectos', 'sfx', 0, 1, 0.05, (v) => `${Math.round(v * 100)} %`),

@@ -14,6 +14,7 @@ const DEFAULTS = {
   ...PRESETS.medium,
   sensitivity: 1,
   invertY: false,
+  shiftMode: 'auto',
   music: 0.4,
   sfx: 0.8,
   ambient: 0.6,

@@ -556,7 +556,8 @@ export class SkaterSim {
     const k = Math.min(1, acc * dt);
     this.vx += (mx * top - this.vx) * k;
     this.vz += (mz * top - this.vz) * k;
-    if (ml > 0.15) this.yaw = wrap(this.yaw + wrap(Math.atan2(mx, mz) - this.yaw) * Math.min(1, dt * 12));
+    if (inp.lock) this.yaw = wrap(this.yaw + wrap(cy - this.yaw) * Math.min(1, dt * 14)); // con el Shift automático mira a donde apunta la cámara
+    else if (ml > 0.15) this.yaw = wrap(this.yaw + wrap(Math.atan2(mx, mz) - this.yaw) * Math.min(1, dt * 12));
     // Movimiento por ejes: se sube a bordillos y escalones, pero las paredes frenan
     const h0 = w.heightAt(this.x, this.z).h;
     const climb = (nx, nz) => w.heightAt(nx, nz).h - Math.max(this.y, h0) <= 0.5;

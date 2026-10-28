@@ -314,3 +314,13 @@ test('a pie: se camina, se corre, se salta y se sube y baja de la tabla', () => 
   assert.ok(kinds(ev3).includes('dismount'));
   assert.equal(s.state, 'walk');
 });
+
+test('con el Shift automático el personaje a pie mira a donde apunta la cámara', () => {
+  const s = sim('city');
+  s.toWalk();
+  run(s, 1, () => ({ py: 0, sx: 0, camYaw: 1.2, lock: true }));
+  assert.ok(Math.abs(s.yaw - 1.2) < 0.05, `yaw ${s.yaw}`);
+  run(s, 1, () => ({ py: 1, camYaw: 1.2, lock: true }));
+  assert.ok(Math.abs(s.yaw - 1.2) < 0.05);
+  assert.ok(s.x > 1, 'avanza hacia donde mira la cámara');
+});
