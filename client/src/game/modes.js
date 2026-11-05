@@ -16,6 +16,7 @@ import { FnafClient } from './fnaf.js';
 import { PoppyClient } from './poppy.js';
 import { GalaxiaClient } from './galaxia.js';
 import { SkateClient } from './skate.js';
+import { SlowRoadsClient } from './slowroads.js';
 
 class BaseClient {
   constructor(game, state) {
@@ -590,6 +591,7 @@ export function createClientMode(name, game, state) {
     case 'poppy': return new PoppyClient(game, state);
     case 'galaxia': return new GalaxiaClient(game, state);
     case 'skate': return new SkateClient(game, state);
+    case 'slowroads': return new SlowRoadsClient(game, state);
     case 'camaleon': return new CamaleonClient(game, state);
     case 'asalto': return new AsaltoClient(game, state);
     case 'pesadilla': return new PesadillaClient(game, state);

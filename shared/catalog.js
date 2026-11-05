@@ -4,6 +4,11 @@ import { STUDIO_COSTUMES, STUDIO_OUTFITS, outfitPieces } from './skins.js';
 
 export const EXPERIENCES = [
   {
+    id: 'slowroads', name: 'Slow Roads', category: 'sports', maxPlayers: 8, creator: 'KestWorlds Studio', isNew: true, featured: true,
+    description: 'Conducción infinita y relajada: una carretera que se genera sola por delante y se borra por detrás, con colinas, curvas, bosques y un coche deportivo de física real (caja automática, derrapes con freno de mano, saltos en las crestas). Elige la hora, el clima (despejado, niebla o lluvia), la cámara y el color del coche. Con piloto automático y otros conductores en la misma carretera.',
+    cover: { a: '#ff8f5a', b: '#1f4fd8', icon: '🛣️' },
+  },
+  {
     id: 'skate', name: 'Skate Pro', category: 'sports', maxPlayers: 8, creator: 'KestWorlds Studio', isNew: true, featured: true,
     description: 'Skate profesional con física real: ollie, kickflip, shove-it, giros, agarres, grinds con equilibrio, manuales y combos con multiplicador. 6 mapas completos (parque, calle, bowl, azoteas de noche, puerto con mega rampa y playa), 3 modos (sesión libre, puntuación y misiones), letras S-K-A-T-E, medallas y ranking en vivo con otros patinadores.',
     cover: { a: '#ff6d00', b: '#1565c0', icon: '🛹' },
@@ -270,6 +275,10 @@ export const ACHIEVEMENTS = [
   { id: 'sk_gold', name: 'Medalla de oro', desc: 'Consigue una medalla de oro en cualquier mapa de Skate Pro', reward: 150 },
   { id: 'sk_combo', name: 'Combo de locos', desc: 'Haz un combo de 10.000 puntos en Skate Pro', reward: 120 },
   { id: 'sk_all', name: 'Leyenda del skate', desc: 'Consigue el oro en los 6 mapas de Skate Pro', reward: 300 },
+  { id: 'sr_first', name: 'Primer kilómetro', desc: 'Conduce 150 m o más y guarda tu viaje en Slow Roads', reward: 30 },
+  { id: 'sr_10k', name: 'Sin prisa, sin meta', desc: 'Recorre 10 km en un solo viaje de Slow Roads', reward: 120 },
+  { id: 'sr_100k', name: 'Vuelta al mundo', desc: 'Suma 100 km en Slow Roads', reward: 250 },
+  { id: 'sr_speed', name: 'Pie a fondo', desc: 'Alcanza los 200 km/h en Slow Roads', reward: 100 },
   { id: 'heist', name: 'Golpe maestro', desc: 'Completa un atraco en Castores al Ataque', reward: 100 },
 ];
 export const ACH_BY_ID = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));

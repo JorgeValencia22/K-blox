@@ -776,3 +776,62 @@ body.padmode .lock-hint, body.padmode .gxc-lock { display: none !important; }
 .sk-speed small { display: none; }
 .sk-time:empty { display: none; }
 @media (max-width: 760px) { .sk-board { bottom: 74px; } .sk-compassbar { width: 160px; } .sk-ring { width: 64px; height: 64px; } .sk-multn { font-size: 24px; } .sk-pts { font-size: 24px; } }
+
+/* ---------------------------------------------------------------- Slow Roads */
+.sr { position: fixed; inset: 0; z-index: 30; pointer-events: none; color: #fff; font-family: inherit; }
+.sr-start { position: absolute; inset: 0; pointer-events: auto; display: flex; align-items: center; justify-content: center; padding: 14px; overflow: auto; background: radial-gradient(ellipse at 50% 100%, rgba(8,10,18,.82), rgba(8,10,18,.2) 70%); }
+.sr-card { width: min(640px, 100%); max-height: 100%; overflow: auto; padding: 20px 22px; border-radius: 20px; background: rgba(12,16,26,.78); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 20px 60px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 10px; }
+.sr-card h3 { margin: 0; font-size: 22px; }
+.sr-card p { margin: 0; opacity: .82; font-size: 14px; line-height: 1.45; }
+.sr-logo small { display: block; letter-spacing: .5em; font-size: 11px; opacity: .8; }
+.sr-logo b { display: block; font-size: 40px; font-weight: 300; letter-spacing: .28em; }
+.sr-logo span { font-size: 13px; opacity: .65; letter-spacing: .15em; text-transform: uppercase; }
+.sr-opts { display: grid; grid-template-columns: 120px 1fr; gap: 8px 12px; align-items: center; }
+.sr-opts label { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; opacity: .7; }
+.sr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.sr-chip { padding: 6px 11px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); color: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+.sr-chip.on { background: #fff; color: #10141f; border-color: #fff; font-weight: 700; }
+.sr-paints { display: flex; gap: 8px; flex-wrap: wrap; }
+.sr-paint { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); cursor: pointer; }
+.sr-paint.on { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.35); transform: scale(1.12); }
+.sr-sp { display: none; }
+.sr-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.05); font-size: 12px; }
+.sr-ctl { display: flex; gap: 8px; align-items: center; }
+.sr-ctl kbd { min-width: 62px; text-align: center; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,.14); font-size: 11px; font-weight: 700; }
+.sr-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sr-go { font-size: 18px; padding: 12px 22px; }
+.sr-best { font-size: 12px; opacity: .8; }
+.sr-hud { position: absolute; inset: 0; }
+.sr-hud > * { pointer-events: none; }
+.sr-hud button, .sr-touch, .sr-tb, .sr-pause { pointer-events: auto; }
+.sr-top { position: absolute; top: 12px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-start; text-shadow: 0 1px 6px rgba(0,0,0,.55); }
+.sr-topl b { font-weight: 300; letter-spacing: .3em; font-size: 12px; opacity: .85; display: block; }
+.sr-dist { font-size: 30px; font-weight: 300; letter-spacing: .02em; }
+.sr-clock { font-size: 13px; opacity: .8; }
+.sr-topr { display: flex; gap: 10px; align-items: center; }
+.sr-tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.sr-tags span { background: rgba(0,0,0,.45); padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.sr-dash { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+.sr-gauge { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 4px 14px; }
+.sr-speedwrap { display: flex; align-items: baseline; gap: 6px; }
+.sr-speed { font-size: 64px; line-height: 1; font-weight: 200; min-width: 110px; text-align: right; font-variant-numeric: tabular-nums; }
+.sr-speedwrap small { font-size: 14px; opacity: .75; letter-spacing: .1em; }
+.sr-gear { font-size: 34px; font-weight: 700; width: 46px; height: 46px; border: 2px solid rgba(255,255,255,.7); border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.28); grid-row: 1 / span 2; grid-column: 2; }
+.sr-rpm { grid-column: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,.18); overflow: hidden; }
+.sr-rpmfill { height: 100%; width: 0; background: #fff; }
+.sr-lock { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: rgba(0,0,0,.6); padding: 6px 14px; border-radius: 999px; font-size: 12px; }
+.sr-lock.hidden, .sr-pause.hidden { display: none; }
+.sr-toast { position: absolute; left: 0; right: 0; top: 22%; display: flex; justify-content: center; }
+.sr-msg { background: rgba(0,0,0,.55); padding: 8px 18px; border-radius: 999px; font-size: 16px; font-weight: 600; animation: srfade .25s; }
+@keyframes srfade { from { opacity: 0; transform: translateY(-6px); } }
+.sr-pause { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 14px; background: rgba(6,8,14,.55); }
+.sr-touch { position: absolute; inset: auto 0 0 0; display: flex; justify-content: space-between; align-items: flex-end; padding: 10px 14px 14px; }
+.sr-tl, .sr-tr { display: flex; gap: 10px; align-items: flex-end; }
+.sr-tm { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); display: flex; gap: 8px; }
+.sr-tb { min-width: 62px; height: 62px; border-radius: 16px; border: 2px solid rgba(255,255,255,.4); background: rgba(0,0,0,.4); color: #fff; font: inherit; font-weight: 800; font-size: 14px; touch-action: none; }
+.sr-tb.gas { height: 96px; min-width: 72px; background: rgba(46,160,90,.5); } .sr-tb.brake { height: 76px; background: rgba(200,50,50,.5); }
+@media (max-width: 720px) {
+  .sr-opts { grid-template-columns: 1fr; gap: 4px; } .sr-controls { display: none; } .sr-logo b { font-size: 28px; }
+  .sr-speed { font-size: 46px; min-width: 80px; } .sr-dash { bottom: 118px; }
+}
+@media (max-height: 640px) { .sr-controls { display: none; } .sr-card { padding: 14px 18px; } .sr-logo b { font-size: 30px; } }

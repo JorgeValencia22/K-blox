@@ -15,6 +15,9 @@ import { buildScene as buildSkateScene } from '../game/skate/scene.js';
 import { SkaterRig } from '../game/skate/rig.js';
 import { SKATE_MAP_BY_ID } from '../../../shared/skate/maps.js';
 import { SkaterSim } from '../../../shared/skate/sim.js';
+import { Road } from '../../../shared/slowroads/road.js';
+import { SlowWorld } from '../game/slowroads/world.js';
+import { buildCar } from '../game/slowroads/carModel.js';
 import { PesadillaClient } from '../game/modes3.js';
 import { nodePos } from '../../../shared/worlds/fnaf.js';
 import { buildLava } from '../game/galaxia/scenes.js';
@@ -124,8 +127,40 @@ async function skateCover() {
   document.title = 'listo';
 }
 
+/** Portada de Slow Roads: el deportivo rojo en una carretera de colinas al atardecer. */
+async function slowRoadsCover() {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(1);
+  renderer.shadowMap.enabled = true;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  document.body.appendChild(renderer.domElement);
+  const road = new Road(12);
+  const world = new SlowWorld(road, { shadows: true, renderer });
+  world.setTime(0.71);
+  const s0 = 150;
+  world.streamChunks(s0, 99);
+  const car = buildCar('#c8102e');
+  const p = road.at(s0);
+  car.root.position.set(p.x - p.lx * 1.8, p.y, p.z - p.lz * 1.8);
+  car.root.rotation.y = p.psi;
+  car.setLights(true, false, false, 0.4);
+  world.scene.add(car.root);
+  world.update(0, car.root.position);
+  const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 1800);
+  camera.position.set(p.x - p.lx * 4.4 - p.tx * 6.2, p.y + 1.35, p.z - p.lz * 4.4 - p.tz * 6.2);
+  camera.lookAt(p.x - p.lx * 1.8 + p.tx * 5, p.y + 1.1, p.z - p.lz * 1.8 + p.tz * 5);
+  renderer.render(world.scene, camera);
+  await new Promise((r) => setTimeout(r, 300));
+  renderer.render(world.scene, camera);
+  document.getElementById('out').textContent = renderer.domElement.toDataURL('image/jpeg', 0.86);
+  document.title = 'listo';
+}
+
 async function main() {
   if (id === 'skate') return skateCover();
+  if (id === 'slowroads') return slowRoadsCover();
   if (id === 'galaxia') return galaxiaCover();
   const shot = SHOTS[id] || { pos: [20, 15, 20], look: [0, 2, 0], time: 0.35 };
   const world = getBuiltinWorld(id);
