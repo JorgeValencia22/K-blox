@@ -20,6 +20,8 @@ export class ThirdPersonCamera {
     this.firstPerson = false;
     this.eye = 1.62;
     this.shake = 0;
+    this.shoulder = 0; // desplazamiento lateral (cámara por encima del hombro): + a la derecha
+    this.shoulderCur = 0;
   }
 
   look(dx, dy, wheel) {
@@ -46,7 +48,8 @@ export class ThirdPersonCamera {
       this.first = true; // al volver a 3.ª persona la cámara se coloca sin transición
       return;
     }
-    this.focus.set(target.x, target.y + this.height, target.z);
+    this.shoulderCur += (this.shoulder - this.shoulderCur) * Math.min(1, dt * 6);
+    this.focus.set(target.x + Math.cos(this.yaw) * this.shoulderCur, target.y + this.height, target.z - Math.sin(this.yaw) * this.shoulderCur);
     const k = this.first ? 1 : 1 - Math.exp(-dt * 14);
     this.current.lerp(this.focus, k);
     this.first = false;

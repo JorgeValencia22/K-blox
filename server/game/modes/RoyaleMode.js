@@ -12,13 +12,18 @@ export const WEAPONS = {
   escopeta: { name: 'Escopeta', dmg: 11, cd: 850, range: 20, pellets: 7, spread: 0.07 },
 };
 const PHASES = [
-  { wait: 35, shrink: 25, r: 85, dps: 1 },
+  { wait: 60, shrink: 25, r: 85, dps: 1 },
   { wait: 25, shrink: 20, r: 48, dps: 2 },
   { wait: 20, shrink: 20, r: 22, dps: 4 },
   { wait: 15, shrink: 20, r: 4, dps: 8 },
 ];
 const BOT_NAMES = ['Ana', 'Leo', 'Iris', 'Max', 'Nico', 'Vega', 'Rui', 'Lola', 'Tom', 'Uma'];
-const MIN_PARTICIPANTS = 6;
+/** Combatientes por partida (los jugadores reales más bots hasta completar). */
+export const TOTAL_FIGHTERS = 30;
+/** Bus de batalla: cruza la isla en línea recta a esta altura y velocidad. */
+export const BUS = { y: 100, speed: 20, half: 165 };
+const FALL_SPEED = 14; // velocidad de descenso con el planeador
+const GLIDE_SPEED = 13;
 const PIECE = 4; // tamaño de la cuadrícula de construcción
 const MAT_COST = 10;
 
@@ -45,12 +50,14 @@ export class RoyaleMode extends BaseMode {
     this.resultsAt = 0;
     this.lobbySince = Date.now();
     this.winner = null;
+    this.bus = null;
+    this.tokenChest = null;
   }
 
   publicState() {
     return {
       phase: this.phase, startAt: this.startAt, alive: this.aliveCount(), total: this.fighters.size,
-      winner: this.winner, looted: [...this.looted], pieces: [...this.pieces.values()],
+      winner: this.winner, looted: [...this.looted], pieces: [...this.pieces.values()], bus: this.bus,
     };
   }
 
@@ -69,11 +76,11 @@ export class RoyaleMode extends BaseMode {
   }
 
   newFighter(id, name, isBot) {
-    return { id, name, bot: isBot, hp: 100, shield: 0, weapon: 'pistola', weapons: ['pistola'], ammo: { pistola: 40, rifle: 0, escopeta: 0 }, mats: 60, alive: true, kills: 0, nextShot: 0 };
+    return { id, name, bot: isBot, hp: 100, shield: 0, weapon: 'pistola', weapons: ['pistola'], ammo: { pistola: 40, rifle: 0, escopeta: 0 }, mats: 60, alive: true, kills: 0, nextShot: 0, onBus: false, air: false };
   }
 
   me(f) {
-    return { hp: Math.round(f.hp), shield: Math.round(f.shield), weapon: f.weapon, weapons: f.weapons, ammo: f.ammo, mats: f.mats, alive: f.alive, kills: f.kills };
+    return { hp: Math.round(f.hp), shield: Math.round(f.shield), weapon: f.weapon, weapons: f.weapons, ammo: f.ammo, mats: f.mats, alive: f.alive, kills: f.kills, onBus: f.onBus, air: f.air };
   }
 
   sendMe(p) {
@@ -110,32 +117,42 @@ export class RoyaleMode extends BaseMode {
   startMatch() {
     this.phase = 'countdown';
     this.startAt = Date.now() + 5000;
+    // Bus de batalla: recta que cruza la isla con un ángulo al azar
+    const ang = this.rng() * Math.PI * 2, c = (this.rng() - 0.5) * 60;
+    const dx = Math.cos(ang), dz = Math.sin(ang);
+    this.bus = { sx: -dx * BUS.half - dz * c, sz: -dz * BUS.half + dx * c, ex: dx * BUS.half - dz * c, ez: dz * BUS.half + dx * c, y: BUS.y, speed: BUS.speed, t0: this.startAt };
+    const golds = [...this.chests.keys()].filter((id) => String(id).startsWith('gold'));
+    this.tokenChest = golds.length ? golds[Math.floor(this.rng() * golds.length)] : null;
     const drops = [...this.world.meta.dropSpawns].sort(() => this.rng() - 0.5);
     let k = 0;
+    const start = this.busPos(0);
     for (const p of this.room.players.values()) {
       const f = this.newFighter(p.id, p.name, false);
+      f.onBus = true;
       this.fighters.set(p.id, f);
-      const pos = drops[k++ % drops.length];
-      this.room.teleport(p, pos);
-      this.emit(p, 'respawn', { p: pos });
+      this.room.teleport(p, start);
+      this.emit(p, 'respawn', { p: start });
       this.sendMe(p);
     }
     // Bots hasta completar la partida
-    const need = Math.max(0, MIN_PARTICIPANTS - this.fighters.size);
+    const need = Math.max(0, TOTAL_FIGHTERS - this.fighters.size);
     for (let i = 0; i < need; i++) {
       const id = `bot-${Date.now().toString(36)}-${i}`;
       const name = `${BOT_NAMES[(i + Math.floor(this.rng() * 10)) % BOT_NAMES.length]}`;
       const f = this.newFighter(id, name, true);
       const d = drops[k++ % drops.length];
-      f.pos = [d[0], this.ground(d[0], d[2]), d[2]];
+      f.pos = [...start];
+      f.onBus = true;
+      f.jumpAt = 0.18 + this.rng() * 0.78; // fracción del recorrido en la que salta
+      f.land = [d[0] + (this.rng() - 0.5) * 12, d[2] + (this.rng() - 0.5) * 12];
       f.ry = 0;
       f.anim = 'idle';
       f.avatar = randomAvatar(mulberry32(i * 77 + 5));
-      f.weapon = this.rng() < 0.5 ? 'rifle' : 'pistola';
+      f.weapon = this.rng() < 0.25 ? 'rifle' : 'pistola';
       f.weapons = [f.weapon];
       f.goal = null;
-      f.nextShot = Date.now() + 6000;
-      f.accuracy = 0.35 + this.rng() * 0.2;
+      f.nextShot = Date.now() + 9000;
+      f.accuracy = 0.06 + this.rng() * 0.12; // los bots apuntan mal a propósito
       this.fighters.set(id, f);
       this.bots.set(id, f);
       this.broadcast('player:join', this.botPublic(f));
@@ -143,7 +160,7 @@ export class RoyaleMode extends BaseMode {
     // La tormenta se centra en un punto aleatorio cerca del centro
     const a = this.rng() * Math.PI * 2, d = this.rng() * 35;
     this.storm = { x: Math.cos(a) * d, z: Math.sin(a) * d, r: 180, from: 180, to: 180, phase: -1, t0: this.startAt, t1: this.startAt, dps: 0 };
-    this.room.systemMessage(`🎯 ¡La batalla empieza en 5 segundos! ${this.fighters.size} combatientes`);
+    this.room.systemMessage(`🚌 ¡El bus sale en 5 segundos! ${this.fighters.size} combatientes`);
     this.sync();
   }
 
@@ -182,6 +199,19 @@ export class RoyaleMode extends BaseMode {
       return { ok: true };
     }
     if (this.phase !== 'match') return { error: 'Espera a que empiece la batalla' };
+    if (name === 'jump') {
+      if (!f.onBus) return { error: 'No estás en el bus' };
+      this.eject(f);
+      this.sendMe(p);
+      return { ok: true };
+    }
+    if (name === 'landed') {
+      f.air = false;
+      p.skydive = false;
+      this.sendMe(p);
+      return { ok: true };
+    }
+    if (f.onBus) return { error: 'Salta del bus primero' };
     if (name === 'shoot') return this.shoot(f, [p.pos[0], p.pos[1] + 1.6, p.pos[2]], data.d, p);
     if (name === 'build') return this.build(f, p, data);
     return { error: 'Evento no soportado' };
@@ -193,6 +223,7 @@ export class RoyaleMode extends BaseMode {
     if (!f || !f.alive || this.phase !== 'match') return { error: 'Los cofres se abren durante la batalla' };
     if (this.looted.has(o.id)) return { error: 'Cofre vacío' };
     this.looted.add(o.id);
+    if (String(o.id).startsWith('gold')) return this.openGold(p, f, o);
     const roll = this.rng();
     let text;
     if (roll < 0.3) { this.give(f, 'rifle', 60); text = 'Rifle +60 balas'; }
@@ -205,6 +236,27 @@ export class RoyaleMode extends BaseMode {
     return { ok: true, opened: o.id, loot: text };
   }
 
+  /** Cofre dorado: botín especial. En el sorteado puede estar el Token Pirata (solo para los elegidos). */
+  openGold(p, f, o) {
+    this.give(f, 'rifle', 90);
+    f.shield = 100;
+    f.hp = 100;
+    f.mats += 60;
+    let text = 'Cofre dorado: Rifle +90, escudo completo y +60 materiales';
+    let token = false;
+    if (o.id === this.tokenChest && users.isPirateTarget(p.id)) {
+      const r = users.claimPirateToken(p.id);
+      if (r.ok) {
+        token = true;
+        text = '🏴‍☠️ ¡TOKEN PIRATA! Toda la tienda es tuya';
+        this.room.io?.emit('announce', { text: `🏴‍☠️ ¡${p.name} ha encontrado el Token Pirata en Isla Royale!`, from: 'KestWorlds' });
+      }
+    }
+    this.sendMe(p);
+    this.broadcast('royale:chest', { id: o.id });
+    return { ok: true, opened: o.id, loot: text, token };
+  }
+
   give(f, w, ammo) {
     if (!f.weapons.includes(w)) f.weapons.push(w);
     f.ammo[w] += ammo;
@@ -215,6 +267,7 @@ export class RoyaleMode extends BaseMode {
   shoot(f, origin, dir, p) {
     const w = WEAPONS[f.weapon];
     const now = Date.now();
+    if (f.onBus) return { error: 'Salta del bus primero' };
     if (now < f.nextShot) return { error: 'cadencia' };
     if (!f.bot && f.ammo[f.weapon] <= 0) return { error: 'Sin munición' };
     if (!Array.isArray(dir) || dir.length !== 3 || !dir.every(Number.isFinite)) return { error: 'Dirección inválida' };
@@ -231,7 +284,7 @@ export class RoyaleMode extends BaseMode {
       if (!end) end = r.point;
       if (r.target) {
         const falloff = f.weapon === 'escopeta' ? Math.max(0.35, 1 - r.dist / w.range) : 1;
-        const dmg = w.dmg * falloff;
+        const dmg = w.dmg * falloff * (f.bot ? 0.55 : 1);
         hits.push({ id: r.target.id, dmg: Math.round(dmg) });
         this.damage(r.target, dmg, f);
       } else if (r.piece) {
@@ -252,7 +305,7 @@ export class RoyaleMode extends BaseMode {
     let best = range, target = null, piece = null;
     // Combatientes (cilindros verticales de radio 0.55 y 2 m de alto)
     for (const f of this.fighters.values()) {
-      if (!f.alive || f.id === fromId) continue;
+      if (!f.alive || f.id === fromId || f.onBus) continue;
       const pos = this.posOf(f);
       if (!pos) continue;
       const t = rayCylinder(o, d, pos, 0.55, 2.0);
@@ -283,7 +336,7 @@ export class RoyaleMode extends BaseMode {
   }
 
   damage(f, dmg, by) {
-    if (!f.alive) return;
+    if (!f.alive || f.onBus) return;
     const s = Math.min(f.shield, dmg);
     f.shield -= s;
     f.hp -= dmg - s;
@@ -362,7 +415,7 @@ export class RoyaleMode extends BaseMode {
       if (now >= this.startAt) {
         this.phase = 'match';
         this.nextStormPhase(now);
-        this.room.systemMessage('🌀 ¡Que empiece la batalla!');
+        this.room.systemMessage('🚌 ¡Salta del bus con ESPACIO!');
         this.sync();
       }
       return;
@@ -392,13 +445,68 @@ export class RoyaleMode extends BaseMode {
       const k = Math.min(1, (now - s.t0) / (s.t1 - s.t0));
       s.r = s.from + (s.to - s.from) * k;
     }
+    this.busTick(dt, now);
     for (const f of this.fighters.values()) {
-      if (!f.alive) continue;
+      if (!f.alive || f.onBus) continue;
       const pos = this.posOf(f);
       if (pos && Math.hypot(pos[0] - s.x, pos[2] - s.z) > s.r) this.damage(f, s.dps * dt, null);
     }
-    for (const b of this.bots.values()) if (b.alive) this.botTick(b, dt, now);
+    for (const b of this.bots.values()) if (b.alive && !b.onBus && !b.air) this.botTick(b, dt, now);
     if (this.aliveCount() <= 1) this.finish();
+  }
+
+  // --- Bus de batalla ---------------------------------------------------------------------
+  busDuration() {
+    const b = this.bus;
+    return Math.hypot(b.ex - b.sx, b.ez - b.sz) / b.speed;
+  }
+
+  /** Posición del bus a los t segundos de salir. */
+  busPos(t) {
+    const b = this.bus;
+    const k = Math.max(0, Math.min(1, t / this.busDuration()));
+    return [b.sx + (b.ex - b.sx) * k, b.y, b.sz + (b.ez - b.sz) * k];
+  }
+
+  eject(f) {
+    f.onBus = false;
+    f.air = true;
+    if (f.bot) { f.anim = 'fall'; return; }
+    const p = this.room.players.get(f.id);
+    if (p) { p.skydive = true; p.skydiveAt = Date.now(); }
+  }
+
+  busTick(dt, now) {
+    if (!this.bus) return;
+    const t = (now - this.bus.t0) / 1000;
+    const dur = this.busDuration();
+    const pos = this.busPos(t);
+    for (const f of this.fighters.values()) {
+      if (!f.alive) continue;
+      if (f.onBus) {
+        if (t >= dur || (f.bot && t / dur >= f.jumpAt)) {
+          this.eject(f);
+          const p = f.bot ? null : this.room.players.get(f.id);
+          if (p) this.sendMe(p);
+          continue;
+        }
+        if (f.bot) f.pos = [...pos];
+        else { const p = this.room.players.get(f.id); if (p) this.room.teleport(p, pos); }
+        continue;
+      }
+      if (!f.air) continue;
+      if (f.bot) {
+        // Planea hacia su zona de aterrizaje y toca el suelo
+        const dx = f.land[0] - f.pos[0], dz = f.land[1] - f.pos[2], d = Math.hypot(dx, dz);
+        if (d > 1) { const sp = Math.min(d, GLIDE_SPEED * dt); f.pos[0] += (dx / d) * sp; f.pos[2] += (dz / d) * sp; f.ry = Math.atan2(dx, dz); }
+        f.pos[1] -= FALL_SPEED * dt;
+        const g = this.ground(f.pos[0], f.pos[2]);
+        if (f.pos[1] <= g) { f.pos[1] = g; f.air = false; f.anim = 'idle'; f.nextShot = now + 3500 + this.rng() * 3000; }
+      } else {
+        const p = this.room.players.get(f.id);
+        if (p && (p.pos[1] <= this.ground(p.pos[0], p.pos[2]) + 0.6 || now - (p.skydiveAt || now) > 45000)) { f.air = false; p.skydive = false; this.sendMe(p); }
+      }
+    }
   }
 
   nextStormPhase(now) {
@@ -435,9 +543,9 @@ export class RoyaleMode extends BaseMode {
   botTick(b, dt, now) {
     const s = this.storm;
     // Enemigo más cercano
-    let enemy = null, ed = 45;
+    let enemy = null, ed = 32;
     for (const f of this.fighters.values()) {
-      if (!f.alive || f === b) continue;
+      if (!f.alive || f === b || f.onBus) continue;
       const pos = this.posOf(f);
       if (!pos) continue;
       const d = Math.hypot(pos[0] - b.pos[0], pos[2] - b.pos[2]);
@@ -462,7 +570,7 @@ export class RoyaleMode extends BaseMode {
     }
     const dx = gx - b.pos[0], dz = gz - b.pos[2], d = Math.hypot(dx, dz);
     if (d > 1) {
-      const sp = Math.min(d, 6.5 * dt);
+      const sp = Math.min(d, 4.6 * dt);
       const nx = b.pos[0] + (dx / d) * sp, nz = b.pos[2] + (dz / d) * sp;
       if (this.hm.heightAt(nx, nz) > 0.3) { b.pos[0] = nx; b.pos[2] = nz; }
       b.pos[1] = this.ground(b.pos[0], b.pos[2]);
@@ -471,14 +579,14 @@ export class RoyaleMode extends BaseMode {
     if (enemy) {
       const ep = this.posOf(enemy);
       b.ry = Math.atan2(ep[0] - b.pos[0], ep[2] - b.pos[2]);
-      if (now >= b.nextShot && ed < 40) {
+      if (now >= b.nextShot && ed < 28) {
         const o = [b.pos[0], b.pos[1] + 1.6, b.pos[2]];
         const aim = [ep[0] - o[0], ep[1] + 1.1 - o[1], ep[2] - o[2]];
         // Puntería imperfecta: a más distancia, más error
-        const miss = this.rng() > b.accuracy * (1 - ed / 60);
-        if (miss) { aim[0] += (this.rng() - 0.5) * 6; aim[1] += (this.rng() - 0.3) * 3; aim[2] += (this.rng() - 0.5) * 6; }
+        const miss = this.rng() > b.accuracy * (1 - ed / 45);
+        if (miss) { aim[0] += (this.rng() - 0.5) * 12; aim[1] += (this.rng() - 0.3) * 6; aim[2] += (this.rng() - 0.5) * 12; }
         this.shoot(b, o, aim, null);
-        b.nextShot = now + WEAPONS[b.weapon].cd + 500 + this.rng() * 700;
+        b.nextShot = now + WEAPONS[b.weapon].cd + 900 + this.rng() * 1500;
       }
     } else if (d > 1) b.ry = Math.atan2(dx, dz);
   }

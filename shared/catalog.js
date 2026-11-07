@@ -99,8 +99,8 @@ export const EXPERIENCES = [
     cover: { a: '#000000', b: '#4a148c', icon: '👁️' },
   },
   {
-    id: 'royale', name: 'Isla Royale', category: 'battle', maxPlayers: 12, creator: 'KestWorlds Studio',
-    description: 'Batalla en una isla: abre cofres, construye muros y rampas y sobrevive a la tormenta. ¡Solo puede quedar uno! (con bots)',
+    id: 'royale', name: 'Isla Royale', category: 'battle', maxPlayers: 16, creator: 'KestWorlds Studio',
+    description: 'Batalla de 30 combatientes: sube al bus, salta sobre la isla, abre cofres (¡y busca los dorados!), construye muros y rampas y sobrevive a la tormenta. ¡Solo puede quedar uno! (con bots)',
     cover: { a: '#7b1fa2', b: '#29b6f6', icon: '🎯' },
   },
   {
@@ -275,6 +275,7 @@ export const ACHIEVEMENTS = [
   { id: 'sk_gold', name: 'Medalla de oro', desc: 'Consigue una medalla de oro en cualquier mapa de Skate Pro', reward: 150 },
   { id: 'sk_combo', name: 'Combo de locos', desc: 'Haz un combo de 10.000 puntos en Skate Pro', reward: 120 },
   { id: 'sk_all', name: 'Leyenda del skate', desc: 'Consigue el oro en los 6 mapas de Skate Pro', reward: 300 },
+  { id: 'pirate_token', name: 'Token Pirata', desc: 'Encuentra el Token Pirata en un cofre dorado de Isla Royale', reward: 0 },
   { id: 'sr_first', name: 'Primer kilómetro', desc: 'Conduce 150 m o más y guarda tu viaje en Slow Roads', reward: 30 },
   { id: 'sr_10k', name: 'Sin prisa, sin meta', desc: 'Recorre 10 km en un solo viaje de Slow Roads', reward: 120 },
   { id: 'sr_100k', name: 'Vuelta al mundo', desc: 'Suma 100 km en Slow Roads', reward: 250 },

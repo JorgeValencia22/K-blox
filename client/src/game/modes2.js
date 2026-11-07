@@ -322,7 +322,9 @@ export class RoyaleClient extends Base {
       this.weaponEl, this.matsEl);
     this.hud.el.appendChild(this.bottom);
     this.hud.crosshair.classList.remove('hidden');
-    this.hint = ['[G] empezar batalla  [Clic] disparar  [1-3] armas', '[B] construir  [R] muro/rampa'];
+    this.hint = ['[G] empezar batalla  [Clic] disparar  [1-3] armas', '[B] construir  [R] muro/rampa  [Espacio] saltar del bus y planear'];
+    this.deadIds = new Set();
+    this.landSent = false;
     this.hud.addTouchButton('Fuego', 'Mouse0', { right: '120px', bottom: '150px', width: '64px', height: '64px', fontSize: '11px' });
     this.hud.addTouchButton('🧱', 'KeyB', { right: '190px', top: '70px', width: '50px', height: '50px' });
     this.hud.addTouchButton('▶', 'KeyG', { right: '120px', top: '70px', width: '50px', height: '50px' });
@@ -339,11 +341,14 @@ export class RoyaleClient extends Base {
     for (const pc of this.rs.pieces || []) this.addPiece(pc);
     this.applyLooted();
     this.renderStatus();
+    this.makeBeams();
+    this.makeGlider();
 
     this.netEvents.royale = (s) => {
       const prev = this.rs.phase;
       this.rs = s;
       if (s.phase === 'lobby' && prev !== 'lobby') this.resetRound();
+      if (s.phase === 'countdown' && prev === 'lobby') this.hud.showCenter('🚌 ¡Al bus!', 'Salta con ESPACIO y planea hasta la isla', 2600);
       if (s.phase === 'match' && prev === 'countdown') {
         audio.play('countdown', null, { go: true });
         this.hud.showCenter('¡A LUCHAR!', '', 1200);
@@ -352,7 +357,7 @@ export class RoyaleClient extends Base {
       this.applyLooted();
       this.renderStatus();
     };
-    this.netEvents['royale:me'] = (m) => { this.me = m; this.renderMe(); };
+    this.netEvents['royale:me'] = (m) => { this.me = m; this.renderMe(); this.renderStatus(); };
     this.netEvents['royale:hurt'] = () => { this.hud.flashHurt(); audio.play('hurt'); };
     this.netEvents['royale:dead'] = ({ place, kills, win }) => {
       if (win) {
@@ -369,6 +374,7 @@ export class RoyaleClient extends Base {
       const line = killer ? `${killer} ${how} ${victimName}` : `${how} ${victimName}`;
       this.feedEl.prepend(h('div', '💀 ' + line));
       while (this.feedEl.children.length > 5) this.feedEl.lastChild.remove();
+      this.deadIds.add(victim);
       const r = this.game.remotes.get(victim);
       if (r) r.model.root.visible = false;
     };
@@ -389,6 +395,8 @@ export class RoyaleClient extends Base {
   }
 
   resetRound() {
+    this.deadIds.clear();
+    for (const b of this.beams) b.mesh.visible = true;
     this.spectating = false;
     this.me = null;
     this.game.player.model.root.visible = true;
@@ -404,11 +412,141 @@ export class RoyaleClient extends Base {
     for (const id of this.rs.looted || []) {
       const e = this.game.built.objects.get(id);
       if (e) { e.opened = true; if (e.mesh) e.mesh.userData.targetOpen = true; }
+      const b = this.beams?.find((x) => x.id === id);
+      if (b) b.mesh.visible = false;
     }
   }
 
   get frozen() {
-    return this.spectating || (this.rs.phase === 'countdown' && !!this.me);
+    return this.spectating || (this.rs.phase === 'countdown' && !!this.me) || !!this.me?.onBus;
+  }
+
+  // Cámara por encima del hombro derecho, como en Fortnite; lejos mientras vas en el bus
+  shoulder() { return this.spectating ? 0 : 1.05; }
+  camDistance() { return this.me?.onBus ? 19 : this.me?.air ? 9 : 5.2; }
+  camHeight() { return this.me?.onBus ? 1.6 : 1.55; }
+
+  /** Al planear se corre en el aire hacia donde miras. */
+  filterCtl(ctl) {
+    if (this.me?.air) { ctl.run = true; ctl.jump = false; ctl.jumpHeld = false; }
+  }
+
+  /** Rayos de luz sobre los cofres dorados para poder encontrarlos desde lejos. */
+  makeBeams() {
+    this.beams = [];
+    for (const e of this.game.built.objects.values()) {
+      if (e.o.t !== 'chest' || !String(e.o.id).startsWith('gold')) continue;
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 70, 12, 1, true), new THREE.MeshBasicMaterial({ color: '#ffd54f', transparent: true, opacity: 0.28, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+      mesh.position.set(e.o.p[0], e.o.p[1] + 35, e.o.p[2]);
+      this.game.scene.add(mesh);
+      this.beams.push({ id: e.o.id, mesh });
+    }
+    this.applyLooted();
+  }
+
+  /** Planeador que se abre sobre el jugador al saltar del bus. */
+  makeGlider() {
+    const g = new THREE.Group();
+    const cloth = new THREE.Mesh(new THREE.SphereGeometry(1.9, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.55, 0.75), new THREE.MeshStandardMaterial({ color: '#ef5350', roughness: 0.7, side: THREE.DoubleSide }));
+    const stripe = new THREE.Mesh(new THREE.SphereGeometry(1.92, 20, 8, 0, Math.PI * 2, 0.2, 0.28).scale(1, 0.55, 0.75), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7, side: THREE.DoubleSide }));
+    const ropes = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([[-1.7, 0.05, 0], [0, -1.4, 0], [1.7, 0.05, 0], [0, -1.4, 0], [0, 0.05, 1.3], [0, -1.4, 0], [0, 0.05, -1.3], [0, -1.4, 0]].map((v) => new THREE.Vector3(...v))), new THREE.LineBasicMaterial({ color: '#eceff1' }));
+    g.add(cloth, stripe, ropes);
+    g.position.y = 3.3;
+    g.visible = false;
+    this.glider = g;
+    this.game.player.model.root.add(g);
+  }
+
+  /** Bus de batalla: globo amarillo con cabina azul que cruza la isla. */
+  makeBus() {
+    const g = new THREE.Group();
+    const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, ...o });
+    const body = new THREE.Mesh(boxGeo(3.8, 2.7, 9), mat('#1e88e5'));
+    const stripe = new THREE.Mesh(boxGeo(3.84, 0.45, 9.04), mat('#ffd600'));
+    stripe.position.y = -0.5;
+    const roof = new THREE.Mesh(boxGeo(3.9, 0.25, 9.1), mat('#0d47a1'));
+    roof.position.y = 1.4;
+    g.add(body, stripe, roof);
+    for (let i = 0; i < 4; i++) for (const sx of [-1, 1]) {
+      const w = new THREE.Mesh(boxGeo(0.05, 0.9, 1.3), mat('#b3e5fc', { emissive: '#4fc3f7', emissiveIntensity: 0.4 }));
+      w.position.set(sx * 1.92, 0.5, -2.8 + i * 1.8);
+      g.add(w);
+    }
+    const glass = new THREE.Mesh(boxGeo(3.1, 1.2, 0.08), mat('#b3e5fc', { emissive: '#4fc3f7', emissiveIntensity: 0.4 }));
+    glass.position.set(0, 0.5, 4.52);
+    g.add(glass);
+    const balloon = new THREE.Mesh(new THREE.SphereGeometry(4.8, 24, 16).scale(1, 1.2, 1.35), mat('#ffca28'));
+    balloon.position.y = 8.6;
+    const band = new THREE.Mesh(new THREE.TorusGeometry(4.82, 0.28, 8, 32).scale(1, 1.35, 1).rotateX(Math.PI / 2), mat('#e53935'));
+    band.position.y = 8.6;
+    g.add(balloon, band);
+    const pts = [];
+    for (const [x, z] of [[-1.7, -4.2], [1.7, -4.2], [-1.7, 4.2], [1.7, 4.2]]) pts.push(new THREE.Vector3(x, 1.4, z), new THREE.Vector3(x * 2, 4.4, z * 0.8));
+    g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#eceff1' })));
+    const prop = new THREE.Mesh(boxGeo(0.12, 2.2, 0.12), mat('#37474f'));
+    prop.position.set(0, 0, -4.7);
+    g.add(prop);
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    g.userData.prop = prop;
+    this.game.scene.add(g);
+    return g;
+  }
+
+  /** Posición del bus ahora mismo (null si no hay). */
+  busNow() {
+    const b = this.rs.bus;
+    if (!b || this.rs.phase === 'lobby') return null;
+    const dur = Math.hypot(b.ex - b.sx, b.ez - b.sz) / b.speed;
+    const t = (this.game.now() - b.t0) / 1000;
+    const k = Math.max(0, Math.min(1, t / dur));
+    return { x: b.sx + (b.ex - b.sx) * k, y: b.y, z: b.sz + (b.ez - b.sz) * k, yaw: Math.atan2(b.ex - b.sx, b.ez - b.sz), t, dur };
+  }
+
+  updateBus(dt) {
+    const g = this.game;
+    const bus = this.busNow();
+    if (bus && !this.busMesh) this.busMesh = this.makeBus();
+    if (this.busMesh) {
+      this.busMesh.visible = !!bus && bus.t < bus.dur + 4;
+      if (bus) {
+        this.busMesh.position.set(bus.x, bus.y, bus.z);
+        this.busMesh.rotation.y = bus.yaw;
+        this.busMesh.userData.prop.rotation.z += dt * 30;
+      }
+    }
+    // Quien va en el bus se mueve con él y no se ve dentro
+    const riding = !!bus && !!this.me?.onBus;
+    if (riding) {
+      const b = g.player.body;
+      b.x = bus.x; b.y = bus.y + 0.5; b.z = bus.z; b.vx = b.vy = b.vz = 0;
+    }
+    g.player.model.root.visible = !(riding || this.spectating);
+    // Los demás combatientes tampoco se dibujan dentro del bus
+    // y, para aligerar con 30 combatientes, tampoco los que están muy lejos
+    const pb = g.player.body;
+    if (this.rs.phase !== 'lobby') for (const r of this.game.remotes.values()) {
+      if (this.deadIds.has(r.id)) continue;
+      const near = !!bus && Math.hypot(r.pos.x - bus.x, r.pos.z - bus.z) < 5 && Math.abs(r.pos.y - bus.y) < 3;
+      const far = Math.hypot(r.pos.x - pb.x, r.pos.z - pb.z) > 120;
+      r.model.root.visible = !near && !far;
+    }
+    // Planeador y aterrizaje
+    const air = !!this.me?.air;
+    if (this.glider) this.glider.visible = air;
+    const body = g.player.body;
+    if (air) {
+      if (body.vy < -14 && !body.inWater) body.vy = -14;
+      if ((body.onGround || body.inWater) && !this.landSent) {
+        this.landSent = true;
+        net.request('mode', { name: 'landed' });
+      }
+    } else this.landSent = false;
+    if (this.me?.onBus && this.rs.phase === 'match' && input.pressed('Space')) {
+      net.request('mode', { name: 'jump' }).then((r) => {
+        if (r.error) return toast(r.error, 'warn', 1500);
+        audio.play('jump');
+      });
+    }
   }
 
   decorate(model) {
@@ -427,6 +565,7 @@ export class RoyaleClient extends Base {
 
   renderStatus() {
     const s = this.rs;
+    if (this.me?.onBus && s.phase === 'match') { this.subEl.textContent = '🚌 ESPACIO: saltar del bus'; }
     if (s.phase === 'lobby') { this.statusEl.textContent = 'Sala de espera'; this.subEl.textContent = 'Pulsa G para empezar (se completa con bots)'; }
     else if (s.phase === 'countdown') { this.statusEl.textContent = '¡Preparados!'; this.subEl.textContent = `${s.total} combatientes`; }
     else if (s.phase === 'results') { this.statusEl.textContent = 'Resultados'; this.subEl.textContent = 'Nueva partida en unos segundos'; }
@@ -520,7 +659,7 @@ export class RoyaleClient extends Base {
 
   async fire() {
     const m = this.me;
-    if (!m || !m.alive || this.rs.phase !== 'match') return;
+    if (!m || !m.alive || m.onBus || this.rs.phase !== 'match') return;
     const w = this.weapons[m.weapon];
     const now = performance.now();
     if (now < this.nextShot || m.ammo[m.weapon] <= 0) {
@@ -528,6 +667,7 @@ export class RoyaleClient extends Base {
       return;
     }
     this.nextShot = now + w.cd;
+    this.game.player.yaw = this.game.cam.yaw + Math.PI; // el personaje se gira hacia donde apuntas
     const b = this.game.player.body;
     const head = new THREE.Vector3(b.x, b.y + 1.6, b.z);
     const aim = this.aimPoint();
@@ -563,13 +703,14 @@ export class RoyaleClient extends Base {
   }
 
   promptFor(e) {
-    if (e.o.t === 'chest') return e.opened || this.rs.phase !== 'match' ? null : 'Abrir cofre de botín';
+    if (e.o.t === 'chest') return e.opened || this.rs.phase !== 'match' ? null : String(e.o.id).startsWith('gold') ? '✨ Abrir cofre DORADO' : 'Abrir cofre de botín';
     return undefined;
   }
 
   update(dt) {
     const g = this.game;
     const now = g.now();
+    this.updateBus(dt);
     if (input.pressed('KeyG') && this.rs.phase === 'lobby') {
       net.request('mode', { name: 'start' }).then((r) => r.error && toast(r.error, 'warn'));
     }
@@ -588,7 +729,7 @@ export class RoyaleClient extends Base {
 
     // Fantasma de construcción
     this.ghost.visible = false;
-    if (this.build && this.me?.alive && this.rs.phase === 'match') {
+    if (this.build && this.me?.alive && !this.me.onBus && !this.me.air && this.rs.phase === 'match') {
       const b = g.player.body;
       const yaw = g.cam.yaw + Math.PI; // dirección a la que mira la cámara
       const fx = Math.sin(yaw), fz = Math.cos(yaw);
@@ -627,7 +768,7 @@ export class RoyaleClient extends Base {
       const out = Math.hypot(b.x - s.x, b.z - s.z) > s.r;
       const t = Math.max(0, s.t1 - now);
       this.statusEl.textContent = `👥 ${this.alive} vivos`;
-      this.subEl.textContent = (s.phase < 0 ? '' : `Tormenta: ${mmss(t)}`) + (out ? ' · ⚠️ ¡ESTÁS EN LA TORMENTA!' : '');
+      this.subEl.textContent = (this.me?.onBus ? '🚌 ESPACIO: saltar del bus · ' : '') + (s.phase < 0 ? '' : `Tormenta: ${mmss(t)}`) + (out ? ' · ⚠️ ¡ESTÁS EN LA TORMENTA!' : '');
       g.scene.fog.color.lerp(new THREE.Color(out ? '#6a1b9a' : g.scene.fog.color), 0.1);
     } else this.stormMesh.visible = false;
 
@@ -644,6 +785,11 @@ export class RoyaleClient extends Base {
   dispose() {
     const g = this.game;
     g.scene.remove(this.stormMesh, this.ghost);
+    if (this.busMesh) g.scene.remove(this.busMesh);
+    for (const b of this.beams || []) g.scene.remove(b.mesh);
+    this.glider?.parent?.remove(this.glider);
+    g.player.model.root.visible = true;
+    for (const r of g.remotes.values()) r.model.root.visible = true;
     for (const id of [...this.pieces.keys()]) this.removePiece(id);
     for (const t of this.tracers) g.scene.remove(t.line);
     this.bottom.remove();

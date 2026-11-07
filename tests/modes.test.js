@@ -26,10 +26,20 @@ test('Royale: bots, disparos, botín y construcción', async () => {
     assert.ok(r.ok);
     const room = roomOf();
     const mode = room.mode;
-    assert.equal(mode.fighters.size, 6, '1 jugador + 5 bots');
+    assert.equal(mode.fighters.size, 30, '1 jugador + 29 bots');
+    assert.ok([...mode.fighters.values()].every((f) => f.onBus), 'todos empiezan en el bus');
     mode.startAt = Date.now() - 1; // salta la cuenta atrás
     await sleep(200);
     assert.equal(mode.phase, 'match');
+    // Desde el bus no se puede disparar; al saltar sí
+    r = await emit(s, 'mode', { name: 'shoot', data: { d: [0, -1, 0] } });
+    assert.ok(r.error, 'en el bus no se dispara');
+    r = await emit(s, 'mode', { name: 'jump' });
+    assert.ok(r.ok);
+    assert.ok(room.players.get(userId).skydive);
+    r = await emit(s, 'mode', { name: 'landed' });
+    assert.ok(r.ok && !room.players.get(userId).skydive);
+    for (const f of mode.fighters.values()) { f.onBus = false; f.air = false; }
     // Coloca un bot delante del jugador y dispara hacia él
     const p = room.players.get(userId);
     const bot = [...mode.bots.values()][0];
@@ -162,6 +172,44 @@ test('Only Up guarda la altura récord y Teclas usa sus propias estadísticas', 
     assert.equal(users.getUser(userId).stats.upBest, 57);
     const j = await emit(s, 'room:join', { key: 'keys' });
     assert.equal(j.mode.obby.total, 4, 'cuatro puntos de control (barras espaciadoras)');
+  } finally {
+    s.disconnect();
+  }
+});
+
+test('Token Pirata: solo lo recibe el elegido por el desarrollador y regala toda la tienda', async () => {
+  const s = await srv.connect(token);
+  try {
+    const { SHOP_BY_ID } = await import('../shared/catalog.js');
+    const users = await import('../server/services/users.js');
+    await emit(s, 'room:join', { key: 'royale' });
+    if (roomOf().mode.phase !== 'lobby') roomOf().mode.toLobby();
+    const st = await emit(s, 'mode', { name: 'start' });
+    assert.ok(st.ok, JSON.stringify(st));
+    const room = roomOf();
+    const mode = room.mode;
+    mode.startAt = Date.now() - 1;
+    await sleep(200);
+    for (const f of mode.fighters.values()) { f.onBus = false; f.air = false; }
+    const gold = [...mode.chests.values()].filter((c) => c.id.startsWith('gold'));
+    assert.equal(gold.length, 5, 'cinco cofres dorados');
+    assert.ok(mode.tokenChest, 'uno guarda el token');
+    const p = room.players.get(userId);
+    const tc = mode.chests.get(mode.tokenChest);
+    // Sin ser elegido: botín dorado, pero sin token
+    room.teleport(p, tc.p);
+    let r = await emit(s, 'interact', { id: tc.id });
+    assert.ok(r.ok && !r.token, JSON.stringify(r));
+    assert.equal(users.getInventory(userId).size < Object.keys(SHOP_BY_ID).length, true);
+    // El desarrollador lo elige: el cofre del token se vuelve a sortear y lo recibe
+    assert.ok(users.setPirateTarget(userId, true).ok);
+    mode.looted.delete(tc.id);
+    await sleep(160);
+    r = await emit(s, 'interact', { id: tc.id });
+    assert.ok(r.ok && r.token, JSON.stringify(r));
+    assert.equal(users.getInventory(userId).size, Object.keys(SHOP_BY_ID).length, 'toda la tienda');
+    assert.equal(users.isPirateTarget(userId), false, 'el token se usa una sola vez');
+    assert.ok(users.pirateClaims().some((c) => c.id === userId));
   } finally {
     s.disconnect();
   }

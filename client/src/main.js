@@ -19,6 +19,7 @@ import { profileScreen } from './ui/screens/profile.js';
 import { adminScreen } from './ui/screens/admin.js';
 import { coinsScreen } from './ui/screens/coins.js';
 import { showJumpscare } from './ui/adminPanel.js';
+import { showPirateToken } from './ui/pirateToken.js';
 import { Game } from './game/game.js';
 import { loginAsGuest } from './core/guest.js';
 import { loadCustomEmotes } from './core/emotes.js';
@@ -183,6 +184,7 @@ class App {
     });
     net.on('toast', (t) => toast(t.text, t.kind || 'info'));
     net.on('admin:jumpscare', () => showJumpscare());
+    net.on('pirate:token', () => showPirateToken());
     net.on('inventory', () => store.refreshUser().catch(() => {}));
     net.on('announce', ({ text, from }) => {
       audio.play('checkpoint');

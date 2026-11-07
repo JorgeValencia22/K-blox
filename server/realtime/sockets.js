@@ -336,6 +336,14 @@ function adminAction(io, rooms, socket, admin, action, req) {
       if (!u) return { error: 'Usuario no encontrado' };
       return users.giveCoins(u.id, req.amount, `Regalo de ${admin.username}`);
     }
+    case 'pirateList':
+      return { ok: true, targets: users.pirateTargets(), claims: users.pirateClaims() };
+    case 'pirateSet': {
+      const u = users.getUser(targetId) || users.getUserByName(String(req.username || ''));
+      if (!u) return { error: 'Usuario no encontrado' };
+      log(`Token Pirata ${req.on ? 'para' : 'ya no para'} ${u.username}`);
+      return users.setPirateTarget(u.id, !!req.on);
+    }
     case 'createCode':
       return users.createGiftCode(admin.id, { code: req.code, coins: req.coins, uses: req.uses });
     case 'codes':

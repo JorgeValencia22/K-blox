@@ -487,3 +487,46 @@ export function searchUsersAdmin(q) {
   return getDb().prepare('SELECT id, username, level, coins, role, banned_until, last_seen FROM users WHERE username LIKE ? ORDER BY last_seen DESC LIMIT 30').all(s)
     .map((u) => ({ ...u, online: presence.isOnline(u.id), banned: u.banned_until > Date.now(), perma: u.banned_until >= PERMA_BAN }));
 }
+
+// --- Token Pirata ---------------------------------------------------------------------------
+// El desarrollador elige quién puede encontrarlo (en un cofre dorado de Isla Royale). Quien lo
+// consigue recibe todos los objetos de la tienda y sale un anuncio. Se guarda en la tabla meta.
+const metaGet = (key, d) => {
+  try { const r = getDb().prepare('SELECT value FROM meta WHERE key = ?').get(key); return r ? JSON.parse(r.value) : d; } catch { return d; }
+};
+const metaSet = (key, v) => getDb().prepare('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, JSON.stringify(v));
+
+export function pirateTargets() {
+  return metaGet('pirate:targets', []).map((id) => getUser(id)).filter(Boolean).map((u) => ({ id: u.id, username: u.username }));
+}
+
+export function isPirateTarget(userId) {
+  return metaGet('pirate:targets', []).includes(userId);
+}
+
+export function setPirateTarget(userId, on) {
+  const u = getUser(userId);
+  if (!u) return { error: 'Usuario no encontrado' };
+  const set = new Set(metaGet('pirate:targets', []));
+  if (on) set.add(userId); else set.delete(userId);
+  metaSet('pirate:targets', [...set]);
+  return { ok: true, targets: pirateTargets() };
+}
+
+export function pirateClaims() {
+  return metaGet('pirate:claims', []);
+}
+
+/** El jugador ha abierto el cofre del Token Pirata: toda la tienda es suya. */
+export function claimPirateToken(userId) {
+  const u = getUser(userId);
+  if (!u || !isPirateTarget(userId)) return { error: 'No eres el elegido' };
+  const r = grantItem(userId, 'all');
+  setPirateTarget(userId, false);
+  const claims = pirateClaims();
+  claims.push({ id: userId, username: u.username, at: Date.now() });
+  metaSet('pirate:claims', claims.slice(-50));
+  unlockAchievement(userId, 'pirate_token');
+  presence.emit(userId, 'pirate:token', { added: r.added || 0 });
+  return { ok: true, added: r.added || 0, username: u.username };
+}

@@ -90,6 +90,14 @@ export function buildRoyale() {
     chests.push([x, ground(x, z) + 0.5, z]);
   }
   chests.forEach((c, i) => g.add('chest', c, [1.4, 1, 1], '#ffb300', 'wood', { id: `loot${i}` }));
+  // Cofres dorados: botín especial y, en uno de ellos (se sortea cada partida), el Token Pirata
+  const golds = [];
+  for (let i = 0; i < 600 && golds.length < 5; i++) {
+    const x = (rnd() - 0.5) * 210, z = (rnd() - 0.5) * 210;
+    if (!land(x, z) || Math.hypot(x, z) < 20 || golds.some((c) => Math.hypot(c[0] - x, c[2] - z) < 60)) continue;
+    golds.push([x, ground(x, z) + 0.5, z]);
+  }
+  golds.forEach((c, i) => g.add('chest', c, [1.6, 1.15, 1.15], '#ffd600', 'wood', { id: `gold${i}` }));
 
   // Vegetación y rocas como coberturas
   let trees = 0;

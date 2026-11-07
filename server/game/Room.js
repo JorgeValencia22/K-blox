@@ -188,7 +188,7 @@ export class Room {
     const now = Date.now();
     const veh = p.vehicleId ? this.vehicles.get(p.vehicleId) : null;
     // Con poderes de administrador (volar, supervelocidad…) no se aplica el límite de velocidad
-    const free = p.powers?.size > 0;
+    const free = p.powers?.size > 0 || !!p.skydive;
     if ((!free && !inBounds(msg.p, this.world.bounds)) || (!free && !plausibleMove(p.lastPos, msg.p, now - p.lastAccept, veh?.type))) {
       this.flag(p, 'movement');
       p.socket.emit('correction', { p: p.lastPos });

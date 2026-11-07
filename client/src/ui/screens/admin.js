@@ -13,7 +13,7 @@ export function adminScreen(app) {
   const body = h('div');
   let timer = null;
 
-  const renderTabs = () => clear(tabs).append(...[['live', '🖥️ Servidores'], ['people', '👤 Jugadores'], ['global', '⛔ Control global'], ['coins', '🪙 Monedas y códigos'], ['reports', '🚩 Reportes'], ['data', '💾 Datos guardados']].map(([id, label]) =>
+  const renderTabs = () => clear(tabs).append(...[['live', '🖥️ Servidores'], ['people', '👤 Jugadores'], ['global', '⛔ Control global'], ['coins', '🪙 Monedas y códigos'], ['reports', '🚩 Reportes'], ['data', '💾 Datos guardados'], ['pirate', '🏴‍☠️ Token Pirata']].map(([id, label]) =>
     h(`button.pill${tab === id ? '.on' : ''}`, { on: { click: () => { tab = id; renderTabs(); load(); } } }, label)));
 
   async function live() {
@@ -87,6 +87,37 @@ export function adminScreen(app) {
         }, 'primary')),
       ),
     );
+  }
+
+  async function pirate() {
+    const q = h('input.input', { placeholder: 'Buscar jugador por nombre…' });
+    const results = h('div.list');
+    const chosen = h('div.list');
+    const claims = h('div.list');
+    const refresh = async () => {
+      const r = await adminRequest('pirateList');
+      if (!r.ok) return;
+      clear(chosen).append(...(r.targets.length ? r.targets.map((t) => h('div.list-item', h('b.grow', `🏴‍☠️ ${t.username}`), button('Quitar', async () => { await adminRequest('pirateSet', { userId: t.id, on: false }); refresh(); }, 'small danger'))) : [h('p.muted.small', 'Nadie elegido: el Token Pirata no le saldrá a nadie.')]));
+      clear(claims).append(...(r.claims.length ? r.claims.slice().reverse().map((c) => h('div.list-item', h('b.grow', c.username), h('span.muted.small', new Date(c.at).toLocaleString()))) : [h('p.muted.small', 'Todavía nadie lo ha conseguido.')]));
+    };
+    const search = async () => {
+      const r = await adminRequest('users', { q: q.value.trim() });
+      clear(results).append(...(r.users || []).map((u) => h('div.list-item', h('span.grow', u.username, h('span.muted.small', ` · Nv ${u.level}${u.online ? ' · 🟢 conectado' : ''}`)),
+        button('Elegir 🏴‍☠️', async () => { const x = await adminRequest('pirateSet', { userId: u.id, on: true }); if (x.ok) { toast(`${u.username} podrá encontrar el Token Pirata`, 'ok'); refresh(); } }, 'small primary'))));
+    };
+    q.addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
+    clear(body).append(
+      h('div.panel.admin-room',
+        h('h3', '🏴‍☠️ Token Pirata'),
+        h('p.muted.small', 'En Isla Royale hay 5 cofres dorados (con rayo de luz) y en cada partida uno de ellos guarda el Token Pirata. Solo lo recibe el jugador que elijas aquí: sale un anuncio a pantalla completa y se le regala TODA la tienda. El elegido deja de serlo al conseguirlo.'),
+        h('img', { src: '/token-pirata.jpg', style: { width: '120px', borderRadius: '14px', margin: '4px 0' } }),
+      ),
+      h('div.panel.admin-room', h('h3', 'Elegidos'), chosen),
+      h('div.panel.admin-room', h('h3', 'Elegir a un jugador'), h('div.row', q, button('Buscar', search, 'primary')), results),
+      h('div.panel.admin-room', h('h3', 'Quién lo ha conseguido'), claims),
+    );
+    refresh();
+    search();
   }
 
   async function coins() {
@@ -200,6 +231,7 @@ export function adminScreen(app) {
     else if (tab === 'people') people();
     else if (tab === 'global') global();
     else if (tab === 'coins') coins();
+    else if (tab === 'pirate') pirate();
     else if (tab === 'data') data();
     else reports();
   }
